@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spring Evals</title>
+<meta name="description" content="How well do AI models write Spring code? Agent evaluations on real Spring Boot 4 tasks with hidden tests.">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+  @theme {
+    --color-spring: #6db33f;
+    --color-spring-deep: #4c8a2e;
+    --font-sans: "InterVariable", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  }
+  body { font-feature-settings: "cv02", "cv03", "cv04", "cv11"; }
+</style>
+</head>
+<body class="isolate min-h-dvh bg-white font-sans text-zinc-900 dark:bg-neutral-950 dark:text-neutral-200">
+
+  <header class="border-b border-zinc-950/10 dark:border-white/10">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2.5">
+        <svg viewBox="0 0 24 24" class="size-7 shrink-0 fill-spring" aria-hidden="true"><path d="M20.6 2.2c-.3.8-.8 1.6-1.3 2.3A10.6 10.6 0 0 0 1.7 12c0 5.9 4.8 10.6 10.6 10.6 5.7 0 10.4-4.5 10.6-10.2.2-2.8-.5-6.5-2.3-10.2ZM6.9 19.1a.9.9 0 1 1-.1-1.3.9.9 0 0 1 .1 1.3Zm13.5-3c-2.5 3.3-7.8 2.2-11.2 2.4 0 0-.6 0-1.2.1 0 0 .2-.1.5-.2 2.4-.8 3.5-1 5-1.7 2.7-1.4 5.4-4.4 5.9-7.5-1 3-4.1 5.6-7 6.6-2 .7-5.5 1.4-5.5 1.4l-.1-.1c-2.4-1.2-2.5-6.4 1.9-8.1 1.9-.7 3.8-.3 5.9-.8 2.2-.5 4.8-2.2 5.8-4.4 1.2 3.4 2.5 8.7 0 12.3Z"/></svg>
+        <p class="text-lg font-semibold tracking-tight dark:font-mono dark:text-white"><span class="not-dark:hidden text-spring">$ </span>Spring Evals</p>
+      </div>
+      <nav class="flex items-center gap-6 text-sm font-medium text-zinc-600 dark:font-mono dark:text-neutral-400">
+        <a href="#leaderboard" class="hover:text-zinc-950 dark:hover:text-spring">Leaderboard</a>
+        <a href="#evals" class="hover:text-zinc-950 dark:hover:text-spring">Evals</a>
+        <a href="https://github.com/danvega/spring-evals" class="hover:text-zinc-950 dark:hover:text-spring">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section class="py-12 sm:py-16">
+      <p class="font-mono text-sm/6 font-medium tracking-wide text-spring-deep uppercase dark:text-spring"><span class="not-dark:hidden">// </span>AI agent evaluations</p>
+      <h1 class="mt-2 text-4xl font-semibold tracking-tight text-balance sm:text-5xl dark:text-white">How well do AI models write Spring code?</h1>
+      <p class="mt-4 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">Coding agents solve real Spring Boot 4 and Framework 7 tasks in separated temporary workspaces. Trusted tests and mechanism checks are injected after each session. One attempt is the default; retries are explicit.</p>
+      <p class="mt-4 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500">Last run <span class="dark:text-neutral-300" data-slot="generated">–</span> <span data-slot="sample" class="ml-2 hidden rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 inset-ring inset-ring-amber-600/20 dark:bg-transparent dark:text-amber-400 dark:inset-ring-amber-400/30">sample data</span></p>
+    </section>
+
+    <section aria-label="Summary" class="grid grid-cols-2 gap-y-8 border-y border-zinc-950/10 py-8 lg:grid-cols-5 dark:border-white/10">
+      <div class="border-zinc-950/10 pr-6 lg:border-r dark:border-white/10">
+        <p class="truncate text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">Evals</p>
+        <p class="text-3xl font-semibold tracking-tight tabular-nums dark:text-white" data-slot="stat-evals">–</p>
+      </div>
+      <div class="border-zinc-950/10 pl-6 lg:border-r lg:px-6 dark:border-white/10">
+        <p class="truncate text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">Project suites</p>
+        <p class="text-3xl font-semibold tracking-tight tabular-nums dark:text-white" data-slot="stat-projects">–</p>
+      </div>
+      <div class="border-zinc-950/10 pr-6 lg:border-r lg:px-6 dark:border-white/10">
+        <p class="truncate text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">Agents tested</p>
+        <p class="text-3xl font-semibold tracking-tight tabular-nums dark:text-white" data-slot="stat-agents">–</p>
+      </div>
+      <div class="border-zinc-950/10 pl-6 lg:border-r lg:px-6 dark:border-white/10">
+        <p class="truncate text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">Best full-coverage Pass@k</p>
+        <p class="text-3xl font-semibold tracking-tight text-spring-deep tabular-nums dark:text-spring" data-slot="stat-best">–</p>
+      </div>
+      <div class="pl-6">
+        <p class="truncate text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">Benchmark spend</p>
+        <p class="text-3xl font-semibold tracking-tight tabular-nums dark:text-white" data-slot="stat-spend">–</p>
+      </div>
+    </section>
+
+    <section id="leaderboard" class="py-12">
+      <h2 class="text-2xl font-semibold tracking-tight text-balance dark:text-white">Leaderboard</h2>
+      <p class="mt-1 text-base/7 text-zinc-600 dark:text-neutral-400">Pass@1 is primary. Pass@k includes authorized retries. Partial runs are diagnostic and are not leaderboard-eligible.</p>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-left text-sm/6">
+          <thead>
+            <tr class="border-b border-zinc-950/10 text-zinc-500 dark:border-white/10 dark:font-mono dark:text-neutral-500">
+              <th class="py-2 pr-4 font-medium whitespace-nowrap">Agent / model</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap">Coverage</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap">Pass@1 <span class="font-normal">/ 95% CI</span></th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap">Pass@k</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap">Avg tokens <span class="font-normal">/ cost</span></th>
+              <th class="py-2 pl-4 font-medium whitespace-nowrap">Total cost</th>
+            </tr>
+          </thead>
+          <tbody data-slot="leaderboard"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="py-4 pb-12">
+      <h2 class="text-2xl font-semibold tracking-tight text-balance dark:text-white">By Spring project</h2>
+      <p class="mt-1 text-base/7 text-zinc-600 dark:text-neutral-400">All 22 portfolio projects. Click one to drill into its evals.</p>
+
+      <div class="mt-6 overflow-x-auto">
+        <table class="text-left text-sm/6">
+          <thead data-slot="heatmap-head"></thead>
+          <tbody data-slot="heatmap"></tbody>
+        </table>
+      </div>
+      <p class="mt-3 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500">Cell shade = share of the suite's evals passed. Hollow = no evals in that suite yet.</p>
+      <div data-slot="drill" class="mt-6"></div>
+    </section>
+
+    <section id="evals" class="border-t border-zinc-950/10 py-12 dark:border-white/10">
+      <h2 class="text-2xl font-semibold tracking-tight text-balance dark:text-white">The evals</h2>
+      <p class="mt-1 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">Each eval is a real Spring project with a symptom-based task. Agents never see the tests that judge them.</p>
+      <ul role="list" class="mt-6 divide-y divide-zinc-950/5 dark:divide-white/5" data-slot="evals"></ul>
+    </section>
+  </main>
+
+  <footer class="border-t border-zinc-950/10 py-8 dark:border-white/10">
+    <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:font-mono dark:text-neutral-500">
+      <p>Built on the Spring AI Community Agent Client.</p>
+      <p>Propose a benchmark on <a href="https://github.com/danvega/spring-evals" class="font-medium text-zinc-700 hover:text-zinc-950 dark:text-neutral-300 dark:hover:text-spring">GitHub</a>.</p>
+    </div>
+  </footer>
+
+<script>
+const SUITES = ["boot", "framework", "data", "security", "cloud", "ai", "grpc", "authorization-server",
+  "graphql", "session", "integration", "hateoas", "modulith", "rest-docs", "batch", "amqp", "kafka",
+  "ldap", "pulsar", "shell", "web-flow", "web-services"];
+
+const S = {
+  row: "border-b border-zinc-950/5 dark:border-white/5",
+  agent: "py-3 pr-3 font-medium text-zinc-950 dark:font-mono dark:text-white",
+  cell: "px-3 py-3 text-zinc-600 dark:text-neutral-400",
+  last: "py-3 pl-3 text-zinc-600 dark:text-neutral-400",
+  barTrack: "h-1.5 w-20 rounded-full bg-zinc-950/5 dark:rounded-none dark:bg-white/10",
+  barFill: "h-1.5 rounded-full bg-spring w-(--w) dark:rounded-none",
+  rate: "font-medium text-zinc-950 tabular-nums dark:text-white",
+  sub: "text-sm text-zinc-500 dark:text-neutral-500",
+  evalTitle: "font-medium text-zinc-950 dark:text-neutral-200",
+  evalMeta: "font-mono text-sm text-zinc-500 dark:text-neutral-500",
+  badge: "rounded-full bg-spring/10 px-2 py-0.5 text-xs font-medium text-spring-deep dark:bg-transparent dark:font-mono dark:text-spring"
+};
+
+const pct = v => Math.round(v * 100) + "%";
+const slot = name => document.querySelector(`[data-slot="${name}"]`);
+let DATA = null;
+
+function agentCell(a) {
+  return `${a.agent}${a.eligible === false ? ' <span class="text-xs text-amber-600 dark:text-amber-400">partial</span>' : ''}`;
+}
+
+function passkBar(a) {
+  return `<div class="flex items-center gap-3">
+    <div class="${S.barTrack}"><div class="${S.barFill}" style="--w:${a.successRate * 100}%"></div></div>
+    <span class="${S.rate}">${pct(a.successRate)}</span>
+  </div>`;
+}
+
+function renderLeaderboard(data) {
+  slot("leaderboard").innerHTML = data.agents.map(a => `
+    <tr class="${S.row}">
+      <td class="py-3 pr-4">
+        <p class="font-medium text-zinc-950 dark:font-mono dark:text-white">${agentCell(a)}</p>
+        <p class="${S.sub}">${a.model}</p>
+      </td>
+      <td class="${S.cell} tabular-nums">${a.evals}/${a.totalEvals ?? a.evals}</td>
+      <td class="px-4 py-3">
+        <p class="${S.rate}">${pct(a.firstTryRate)}</p>
+        <p class="${S.sub} tabular-nums">${a.ciLower == null ? "" : pct(a.ciLower) + "–" + pct(a.ciUpper)}</p>
+      </td>
+      <td class="px-4 py-3">${passkBar(a)}</td>
+      <td class="px-4 py-3">
+        <p class="text-zinc-600 tabular-nums dark:text-neutral-400">${a.avgTokens == null ? "n/a" : a.avgTokens.toLocaleString()}</p>
+        <p class="${S.sub} tabular-nums">${a.avgCostUsd == null ? "" : "$" + a.avgCostUsd.toFixed(2) + "/task"}</p>
+      </td>
+      <td class="py-3 pl-4 text-zinc-600 tabular-nums dark:text-neutral-400">${a.totalCostUsd == null ? "n/a" : "$" + a.totalCostUsd.toFixed(2)}</td>
+    </tr>`).join("");
+}
+
+function suiteStats(data, suite) {
+  const evals = data.evals.filter(e => e.project === suite);
+  if (evals.length === 0) return { evals, hasData: false };
+  let best = 0;
+  for (const a of data.agents) {
+    const cell = (data.byProject[a.agent] || {})[suite];
+    if (cell) best = Math.max(best, cell[0] / (cell[2] ?? cell[1] ?? evals.length));
+  }
+  return { evals, hasData: true, best };
+}
+
+function drillHtml(data, suite) {
+  const { evals } = suiteStats(data, suite);
+  const close = `<button data-drill-close class="text-sm font-medium text-zinc-500 hover:text-zinc-950 dark:font-mono dark:hover:text-spring">close ×</button>`;
+  if (evals.length === 0) {
+    return `<div class="rounded-lg border border-dashed border-zinc-950/15 p-6 dark:border-white/15">
+      <div class="flex items-center justify-between">
+        <p class="font-medium text-zinc-950 dark:font-mono dark:text-white">spring-${suite}</p>${close}
+      </div>
+      <p class="mt-2 text-base/7 text-zinc-600 dark:text-neutral-400">No evals in this suite yet.
+      <a href="https://github.com/danvega/spring-evals/issues/new?template=benchmark-proposal.yml" class="font-medium text-spring-deep hover:underline dark:text-spring">Propose one →</a></p>
+    </div>`;
+  }
+  const rows = evals.map(e => {
+    const dots = data.agents.map(a => {
+      const passed = (data.byEval?.[a.agent] || {})[e.id];
+      const color = passed === true ? "bg-spring" : passed === false ? "bg-zinc-300 dark:bg-neutral-700" : "bg-transparent inset-ring inset-ring-zinc-300 dark:inset-ring-neutral-700";
+      return `<span class="size-2.5 rounded-full ${color}" title="${a.agent}: ${passed === true ? "passed" : passed === false ? "failed" : "not run"}"></span>`;
+    }).join("");
+    const passCount = data.agents.filter(a => (data.byEval?.[a.agent] || {})[e.id] === true).length;
+    return `<li class="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0">
+        <p class="${S.evalTitle}">${e.title}</p>
+        <p class="${S.evalMeta}">${e.id} · ${e.type} · ${e.difficulty}</p>
+      </div>
+      <div class="flex shrink-0 items-center gap-3">
+        <div class="flex items-center gap-1">${dots}</div>
+        <span class="${S.sub} tabular-nums">${passCount}/${data.agents.length} agents</span>
+      </div>
+    </li>`;
+  }).join("");
+  return `<div class="rounded-lg border border-zinc-950/10 p-6 dark:border-white/10">
+    <div class="flex items-center justify-between">
+      <p class="font-medium text-zinc-950 dark:font-mono dark:text-white">spring-${suite} · ${evals.length} eval${evals.length === 1 ? "" : "s"}</p>${close}
+    </div>
+    <ul role="list" class="mt-2 divide-y divide-zinc-950/5 dark:divide-white/5">${rows}</ul>
+  </div>`;
+}
+
+function wireDrill(container, drillSlotName) {
+  container.addEventListener("click", event => {
+    const trigger = event.target.closest("[data-suite]");
+    const closer = event.target.closest("[data-drill-close]");
+    const drill = slot(drillSlotName);
+    if (closer) { drill.innerHTML = ""; return; }
+    if (!trigger) return;
+    drill.innerHTML = drillHtml(DATA, trigger.dataset.suite);
+    drill.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+  slot(drillSlotName).addEventListener("click", event => {
+    if (event.target.closest("[data-drill-close]")) slot(drillSlotName).innerHTML = "";
+  });
+}
+
+function renderHeatmap(data) {
+  slot("heatmap-head").innerHTML = `
+    <tr class="text-zinc-500 dark:font-mono dark:text-neutral-500">
+      <th class="py-2 pr-3 text-left align-bottom font-medium">Agent</th>
+      ${SUITES.map(suite => `<th class="px-0.5 pb-2 align-bottom">
+        <button data-suite="${suite}" class="mx-auto block rotate-180 text-sm font-medium whitespace-nowrap hover:text-spring-deep dark:hover:text-spring [writing-mode:vertical-rl]">${suite}</button>
+      </th>`).join("")}
+    </tr>`;
+  slot("heatmap").innerHTML = data.agents.map(a => `
+    <tr>
+      <td class="${S.agent} whitespace-nowrap">${a.agent}</td>
+      ${SUITES.map(suite => {
+        const cell = (data.byProject[a.agent] || {})[suite];
+        const evalCount = data.evals.filter(e => e.project === suite).length;
+        if (!cell || evalCount === 0) {
+          return `<td class="p-0.5"><button data-suite="${suite}" class="block size-6 rounded-xs inset-ring inset-ring-zinc-950/10 dark:inset-ring-white/10" title="spring-${suite}: no evals yet"></button></td>`;
+        }
+        const [passed, attempted, total = attempted] = cell;
+        const ratio = total === 0 ? 0 : passed / total;
+        return `<td class="p-0.5"><button data-suite="${suite}" class="block size-6 rounded-xs inset-ring inset-ring-zinc-950/10 dark:inset-ring-white/10"
+          style="background-color: color-mix(in srgb, var(--color-spring) ${Math.round(ratio * 90) + (ratio > 0 ? 10 : 0)}%, transparent)"
+          title="spring-${suite} · ${a.agent}: ${passed}/${total} passed"></button></td>`;
+      }).join("")}
+    </tr>`).join("");
+}
+
+function render(data) {
+  DATA = data;
+  slot("generated").textContent = new Date(data.generated).toISOString().slice(0, 10);
+  if (data.sample) slot("sample").classList.remove("hidden");
+  slot("stat-evals").textContent = data.evals.length;
+  slot("stat-projects").textContent = data.projects.length + "/" + SUITES.length;
+  slot("stat-agents").textContent = data.agents.length;
+  const eligible = data.agents.filter(a => a.eligible !== false && (a.totalEvals == null || a.evals === a.totalEvals));
+  slot("stat-best").textContent = eligible.length ? pct(Math.max(...eligible.map(a => a.successRate))) : "n/a";
+  slot("stat-spend").textContent = data.spendUsd == null ? "n/a" : "$" + data.spendUsd.toFixed(2) + (data.spendPartial ? "+" : "");
+
+  renderLeaderboard(data);
+  renderHeatmap(data);
+  wireDrill(slot("heatmap-head").closest("table"), "drill");
+
+  slot("evals").innerHTML = data.evals.map(e => `
+    <li class="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0">
+        <p class="${S.evalTitle}">${e.title}</p>
+        <p class="${S.evalMeta}">${e.id}</p>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <span class="${S.badge}">${e.type}</span>
+        <span class="${S.badge}">${e.difficulty}</span>
+      </div>
+    </li>`).join("");
+}
+
+fetch("./data.json")
+  .then(r => r.json())
+  .then(render)
+  .catch(err => console.error("could not load data.json", err));
+</script>
+</body>
+</html>

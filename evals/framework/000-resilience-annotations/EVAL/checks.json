@@ -1,0 +1,14 @@
+{
+  "requiredSourcePatterns": [
+    "org\\.springframework\\.resilience\\.annotation\\.Retryable",
+    "org\\.springframework\\.resilience\\.annotation\\.ConcurrencyLimit",
+    "org\\.springframework\\.resilience\\.annotation\\.EnableResilientMethods"
+  ],
+  "forbiddenSourcePatterns": [
+    "java\\.util\\.concurrent\\.Semaphore"
+  ],
+  "forbiddenPomPatterns": [
+    "spring-retry",
+    "resilience4j"
+  ]
+}

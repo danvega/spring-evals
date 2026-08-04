@@ -1,0 +1,17 @@
+name: 002-restclient-migration
+project: boot
+title: Migrate RestTemplate code to the auto-configured RestClient
+category: web
+type: fix
+difficulty: easy
+baseline_failure: compile_failure
+boot_version: 4.0.7
+timeout_seconds: 900
+description: >
+  Boot 4 moved RestTemplate and RestClient support into the separate
+  spring-boot-restclient module, so code injecting RestTemplateBuilder no
+  longer compiles on a webmvc-only classpath. The agent must add
+  spring-boot-starter-restclient and migrate the service to the
+  auto-configured RestClient.Builder rather than hand-constructing a
+  client. This is the suite's baseline eval: a model that cannot pass it
+  has no business attempting the harder ones.

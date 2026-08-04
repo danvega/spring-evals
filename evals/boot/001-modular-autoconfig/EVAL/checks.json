@@ -1,0 +1,9 @@
+{
+  "requiredPomPatterns": [
+    "spring-boot-(starter-)?flyway",
+    "spring-boot-h2console"
+  ],
+  "forbiddenPomPatterns": [
+    "spring-boot-autoconfigure-classic"
+  ]
+}

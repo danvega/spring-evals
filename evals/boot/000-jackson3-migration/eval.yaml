@@ -1,0 +1,16 @@
+name: 000-jackson3-migration
+project: boot
+title: Jackson 2 to Jackson 3 migration after a Spring Boot 4 upgrade
+category: json
+type: fix
+difficulty: medium
+baseline_failure: compile_failure
+boot_version: 4.0.7
+timeout_seconds: 900
+description: >
+  A Spring Boot 3.5 service was bumped to Boot 4.0, which ships Jackson 3.
+  The code still uses com.fasterxml.jackson.databind (ObjectMapper, JavaTimeModule,
+  checked JsonProcessingException) and no longer compiles. The agent must migrate
+  to the tools.jackson stack while preserving the API's JSON contract
+  (snake_case names, ISO dates), using Spring's auto-configured JsonMapper
+  rather than constructing its own.

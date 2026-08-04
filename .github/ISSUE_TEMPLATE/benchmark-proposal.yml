@@ -1,0 +1,106 @@
+name: Benchmark proposal
+description: Propose a new eval that tests AI model competency at Spring
+title: "[Eval]: "
+labels: ["benchmark-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a benchmark! The best ideas come from watching an AI assistant get real Spring work wrong. You do not need to write any code to propose an eval.
+  - type: input
+    id: task
+    attributes:
+      label: Task in one sentence
+      description: What should the agent be asked to do?
+      placeholder: Fix a Boot 4 app where the H2 console disappeared after the upgrade
+    validations:
+      required: true
+  - type: dropdown
+    id: project
+    attributes:
+      label: Spring project
+      description: Which portfolio project does this eval target? This decides the suite it lands in.
+      options:
+        - spring-framework
+        - spring-boot
+        - spring-data
+        - spring-cloud
+        - spring-ai
+        - spring-security
+        - spring-authorization-server
+        - spring-grpc
+        - spring-graphql
+        - spring-session
+        - spring-integration
+        - spring-hateoas
+        - spring-modulith
+        - spring-rest-docs
+        - spring-batch
+        - spring-amqp
+        - spring-kafka
+        - spring-ldap
+        - spring-pulsar
+        - spring-shell
+        - spring-web-flow
+        - spring-web-services
+        - other
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - json
+        - web
+        - data
+        - security
+        - testing
+        - config
+        - observability
+        - messaging
+        - other
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Task type
+      description: Fix tasks start from broken code. Build tasks start from a skeleton.
+      options:
+        - fix (broken starter code)
+        - build (feature from scratch)
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Spring Boot / Framework version
+      placeholder: Boot 4.0.x
+    validations:
+      required: true
+  - type: textarea
+    id: why-models-fail
+    attributes:
+      label: Why do models get this wrong?
+      description: What do they actually do today? Wrong packages, outdated APIs, hallucinated properties? Paste an example if you have one.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: How could a hidden test verify success?
+      description: Remember tests must be black-box. HTTP calls, context checks, or observable behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: prompt-sketch
+    attributes:
+      label: Prompt sketch (optional)
+      description: How would a developer describe this problem? Symptoms only, no solution.
+  - type: checkboxes
+    id: build-it
+    attributes:
+      label: Want to build it?
+      options:
+        - label: I would like to submit the PR for this eval myself

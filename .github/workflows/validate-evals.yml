@@ -1,0 +1,31 @@
+name: Validate evals
+
+on:
+  pull_request:
+    paths:
+      - "evals/**"
+      - "harness/**"
+      - "agents/**"
+      - "spring-evals"
+  push:
+    branches: [main]
+    paths:
+      - "evals/**"
+      - "harness/**"
+      - "agents/**"
+      - "spring-evals"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Test harness
+        run: cd harness && ./mvnw -q test
+      - name: Validate all eval fixtures (no model calls)
+        run: ./spring-evals validate

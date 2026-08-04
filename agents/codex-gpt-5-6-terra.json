@@ -1,0 +1,6 @@
+{
+  "name": "codex-gpt-5-6-terra",
+  "provider": "codex",
+  "model": "gpt-5.6-terra",
+  "estCostPerAttemptUsd": 0.40
+}

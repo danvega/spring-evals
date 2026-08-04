@@ -1,0 +1,8 @@
+.runs/
+node_modules/
+target/
+*.log
+.DS_Store
+.idea/
+.claude/
+dashboard/*.png

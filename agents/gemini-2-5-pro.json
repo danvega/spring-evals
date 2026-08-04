@@ -1,0 +1,6 @@
+{
+  "name": "gemini-2-5-pro",
+  "provider": "gemini",
+  "model": "gemini-2.5-pro",
+  "estCostPerAttemptUsd": 0.60
+}

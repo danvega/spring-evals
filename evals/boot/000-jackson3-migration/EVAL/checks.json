@@ -1,0 +1,8 @@
+{
+  "requiredSourcePatterns": [
+    "tools\\.jackson\\.databind\\.json\\.JsonMapper"
+  ],
+  "forbiddenSourcePatterns": [
+    "com\\.fasterxml\\.jackson\\.(databind|core|datatype)"
+  ]
+}

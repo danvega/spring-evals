@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Spring Evals CLI. Usage: ./spring-evals <list|validate|doctor|run|report|estimate> [args]
+# Thin wrapper around the Java harness in harness/.
+set -euo pipefail
+cd "$(dirname "$0")/harness"
+exec ./mvnw -q compile exec:java \
+  -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \
+  -Dexec.args="$*"

@@ -1,0 +1,18 @@
+name: 001-modular-autoconfig
+project: boot
+title: Restore features lost to Boot 4 modular auto-configuration
+category: config
+type: fix
+difficulty: medium
+baseline_failure: test_failure
+pilot: true
+boot_version: 4.0.7
+timeout_seconds: 900
+description: >
+  Spring Boot 4 split the monolithic spring-boot-autoconfigure JAR into
+  focused modules. Raw dependencies (com.h2database:h2, flyway-core) no
+  longer activate their auto-configuration, so Flyway migrations silently
+  stop running and the H2 console disappears. The agent must diagnose an
+  absence rather than an error and add spring-boot-starter-flyway plus
+  spring-boot-h2console instead of reaching for Boot 3 fixes or the
+  autoconfigure-classic escape hatch.

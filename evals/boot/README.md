@@ -1,0 +1,11 @@
+# Spring Boot evals
+
+Evals for [Spring Boot](https://spring.io/projects/spring-boot): auto-configuration, starters, upgrades, and the opinionated application model.
+
+| Eval | Type | Difficulty | What it tests |
+|---|---|---|---|
+| [000-jackson3-migration](000-jackson3-migration) | fix | medium | Migrating Jackson 2 code to the Jackson 3 / `tools.jackson` stack while preserving the API's JSON contract |
+| [001-modular-autoconfig](001-modular-autoconfig) | fix | medium | Diagnosing features that silently vanished under modular auto-configuration (Flyway, H2 console) |
+| [002-restclient-migration](002-restclient-migration) | fix | easy | Migrating RestTemplate code to the auto-configured RestClient with the right starter |
+
+Have an idea for one? Open a [benchmark proposal](../../../../issues/new?template=benchmark-proposal.yml) or see [CONTRIBUTING.md](../../CONTRIBUTING.md) to build it.

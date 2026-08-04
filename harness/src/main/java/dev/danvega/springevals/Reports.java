@@ -1,0 +1,276 @@
+package dev.danvega.springevals;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import dev.danvega.springevals.ResultStore.RunRecord;
+
+/** Coverage-aware benchmark reports with pass@1, pass@k, uncertainty, and task-level cost. */
+public class Reports {
+
+    private record Row(String agent, String model, int evals, int totalEvals, int attempts, boolean eligible,
+            double coverage, double successRate, double firstTryRate, double ciLower, double ciUpper,
+            Long avgTokens, Double avgDurationS, Double avgCostUsd, Double costPerPassUsd, Double totalCostUsd) {
+    }
+
+    private final Path repoRoot;
+    private final EvalCatalog catalog;
+    private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
+    public Reports(Path repoRoot, EvalCatalog catalog) {
+        this.repoRoot = repoRoot;
+        this.catalog = catalog;
+    }
+
+    public void print(List<RunRecord> results) {
+        int storedRecords = results.size();
+        List<RunRecord> cohort = currentCohort(results);
+        if (cohort.isEmpty()) {
+            System.out.println("no results yet — run a cost estimate before authorizing a model campaign");
+            if (storedRecords > 0) {
+                System.out.println(storedRecords + " stored record(s) belong to an older benchmark cohort and were ignored");
+            }
+            return;
+        }
+        if (storedRecords != cohort.size()) {
+            System.out.println("ignored " + (storedRecords - cohort.size())
+                    + " stored record(s) from older task, agent-config, or harness identities");
+        }
+
+        int totalEvals = catalog.all().size();
+        Set<String> agentNames = new LinkedHashSet<>(cohort.stream().map(RunRecord::agent).toList());
+        List<Row> rows = agentNames.stream().map(agent -> rowFor(agent, cohort, totalEvals))
+                .sorted(Comparator.comparing(Row::eligible).reversed()
+                        .thenComparing(Comparator.comparingDouble(Row::firstTryRate).reversed())
+                        .thenComparing(Comparator.comparingDouble(Row::successRate).reversed())
+                        .thenComparing(Comparator.comparingDouble(Row::ciLower).reversed())
+                        .thenComparing(Row::agent))
+                .toList();
+
+        List<Double> knownCosts = cohort.stream().map(RunRecord::costUsd).filter(c -> c != null).toList();
+        double knownSpend = knownCosts.stream().mapToDouble(Double::doubleValue).sum();
+        boolean spendPartial = knownCosts.size() != cohort.size();
+
+        StringBuilder table = new StringBuilder();
+        table.append("| Agent | Model | Coverage | Pass@1 | Pass@k | 95% CI | Attempts | Avg Task Tokens | Avg Task Time | Avg Task Cost | Cost / Pass | Total Cost |\n");
+        table.append("|---|---|---|---|---|---|---|---|---|---|---|---|\n");
+        for (Row row : rows) {
+            table.append("| %s%s | %s | %d/%d | %s | %s | %s–%s | %d | %s | %s | %s | %s | %s |%n".formatted(
+                    row.agent(), row.eligible() ? "" : " (partial)", row.model(), row.evals(), row.totalEvals(),
+                    pct(row.firstTryRate()), pct(row.successRate()), pct(row.ciLower()), pct(row.ciUpper()),
+                    row.attempts(), row.avgTokens() == null ? "n/a" : row.avgTokens(),
+                    seconds(row.avgDurationS()), usd(row.avgCostUsd()), usd(row.costPerPassUsd()),
+                    usd(row.totalCostUsd())));
+        }
+        table.append("\nRecorded benchmark spend: %s%s%n".formatted(usd(knownSpend),
+                spendPartial ? " (partial: some adapters did not report cost)" : ""));
+        table.append("Only full-coverage rows are leaderboard-eligible; partial rows are shown for diagnostics.\n");
+
+        List<String> projects = catalog.all().stream().map(EvalDefinition::project).distinct().sorted().toList();
+        StringBuilder projectTable = projectTable(cohort, rows, projects);
+
+        System.out.println("\n" + table);
+        System.out.println("By project:\n" + projectTable);
+
+        try {
+            Path leaderboard = repoRoot.resolve("results").resolve("leaderboard.md");
+            Files.createDirectories(leaderboard.getParent());
+            Files.writeString(leaderboard, "# Spring Evals Leaderboard\n\nGenerated " + Instant.now()
+                    + "\n\n" + table + "\n## By project\n\n" + projectTable);
+            System.out.println("wrote results/leaderboard.md");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
+        writeDashboardData(cohort, rows, agentNames, projects, knownSpend, spendPartial);
+    }
+
+    private List<RunRecord> currentCohort(List<RunRecord> records) {
+        String benchmark = ContentHashes.benchmark(repoRoot);
+        Map<String, String> evalHashes = new LinkedHashMap<>();
+        for (EvalDefinition eval : catalog.all()) {
+            evalHashes.put(eval.id(), ContentHashes.eval(eval));
+        }
+        List<RunRecord> contentCurrent = records.stream()
+                .filter(r -> benchmark.equals(r.benchmarkVersion()))
+                .filter(r -> evalHashes.containsKey(r.eval()) && evalHashes.get(r.eval()).equals(r.evalHash()))
+                .filter(r -> {
+                    Path config = repoRoot.resolve("agents").resolve(r.agent() + ".json");
+                    return Files.exists(config)
+                            && ContentHashes.agent(repoRoot, r.agent()).equals(r.agentConfigHash());
+                }).toList();
+        Map<String, EnvironmentKey> latestEnvironment = new LinkedHashMap<>();
+        Map<String, String> latestTimestamp = new LinkedHashMap<>();
+        for (RunRecord record : contentCurrent) {
+            String timestamp = record.timestamp() == null ? "" : record.timestamp();
+            if (!latestTimestamp.containsKey(record.agent())
+                    || timestamp.compareTo(latestTimestamp.get(record.agent())) > 0) {
+                latestTimestamp.put(record.agent(), timestamp);
+                latestEnvironment.put(record.agent(), EnvironmentKey.from(record));
+            }
+        }
+        return contentCurrent.stream()
+                .filter(r -> EnvironmentKey.from(r).equals(latestEnvironment.get(r.agent())))
+                .toList();
+    }
+
+    private record EnvironmentKey(String cliVersion, String javaVersion, String osName, String osArch,
+            String track, String networkPolicy) {
+        static EnvironmentKey from(RunRecord record) {
+            return new EnvironmentKey(record.cliVersion(), record.javaVersion(), record.osName(), record.osArch(),
+                    record.track(), record.networkPolicy());
+        }
+    }
+
+    private Row rowFor(String agent, List<RunRecord> results, int totalEvals) {
+        List<RunRecord> mine = results.stream().filter(r -> r.agent().equals(agent)).toList();
+        Set<String> evalIds = new LinkedHashSet<>(mine.stream().map(RunRecord::eval).toList());
+        long passed = evalIds.stream().filter(e -> passed(mine, e)).count();
+        long firstTry = evalIds.stream()
+                .filter(e -> mine.stream().anyMatch(r -> r.eval().equals(e) && r.attempt() == 1 && r.passed()))
+                .count();
+        long durationMs = mine.stream().map(RunRecord::agentDurationMs).filter(d -> d != null)
+                .mapToLong(Long::longValue).sum();
+        List<Double> costs = mine.stream().map(RunRecord::costUsd).filter(c -> c != null).toList();
+        boolean completeCost = costs.size() == mine.size();
+        Double totalCost = completeCost ? costs.stream().mapToDouble(Double::doubleValue).sum() : null;
+        List<Long> tokens = mine.stream().map(Reports::totalTokens).filter(t -> t != null).toList();
+        boolean completeTokens = tokens.size() == mine.size();
+        double successRate = evalIds.isEmpty() ? 0 : (double) passed / evalIds.size();
+        double[] interval = wilson((int) passed, evalIds.size());
+        return new Row(agent, mine.getLast().model(), evalIds.size(), totalEvals, mine.size(),
+                evalIds.size() == totalEvals, (double) evalIds.size() / totalEvals, successRate,
+                evalIds.isEmpty() ? 0 : (double) firstTry / evalIds.size(), interval[0], interval[1],
+                !completeTokens || evalIds.isEmpty() ? null
+                        : Math.round((double) tokens.stream().mapToLong(Long::longValue).sum() / evalIds.size()),
+                evalIds.isEmpty() ? null : durationMs / 1000.0 / evalIds.size(),
+                totalCost == null || evalIds.isEmpty() ? null : totalCost / evalIds.size(),
+                totalCost == null || passed == 0 ? null : totalCost / passed, totalCost);
+    }
+
+    private StringBuilder projectTable(List<RunRecord> results, List<Row> rows, List<String> projects) {
+        StringBuilder table = new StringBuilder();
+        table.append("| Agent | ").append(String.join(" | ", projects.stream().map(p -> "spring-" + p).toList()))
+                .append(" |\n");
+        table.append("|---|").append("---|".repeat(projects.size())).append('\n');
+        for (Row row : rows) {
+            StringBuilder line = new StringBuilder("| " + row.agent() + " |");
+            for (String project : projects) {
+                List<String> allIds = catalog.all().stream().filter(e -> e.project().equals(project))
+                        .map(EvalDefinition::id).toList();
+                List<RunRecord> mine = results.stream().filter(r -> r.agent().equals(row.agent()))
+                        .filter(r -> allIds.contains(r.eval())).toList();
+                Set<String> attempted = new LinkedHashSet<>(mine.stream().map(RunRecord::eval).toList());
+                long passed = attempted.stream().filter(e -> passed(mine, e)).count();
+                line.append(" %d/%d attempted, %d passed |".formatted(attempted.size(), allIds.size(), passed));
+            }
+            table.append(line).append('\n');
+        }
+        return table;
+    }
+
+    private void writeDashboardData(List<RunRecord> results, List<Row> rows, Set<String> agents,
+            List<String> projects, double knownSpend, boolean spendPartial) {
+        Path dashboard = repoRoot.resolve("dashboard");
+        if (!Files.isDirectory(dashboard)) {
+            return;
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("generated", Instant.now().toString());
+        data.put("sample", false);
+        data.put("spendUsd", knownSpend);
+        data.put("spendPartial", spendPartial);
+        data.put("agents", rows);
+        data.put("projects", projects);
+
+        Map<String, Map<String, int[]>> byProject = new LinkedHashMap<>();
+        for (String agent : agents) {
+            Map<String, int[]> perProject = new LinkedHashMap<>();
+            for (String project : projects) {
+                List<String> allIds = catalog.all().stream().filter(e -> e.project().equals(project))
+                        .map(EvalDefinition::id).toList();
+                List<RunRecord> mine = results.stream().filter(r -> r.agent().equals(agent))
+                        .filter(r -> allIds.contains(r.eval())).toList();
+                Set<String> attempted = new LinkedHashSet<>(mine.stream().map(RunRecord::eval).toList());
+                long passed = attempted.stream().filter(e -> passed(mine, e)).count();
+                perProject.put(project, new int[] { (int) passed, attempted.size(), allIds.size() });
+            }
+            byProject.put(agent, perProject);
+        }
+        data.put("byProject", byProject);
+
+        // Per-eval outcomes power the dashboard drill-down dots: true = passed,
+        // false = attempted and failed, absent = not run (rendered hollow).
+        Map<String, Map<String, Boolean>> byEval = new LinkedHashMap<>();
+        for (String agent : agents) {
+            Map<String, Boolean> perEval = new LinkedHashMap<>();
+            List<RunRecord> mine = results.stream().filter(r -> r.agent().equals(agent)).toList();
+            for (String evalId : new LinkedHashSet<>(mine.stream().map(RunRecord::eval).toList())) {
+                perEval.put(evalId, passed(mine, evalId));
+            }
+            byEval.put(agent, perEval);
+        }
+        data.put("byEval", byEval);
+
+        data.put("evals", catalog.all().stream().map(eval -> Map.of(
+                "id", eval.id(), "project", eval.project(), "title", eval.title(),
+                "type", eval.meta().getOrDefault("type", ""),
+                "difficulty", eval.meta().getOrDefault("difficulty", ""),
+                "pilot", Boolean.parseBoolean(eval.meta().getOrDefault("pilot", "false")))).toList());
+        try {
+            mapper.writeValue(dashboard.resolve("data.json").toFile(), data);
+            System.out.println("wrote dashboard/data.json");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static boolean passed(List<RunRecord> records, String eval) {
+        return records.stream().anyMatch(r -> r.eval().equals(eval) && r.passed());
+    }
+
+    private static Long totalTokens(RunRecord record) {
+        if (record.totalTokens() != null) {
+            return record.totalTokens();
+        }
+        return record.inputTokens() != null && record.outputTokens() != null
+                ? record.inputTokens() + record.outputTokens() : null;
+    }
+
+    /** 95% Wilson score interval for a binomial proportion. */
+    static double[] wilson(int successes, int trials) {
+        if (trials == 0) {
+            return new double[] { 0, 1 };
+        }
+        double z = 1.959963984540054;
+        double p = (double) successes / trials;
+        double denominator = 1 + z * z / trials;
+        double center = (p + z * z / (2 * trials)) / denominator;
+        double margin = z * Math.sqrt(p * (1 - p) / trials + z * z / (4.0 * trials * trials)) / denominator;
+        return new double[] { Math.max(0, center - margin), Math.min(1, center + margin) };
+    }
+
+    private static String pct(double value) {
+        return Math.round(value * 100) + "%";
+    }
+
+    private static String seconds(Double value) {
+        return value == null ? "n/a" : Math.round(value) + "s";
+    }
+
+    private static String usd(Double value) {
+        return value == null ? "n/a" : "$%.2f".formatted(value);
+    }
+}

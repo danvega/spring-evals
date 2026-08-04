@@ -1,0 +1,16 @@
+name: 000-resilience-annotations
+project: framework
+title: Add retries and concurrency limits without new dependencies
+category: config
+type: build
+difficulty: medium
+baseline_failure: test_failure
+boot_version: 4.0.7
+timeout_seconds: 900
+description: >
+  Spring Framework 7 ships @Retryable and @ConcurrencyLimit in core,
+  enabled by @EnableResilientMethods. Models trained on older content add
+  the Spring Retry or Resilience4j dependency, which the prompt forbids.
+  The eval verifies behavior over HTTP: a flaky gateway that fails twice
+  must succeed in one API call with exactly 3 recorded attempts, and 6
+  parallel report requests must never exceed 2 concurrent executions.

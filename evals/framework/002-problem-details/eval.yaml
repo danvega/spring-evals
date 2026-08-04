@@ -1,0 +1,15 @@
+name: 002-problem-details
+project: framework
+title: RFC 9457 problem details for error responses
+category: web
+type: build
+difficulty: easy
+baseline_failure: test_failure
+boot_version: 4.0.7
+timeout_seconds: 900
+description: >
+  Spring Framework has first-class RFC 9457 support via ProblemDetail and
+  @RestControllerAdvice. The agent must turn a default 500 into a
+  compliant application/problem+json 404 with a title, detail, and a
+  custom property. One of the suite's two easy evals: a floor check that
+  a model knows modern Spring MVC error handling.
