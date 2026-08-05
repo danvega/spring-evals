@@ -33,15 +33,18 @@ Claude Code CLI 2.1.221 emits a `tool_progress` message type on the stream-json 
 Unrecognized message type '{}' — skipping. This may indicate the Claude CLI has added a new message type. Raw JSON: {}
 ```
 
-The message shape, reconstructed from memory of our run console output. Field names may differ slightly; we will attach a raw captured line when filing. Long-running tool calls emit one every few seconds:
+A raw line captured verbatim from our run console (CLI 2.1.221). Long-running tool calls emit one every 30 seconds:
 
 ```json
 {
   "type": "tool_progress",
-  "tool_use_id": "toolu_01XXXXXXXXXXXXXXXXXXXXXX",
+  "tool_use_id": "toolu_01KRTz5yoXsuappGz1NQQibE-heartbeat-0",
   "tool_name": "Bash",
-  "elapsed_time_seconds": 5,
-  "heartbeat": true
+  "parent_tool_use_id": "toolu_01KRTz5yoXsuappGz1NQQibE",
+  "elapsed_time_seconds": 30,
+  "heartbeat": true,
+  "session_id": "297d32e9-4813-4fa6-a515-641b69705d1f",
+  "uuid": "5ce855a1-293a-4e8d-ad21-527471b7e11c"
 }
 ```
 
