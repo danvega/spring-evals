@@ -150,9 +150,10 @@ final class AgentDoctor {
                     findings.add(new Finding(Level.WARNING,
                             "~/.codex/AGENTS.md exists and Codex loads it globally; move it aside for benchmark runs"));
                 }
-                if (system.fileExists(home.resolve(".codex/config.toml"))) {
+                String codexToml = system.fileContent(home.resolve(".codex/config.toml"));
+                if (codexToml != null && (codexToml.contains("mcp_servers") || codexToml.contains("instructions"))) {
                     findings.add(new Finding(Level.WARNING,
-                            "~/.codex/config.toml exists; verify it defines no MCP servers or instructions before benchmark runs"));
+                            "~/.codex/config.toml defines MCP servers or instructions; remove them for benchmark runs"));
                 }
             }
             case "gemini" -> {
@@ -243,11 +244,18 @@ final class AgentDoctor {
                 boolean chatgptLogin = auth != null && auth.contains("\"tokens\"")
                         && Pattern.compile("\"OPENAI_API_KEY\"\\s*:\\s*null").matcher(auth).find();
                 boolean fileKey = auth != null && Pattern.compile("\"OPENAI_API_KEY\"\\s*:\\s*\"").matcher(auth).find();
+                String codexConfig = system.fileContent(
+                        Path.of(System.getProperty("user.home"), ".codex", "config.toml"));
+                String pinnedMethod = codexConfig == null ? null
+                        : jsonlessTomlValue(codexConfig, "preferred_auth_method");
                 if (!envKey && auth == null) {
                     findings.add(new Finding(Level.BLOCKED,
                             "no OPENAI_API_KEY or ~/.codex/auth.json credential source found"));
                 } else {
-                    if (chatgptLogin && envKey) {
+                    if (pinnedMethod != null) {
+                        findings.add(new Finding(Level.READY, "billing: pinned to " + pinnedMethod
+                                + " by preferred_auth_method in ~/.codex/config.toml"));
+                    } else if (chatgptLogin && envKey) {
                         findings.add(new Finding(Level.WARNING,
                                 "both a ChatGPT sign-in and OPENAI_API_KEY are present; set preferred_auth_method in "
                                         + "~/.codex/config.toml to control which one bills"));
@@ -307,6 +315,12 @@ final class AgentDoctor {
                     "qwen-code requires an OPENAI-compatible endpoint configuration"));
             default -> findings.add(new Finding(Level.WARNING, "authentication check unavailable for provider"));
         }
+    }
+
+    /** Minimal TOML value lookup: key = "value" on its own line. */
+    private static String jsonlessTomlValue(String toml, String key) {
+        var matcher = Pattern.compile("(?m)^\\s*" + Pattern.quote(key) + "\\s*=\\s*\"([^\"]+)\"").matcher(toml);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     private static String jsonString(String json, String field) {
