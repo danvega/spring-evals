@@ -38,10 +38,17 @@ public class Reports {
         int storedRecords = results.size();
         List<RunRecord> cohort = currentCohort(results);
         if (cohort.isEmpty()) {
-            System.out.println("no results yet — run a cost estimate before authorizing a model campaign");
+            System.out.println("no leaderboard-eligible results in the current cohort");
             if (storedRecords > 0) {
-                System.out.println(storedRecords + " stored record(s) belong to an older benchmark cohort and were ignored");
+                System.out.println(storedRecords + " stored record(s) belong to an older benchmark cohort; "
+                        + "they remain in the dashboard's run history");
             }
+            // The leaderboard is empty, but run history and findings must
+            // survive cohort rotation, so the dashboard still gets rewritten.
+            writeDashboardData(List.of(), results, List.of(), new LinkedHashSet<>(),
+                    catalog.all().stream().map(EvalDefinition::project).distinct().sorted().toList(),
+                    0, true, new LinkedHashMap<>());
+            writeRunLogs(results);
             return;
         }
         if (storedRecords != cohort.size()) {
@@ -50,8 +57,17 @@ public class Reports {
         }
 
         int totalEvals = catalog.all().size();
-        Set<String> agentNames = new LinkedHashSet<>(cohort.stream().map(RunRecord::agent).toList());
-        List<Row> rows = agentNames.stream().map(agent -> rowFor(agent, cohort, totalEvals))
+        // Infrastructure failures (the agent never produced a candidate) are
+        // not verdicts. They must never score as 0% for the model.
+        List<RunRecord> verdicts = cohort.stream().filter(Reports::isVerdict).toList();
+        Set<String> agentNames = new LinkedHashSet<>(verdicts.stream().map(RunRecord::agent).toList());
+        Map<String, List<RunRecord>> infraOnly = new LinkedHashMap<>();
+        for (RunRecord record : cohort) {
+            if (!isVerdict(record) && !agentNames.contains(record.agent())) {
+                infraOnly.computeIfAbsent(record.agent(), a -> new java.util.ArrayList<>()).add(record);
+            }
+        }
+        List<Row> rows = agentNames.stream().map(agent -> rowFor(agent, verdicts, totalEvals))
                 .sorted(Comparator.comparing(Row::eligible).reversed()
                         .thenComparing(Comparator.comparingDouble(Row::firstTryRate).reversed())
                         .thenComparing(Comparator.comparingDouble(Row::successRate).reversed())
@@ -78,10 +94,19 @@ public class Reports {
         table.append("\nRecorded benchmark spend: %s%s%n".formatted(usd(knownSpend),
                 spendPartial ? " (partial: some adapters did not report cost)" : ""));
         if (spendPartial && estSpend > 0) {
-            table.append("Estimated spend at API prices: %s (attempts made x configured per-attempt estimates; "
-                    + "subscription-billed agents draw on plans instead)%n".formatted(usd(estSpend)));
+            table.append(("Estimated spend at API prices: %s (attempts made x configured per-attempt estimates; "
+                    + "subscription-billed agents draw on plans instead)%n").formatted(usd(estSpend)));
         }
         table.append("Only full-coverage rows are leaderboard-eligible; partial rows are shown for diagnostics.\n");
+        if (!infraOnly.isEmpty()) {
+            table.append("\nNo verdicts (infrastructure failed before the model saw the task):\n");
+            for (var entry : infraOnly.entrySet()) {
+                Map<String, Long> kinds = entry.getValue().stream().collect(java.util.stream.Collectors
+                        .groupingBy(r -> r.failureKind() == null ? "unknown" : r.failureKind(),
+                                java.util.stream.Collectors.counting()));
+                table.append("- ").append(entry.getKey()).append(": ").append(kinds).append('\n');
+            }
+        }
 
         List<String> projects = catalog.all().stream().map(EvalDefinition::project).distinct().sorted().toList();
         StringBuilder projectTable = projectTable(cohort, rows, projects);
@@ -99,7 +124,8 @@ public class Reports {
             throw new UncheckedIOException(e);
         }
 
-        writeDashboardData(cohort, results, rows, agentNames, projects, knownSpend, spendPartial);
+        writeDashboardData(verdicts, results, rows, agentNames, projects, knownSpend, spendPartial, infraOnly);
+        writeRunLogs(results);
     }
 
     private List<RunRecord> currentCohort(List<RunRecord> records) {
@@ -187,7 +213,8 @@ public class Reports {
     }
 
     private void writeDashboardData(List<RunRecord> results, List<RunRecord> allRecords, List<Row> rows,
-            Set<String> agents, List<String> projects, double knownSpend, boolean spendPartial) {
+            Set<String> agents, List<String> projects, double knownSpend, boolean spendPartial,
+            Map<String, List<RunRecord>> infraOnly) {
         Path dashboard = repoRoot.resolve("dashboard");
         if (!Files.isDirectory(dashboard)) {
             return;
@@ -200,6 +227,15 @@ public class Reports {
         double estSpend = estimatedSpend(results);
         data.put("estSpendUsd", estSpend > 0 ? estSpend : null);
         data.put("runs", runsHistory(allRecords));
+        data.put("noVerdict", infraOnly.entrySet().stream().map(entry -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("agent", entry.getKey());
+            item.put("model", entry.getValue().getFirst().model());
+            item.put("attempts", entry.getValue().size());
+            item.put("kinds", entry.getValue().stream().map(r -> r.failureKind() == null ? "unknown" : r.failureKind())
+                    .distinct().sorted().toList());
+            return item;
+        }).toList());
         data.put("agents", rows);
         data.put("projects", projects);
 
@@ -297,6 +333,14 @@ public class Reports {
                     .mapToDouble(Double::doubleValue).sum());
             run.put("benchmarkVersion", records.stream().map(RunRecord::benchmarkVersion)
                     .filter(v -> v != null).findFirst().orElse(null));
+            Path notes = repoRoot.resolve("results").resolve("runs").resolve(entry.getKey() + ".notes.md");
+            if (Files.exists(notes)) {
+                try {
+                    run.put("findings", Files.readString(notes).strip());
+                } catch (IOException e) {
+                    // notes are optional; skip unreadable ones
+                }
+            }
             run.put("detail", records.stream().map(record -> {
                 Map<String, Object> attempt = new LinkedHashMap<>();
                 attempt.put("agent", record.agent());
@@ -315,6 +359,74 @@ public class Reports {
         // Cap the export so the dashboard payload stays small at hundreds of
         // runs; results.json remains the complete record.
         return runs.size() > 50 ? runs.subList(0, 50) : runs;
+    }
+
+    /**
+     * Human-readable per-run logs at results/runs/&lt;name&gt;.md: what each
+     * agent did, why failures failed, and the agent's own closing summary.
+     * The dig-through artifact for anyone who wants more than a leaderboard.
+     */
+    private void writeRunLogs(List<RunRecord> allRecords) {
+        Map<String, List<RunRecord>> byCampaign = new LinkedHashMap<>();
+        for (RunRecord record : allRecords) {
+            if (record.campaignId() != null) {
+                byCampaign.computeIfAbsent(record.campaignId(), id -> new java.util.ArrayList<>()).add(record);
+            }
+        }
+        if (byCampaign.isEmpty()) {
+            return;
+        }
+        Path runsDir = repoRoot.resolve("results").resolve("runs");
+        try {
+            Files.createDirectories(runsDir);
+            for (var entry : byCampaign.entrySet()) {
+                StringBuilder log = new StringBuilder();
+                List<RunRecord> records = entry.getValue();
+                String started = records.stream().map(RunRecord::timestamp).filter(t -> t != null)
+                        .min(String::compareTo).orElse("unknown");
+                long passed = records.stream().filter(RunRecord::passed).count();
+                log.append("# Run: ").append(entry.getKey()).append("\n\n");
+                log.append("Started ").append(started).append(". ")
+                        .append(passed).append(" of ").append(records.size()).append(" attempts passed. ")
+                        .append("Harness ").append(records.getFirst().benchmarkVersion()).append(".\n");
+                Path notes = runsDir.resolve(entry.getKey() + ".notes.md");
+                if (Files.exists(notes)) {
+                    log.append("\n## Findings\n\n").append(Files.readString(notes).strip()).append('\n');
+                }
+                for (RunRecord r : records) {
+                    log.append("\n## ").append(r.agent()).append(" · ").append(r.eval())
+                            .append(" · attempt ").append(r.attempt())
+                            .append(" · ").append(r.passed() ? "PASSED" : "FAILED").append("\n\n");
+                    log.append("- model: ").append(r.model()).append(" (").append(r.provider())
+                            .append(", CLI ").append(r.cliVersion()).append(")\n");
+                    log.append("- duration: ").append(r.agentDurationMs() == null ? "n/a"
+                            : (r.agentDurationMs() / 1000) + "s")
+                            .append(", tokens: ").append(r.totalTokens() == null ? "n/a" : r.totalTokens())
+                            .append(", cost: ").append(r.costUsd() == null ? "n/a" : "$" + r.costUsd()).append("\n");
+                    if (!r.passed()) {
+                        log.append("- failure kind: ").append(r.failureKind() == null ? "unknown" : r.failureKind())
+                                .append("\n");
+                        if (r.failureReason() != null) {
+                            log.append("- failure reason: ").append(r.failureReason().strip()).append("\n");
+                        }
+                    }
+                    log.append("- workspace (until temp cleanup): ").append(r.workspace()).append("\n");
+                    if (r.agentResponse() != null && !r.agentResponse().isBlank()) {
+                        log.append("\nAgent's closing summary:\n\n```\n")
+                                .append(r.agentResponse().strip()).append("\n```\n");
+                    }
+                }
+                Files.writeString(runsDir.resolve(entry.getKey() + ".md"), log.toString());
+            }
+            System.out.println("wrote results/runs/ (" + byCampaign.size() + " run log(s))");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** A record is a verdict only if the agent actually produced a judged candidate. */
+    private static boolean isVerdict(RunRecord record) {
+        return !"agent_error".equals(record.failureKind()) && !"judge_error".equals(record.failureKind());
     }
 
     private static boolean passed(List<RunRecord> records, String eval) {

@@ -58,6 +58,13 @@ The flip side: editing an eval, changing an agent config, upgrading a CLI, or ch
 
 Recorded spend appears in the report output, `results/leaderboard.md`, and the dashboard's Benchmark spend tile.
 
+## After a run
+
+1. `./spring-evals report` refreshes `results/leaderboard.md`, `dashboard/data.json`, and a per-run log at `results/runs/<run-name>.md` with attempt-level detail and each agent's closing summary.
+2. Write a plain-language findings summary to `results/runs/<run-name>.notes.md`: what the run tested, real verdicts versus infrastructure failures, and what to fix. Re-run `report` and it merges into the run log and the dashboard's run drill-down.
+3. `./spring-evals serve` and open http://localhost:4173. The run appears in the Runs section by name.
+4. Check provider consoles for actual spend on API-billed agents, and tune `estCostPerAttemptUsd` in agent configs as real numbers come in.
+
 ## New model day
 
 A new model dropped and claimed the crown. To get a comparable row:

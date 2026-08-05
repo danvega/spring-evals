@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spring Evals</title>
 <meta name="description" content="How well do AI models write Spring code? Agent evaluations on real Spring Boot 4 tasks with hidden tests.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%236db33f' d='M20.6 2.2c-.3.8-.8 1.6-1.3 2.3A10.6 10.6 0 0 0 1.7 12c0 5.9 4.8 10.6 10.6 10.6 5.7 0 10.4-4.5 10.6-10.2.2-2.8-.5-6.5-2.3-10.2ZM6.9 19.1a.9.9 0 1 1-.1-1.3.9.9 0 0 1 .1 1.3Zm13.5-3c-2.5 3.3-7.8 2.2-11.2 2.4 0 0-.6 0-1.2.1 0 0 .2-.1.5-.2 2.4-.8 3.5-1 5-1.7 2.7-1.4 5.4-4.4 5.9-7.5-1 3-4.1 5.6-7 6.6-2 .7-5.5 1.4-5.5 1.4l-.1-.1c-2.4-1.2-2.5-6.4 1.9-8.1 1.9-.7 3.8-.3 5.9-.8 2.2-.5 4.8-2.2 5.8-4.4 1.2 3.4 2.5 8.7 0 12.3Z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://rsms.me/">
 <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -29,7 +30,7 @@
       <nav class="flex items-center gap-6 text-sm font-medium text-zinc-600 dark:font-mono dark:text-neutral-400">
         <a href="#leaderboard" class="hover:text-zinc-950 dark:hover:text-spring">Leaderboard</a>
         <a href="#runs" class="hover:text-zinc-950 dark:hover:text-spring">Runs</a>
-        <a href="#evals" class="hover:text-zinc-950 dark:hover:text-spring">Evals</a>
+        <a href="evals.html" class="hover:text-zinc-950 dark:hover:text-spring">Evals</a>
         <a href="https://github.com/danvega/spring-evals" class="hover:text-zinc-950 dark:hover:text-spring">GitHub</a>
       </nav>
     </div>
@@ -111,8 +112,8 @@
     </section>
 
     <section id="evals" class="border-t border-zinc-950/10 py-12 dark:border-white/10">
-      <h2 class="text-2xl font-semibold tracking-tight text-balance dark:text-white">The evals</h2>
-      <p class="mt-1 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">Each eval is a real Spring project with a symptom-based task. Agents never see the tests that judge them.</p>
+      <h2 class="text-2xl font-semibold tracking-tight text-balance dark:text-white">Evals with results</h2>
+      <p class="mt-1 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">Only evals that have been attempted in the current cohort. The <a href="evals.html" class="font-medium text-spring-deep hover:underline dark:text-spring">full catalog</a> lists every eval and suite.</p>
       <ul role="list" class="mt-6 divide-y divide-zinc-950/5 dark:divide-white/5" data-slot="evals"></ul>
     </section>
   </main>
@@ -159,6 +160,10 @@ function passkBar(a) {
 }
 
 function renderLeaderboard(data) {
+  if ((data.agents || []).length === 0 && (data.noVerdict || []).length === 0) {
+    slot("leaderboard").innerHTML = `<tr><td colspan="6" class="py-4 text-base/7 text-zinc-500 dark:text-neutral-500">No leaderboard-eligible results in the current cohort yet. Past runs stay in the Runs section below.</td></tr>`;
+    return;
+  }
   slot("leaderboard").innerHTML = data.agents.map(a => `
     <tr class="${S.row}">
       <td class="py-3 pr-4">
@@ -272,6 +277,46 @@ function renderHeatmap(data) {
 const RUNS_PAGE = 10;
 let runsShown = RUNS_PAGE;
 
+function mdLite(text) {
+  const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return esc.split(/\n\n+/).map(block => {
+    const lines = block.split("\n");
+    if (lines.every(l => l.startsWith("- "))) {
+      return '<ul role="list" class="list-disc pl-5 space-y-1">' + lines.map(l => "<li>" + inline(l.slice(2)) + "</li>").join("") + "</ul>";
+    }
+    return "<p>" + inline(block) + "</p>";
+  }).join("");
+  function inline(t) {
+    return t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+}
+
+function runScoreboard(r) {
+  const isInfra = d => d.failureKind === "agent_error" || d.failureKind === "judge_error";
+  const byAgent = {};
+  r.detail.forEach(d => (byAgent[d.agent] = byAgent[d.agent] || []).push(d));
+  return Object.entries(byAgent).map(([agent, attempts]) => {
+    const verdicts = attempts.filter(d => !isInfra(d));
+    const evalsTried = new Set(verdicts.map(d => d.eval)).size;
+    const passed = new Set(verdicts.filter(d => d.passed).map(d => d.eval)).size;
+    const time = attempts.reduce((total, d) => total + (d.durationMs || 0), 0);
+    const cost = attempts.reduce((total, d) => total + (d.costUsd || 0), 0);
+    let verdict;
+    if (verdicts.length === 0) {
+      const kinds = [...new Set(attempts.map(d => d.failureKind || "unknown"))].join(", ");
+      verdict = `<span class="${S.bad}">no verdict (${kinds})</span>`;
+    } else {
+      verdict = `<span class="${passed === evalsTried ? S.good : passed === 0 ? S.bad : S.rate}">${passed}/${evalsTried} passed</span>`;
+    }
+    return `<tr class="${S.row}">
+      <td class="${S.agent}">${agent}</td>
+      <td class="px-4 py-2">${verdict}</td>
+      <td class="${S.cell} tabular-nums">${time ? Math.round(time / 1000) + "s" : ""}</td>
+      <td class="${S.last} tabular-nums">${cost ? "$" + cost.toFixed(2) : ""}</td>
+    </tr>`;
+  }).join("");
+}
+
 function renderRuns(data) {
   const runs = data.runs || [];
   const more = slot("runs-more");
@@ -323,7 +368,15 @@ function renderRuns(data) {
         <p class="font-medium text-zinc-950 dark:font-mono dark:text-white">${r.id} · ${new Date(r.started).toLocaleString()}</p>
         <button data-drill-close class="text-sm font-medium text-zinc-500 hover:text-zinc-950 dark:font-mono dark:hover:text-spring">close ×</button>
       </div>
-      <ul role="list" class="mt-2 divide-y divide-zinc-950/5 dark:divide-white/5">${rows}</ul>
+      ${r.findings ? `<div class="mt-4 space-y-3 border-l-2 border-spring pl-4 text-base/7 text-zinc-600 dark:text-neutral-400">${mdLite(r.findings)}</div>` : ""}
+      <p class="mt-4 text-sm font-medium text-zinc-500 dark:font-mono dark:text-neutral-500">Scoreboard for this run</p>
+      <div class="mt-1 overflow-x-auto">
+        <table class="w-full text-left text-sm/6">
+          <tbody>${runScoreboard(r)}</tbody>
+        </table>
+      </div>
+      <p class="mt-4 text-sm font-medium text-zinc-500 dark:font-mono dark:text-neutral-500">Attempts</p>
+      <ul role="list" class="mt-1 divide-y divide-zinc-950/5 dark:divide-white/5">${rows}</ul>
     </div>`;
   };
   slot("run-drill").onclick = event => {
@@ -351,7 +404,14 @@ function render(data) {
   renderRuns(data);
   wireDrill(slot("heatmap-head").closest("table"), "drill");
 
-  slot("evals").innerHTML = data.evals.map(e => `
+  const attempted = new Set();
+  Object.values(data.byEval || {}).forEach(m => Object.keys(m).forEach(id => attempted.add(id)));
+  const evalsWithResults = data.evals.filter(e => attempted.has(e.id));
+  if (evalsWithResults.length === 0) {
+    slot("evals").innerHTML = `<li class="py-4 text-base/7 text-zinc-500 dark:text-neutral-500">No evals attempted yet in the current cohort.</li>`;
+    return;
+  }
+  slot("evals").innerHTML = evalsWithResults.map(e => `
     <li class="flex flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="min-w-0">
         <p class="${S.evalTitle}">${e.title}</p>

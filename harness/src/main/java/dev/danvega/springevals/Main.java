@@ -63,8 +63,9 @@ public class Main {
             case "run" -> main.run(opts);
             case "report" -> main.reports.print(main.resultStore.load());
             case "estimate" -> main.estimate(opts);
+            case "serve" -> DashboardServer.serve(main.root, opts);
             default -> {
-                System.out.println("usage: ./spring-evals <list|validate|doctor|run|report|estimate>");
+                System.out.println("usage: ./spring-evals <list|validate|doctor|run|report|estimate|serve>");
                 System.exit(command.isEmpty() ? 0 : 1);
             }
         }

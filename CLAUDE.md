@@ -17,7 +17,7 @@ A benchmark that measures how well AI models and coding agents write real Spring
 ./spring-evals estimate [--agent x]      # cost projection, free
 ./spring-evals report                    # rebuild leaderboard + dashboard data
 cd harness && ./mvnw test                # harness unit tests
-python3 -m http.server 4173 --directory dashboard   # preview dashboard
+./spring-evals serve                     # dashboard at localhost:4173, JDK file server
 ```
 
 `./spring-evals run` executes real agents and **spends real money**. It is locked behind `--allow-paid-run --max-total-cost <usd>`. Never run it, and never add those flags, without the human explicitly asking for a paid run in this conversation.
@@ -36,6 +36,7 @@ Work is done only when the matching verification passes AND an independent revie
 ## Rules for autonomous and parallel work
 
 - Paid runs are human-only decisions. Everything else (validate, doctor, estimate, tests, dashboard) is free and safe to run.
+- After a paid run completes, write a plain-language findings summary to `results/runs/<run-name>.notes.md` (what the run tested, verdicts vs infrastructure failures, and what to fix), then re-run `./spring-evals report`. The notes merge into the run log's Findings section and survive regeneration. Distinguish "the model failed the task" from "the harness or CLI failed" every time.
 - Eval directories are independent. Parallel agents should each own distinct eval directories. The collision point is the `<nnn>` number: claim the next free number in the suite before building, and re-check before committing.
 - `results/results.json` is harness-owned shared state. Never hand-edit it. Note that `run --force` replaces matching records, so it is not a complete historical spend ledger.
 - Editing any file under an eval (prompt, project, tests, checks) changes its content hash and intentionally invalidates cached results for that eval. That is correct behavior, not a bug, but it means re-running costs money. Do not touch shipped evals casually.

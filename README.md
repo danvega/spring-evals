@@ -156,11 +156,18 @@ For the current 10-eval suite, the full 12-agent matrix at one attempt projects 
 
 ## Dashboard
 
-`dashboard/` is a static, Spring-branded results page: overall leaderboard, per-project matrix, and the eval list. Light mode follows spring.io's look; dark mode goes full terminal. `./spring-evals report` writes `dashboard/data.json` from real results (until then the page shows clearly labeled sample data). Serve it anywhere static, including GitHub Pages:
+`dashboard/` is a static, Spring-branded results site. Light mode follows spring.io's look; dark mode goes full terminal. `./spring-evals report` writes `dashboard/data.json` from real results.
+
+- `index.html` — the results view: leaderboard, all-22-suite heatmap with drill-down, run history by name with per-attempt detail and each run's findings summary, and spend (recorded plus an API-price estimate when cost reporting is partial). The evals list here shows only evals with results.
+- `evals.html` — the full catalog: every eval in every suite, with empty suites linking to the proposal form.
+
+Serve it with the built-in JDK file server (or any static host, including GitHub Pages):
 
 ```bash
-python3 -m http.server 4173 --directory dashboard
+./spring-evals serve
 ```
+
+After a run, write a findings summary to `results/runs/<run-name>.notes.md` and re-run `report`; it appears at the top of the run's log and in the dashboard's run drill-down.
 
 ## Contributing
 

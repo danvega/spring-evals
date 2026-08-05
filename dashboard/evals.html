@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eval Catalog · Spring Evals</title>
+<meta name="description" content="Every eval in the Spring Evals benchmark, organized by Spring portfolio project.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%236db33f' d='M20.6 2.2c-.3.8-.8 1.6-1.3 2.3A10.6 10.6 0 0 0 1.7 12c0 5.9 4.8 10.6 10.6 10.6 5.7 0 10.4-4.5 10.6-10.2.2-2.8-.5-6.5-2.3-10.2ZM6.9 19.1a.9.9 0 1 1-.1-1.3.9.9 0 0 1 .1 1.3Zm13.5-3c-2.5 3.3-7.8 2.2-11.2 2.4 0 0-.6 0-1.2.1 0 0 .2-.1.5-.2 2.4-.8 3.5-1 5-1.7 2.7-1.4 5.4-4.4 5.9-7.5-1 3-4.1 5.6-7 6.6-2 .7-5.5 1.4-5.5 1.4l-.1-.1c-2.4-1.2-2.5-6.4 1.9-8.1 1.9-.7 3.8-.3 5.9-.8 2.2-.5 4.8-2.2 5.8-4.4 1.2 3.4 2.5 8.7 0 12.3Z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+  @theme {
+    --color-spring: #6db33f;
+    --color-spring-deep: #4c8a2e;
+    --font-sans: "InterVariable", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  }
+  body { font-feature-settings: "cv02", "cv03", "cv04", "cv11"; }
+</style>
+</head>
+<body class="isolate min-h-dvh bg-white font-sans text-zinc-900 dark:bg-neutral-950 dark:text-neutral-200">
+
+  <header class="border-b border-zinc-950/10 dark:border-white/10">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2.5">
+        <svg viewBox="0 0 24 24" class="size-7 shrink-0 fill-spring" aria-hidden="true"><path d="M20.6 2.2c-.3.8-.8 1.6-1.3 2.3A10.6 10.6 0 0 0 1.7 12c0 5.9 4.8 10.6 10.6 10.6 5.7 0 10.4-4.5 10.6-10.2.2-2.8-.5-6.5-2.3-10.2ZM6.9 19.1a.9.9 0 1 1-.1-1.3.9.9 0 0 1 .1 1.3Zm13.5-3c-2.5 3.3-7.8 2.2-11.2 2.4 0 0-.6 0-1.2.1 0 0 .2-.1.5-.2 2.4-.8 3.5-1 5-1.7 2.7-1.4 5.4-4.4 5.9-7.5-1 3-4.1 5.6-7 6.6-2 .7-5.5 1.4-5.5 1.4l-.1-.1c-2.4-1.2-2.5-6.4 1.9-8.1 1.9-.7 3.8-.3 5.9-.8 2.2-.5 4.8-2.2 5.8-4.4 1.2 3.4 2.5 8.7 0 12.3Z"/></svg>
+        <a href="index.html" class="text-lg font-semibold tracking-tight dark:font-mono dark:text-white"><span class="not-dark:hidden text-spring">$ </span>Spring Evals</a>
+      </div>
+      <nav class="flex items-center gap-6 text-sm font-medium text-zinc-600 dark:font-mono dark:text-neutral-400">
+        <a href="index.html#leaderboard" class="hover:text-zinc-950 dark:hover:text-spring">Leaderboard</a>
+        <a href="index.html#runs" class="hover:text-zinc-950 dark:hover:text-spring">Runs</a>
+        <a href="evals.html" class="text-zinc-950 dark:text-white">Evals</a>
+        <a href="https://github.com/danvega/spring-evals" class="hover:text-zinc-950 dark:hover:text-spring">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section class="py-12 sm:py-16">
+      <p class="font-mono text-sm/6 font-medium tracking-wide text-spring-deep uppercase dark:text-spring"><span class="not-dark:hidden">// </span>the catalog</p>
+      <h1 class="mt-2 text-4xl font-semibold tracking-tight text-balance sm:text-5xl dark:text-white">Every eval, every suite</h1>
+      <p class="mt-4 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">One suite per Spring portfolio project. Each eval is a real Spring Boot project with a symptom-based task and hidden tests the agent never sees. Suites without evals are open invitations.</p>
+      <p class="mt-4 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500"><span data-slot="count">–</span> evals across <span data-slot="covered">–</span> of 22 suites</p>
+    </section>
+
+    <div class="divide-y divide-zinc-950/5 border-t border-zinc-950/10 dark:divide-white/5 dark:border-white/10" data-slot="catalog"></div>
+  </main>
+
+  <footer class="border-t border-zinc-950/10 py-8 dark:border-white/10">
+    <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:font-mono dark:text-neutral-500">
+      <p>Built on the Spring AI Community Agent Client.</p>
+      <p>Propose a benchmark on <a href="https://github.com/danvega/spring-evals/issues/new?template=benchmark-proposal.yml" class="font-medium text-zinc-700 hover:text-zinc-950 dark:text-neutral-300 dark:hover:text-spring">GitHub</a>.</p>
+    </div>
+  </footer>
+
+<script>
+const SUITES = ["boot", "framework", "data", "security", "cloud", "ai", "grpc", "authorization-server",
+  "graphql", "session", "integration", "hateoas", "modulith", "rest-docs", "batch", "amqp", "kafka",
+  "ldap", "pulsar", "shell", "web-flow", "web-services"];
+
+const badge = "rounded-full bg-spring/10 px-2 py-0.5 text-xs font-medium text-spring-deep dark:bg-transparent dark:font-mono dark:text-spring";
+
+fetch("./data.json", { cache: "no-store" })
+  .then(r => r.json())
+  .then(data => {
+    const byProject = {};
+    data.evals.forEach(e => (byProject[e.project] = byProject[e.project] || []).push(e));
+    document.querySelector('[data-slot="count"]').textContent = data.evals.length;
+    document.querySelector('[data-slot="covered"]').textContent = Object.keys(byProject).length;
+    document.querySelector('[data-slot="catalog"]').innerHTML = SUITES.map(suite => {
+      const evals = byProject[suite] || [];
+      const heading = `<h2 class="text-xl font-semibold tracking-tight dark:font-mono dark:text-white">spring-${suite}</h2>`;
+      if (evals.length === 0) {
+        return `<section class="py-8">
+          ${heading}
+          <p class="mt-2 text-base/7 text-zinc-500 dark:text-neutral-500">No evals yet.
+          <a href="https://github.com/danvega/spring-evals/issues/new?template=benchmark-proposal.yml" class="font-medium text-spring-deep hover:underline dark:text-spring">Propose the first one →</a></p>
+        </section>`;
+      }
+      return `<section class="py-8">
+        ${heading}
+        <ul role="list" class="mt-4 divide-y divide-zinc-950/5 dark:divide-white/5">
+          ${evals.map(e => `
+          <li class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+              <p class="font-medium text-zinc-950 dark:text-neutral-200">${e.title}</p>
+              <p class="font-mono text-sm text-zinc-500 dark:text-neutral-500">${e.id}</p>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <span class="${badge}">${e.type}</span>
+              <span class="${badge}">${e.difficulty}</span>
+              ${e.pilot ? `<span class="${badge}">pilot</span>` : ""}
+            </div>
+          </li>`).join("")}
+        </ul>
+      </section>`;
+    }).join("");
+  })
+  .catch(err => console.error("could not load data.json", err));
+</script>
+</body>
+</html>
