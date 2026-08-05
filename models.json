@@ -1,0 +1,173 @@
+{
+  "claude-fable-5": {
+    "lab": "Anthropic",
+    "model": "Claude Fable 5",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 10.0,
+      "output": 50.0,
+      "asOf": "2026-08-05",
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing"
+    },
+    "billing": "subscription",
+    "cli": "Claude Code",
+    "description": "Anthropic's frontier flagship, built for the hardest reasoning and coding work."
+  },
+  "claude-opus-5": {
+    "lab": "Anthropic",
+    "model": "Claude Opus 5",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 5.0,
+      "output": 25.0,
+      "asOf": "2026-08-05",
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing"
+    },
+    "billing": "subscription",
+    "cli": "Claude Code",
+    "description": "Anthropic's Opus tier, strong on deep reasoning and long agentic tasks."
+  },
+  "claude-sonnet-5": {
+    "lab": "Anthropic",
+    "model": "Claude Sonnet 5",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 2.0,
+      "output": 10.0,
+      "asOf": "2026-08-05",
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "note": "Introductory pricing through 2026-08-31, then 3.00 in / 15.00 out."
+    },
+    "billing": "subscription",
+    "cli": "Claude Code",
+    "description": "Anthropic's balanced mid-tier model for everyday coding and agent work."
+  },
+  "claude-haiku-4-5": {
+    "lab": "Anthropic",
+    "model": "Claude Haiku 4.5",
+    "contextWindow": "200K tokens",
+    "pricingPerMTok": {
+      "input": 1.0,
+      "output": 5.0,
+      "asOf": "2026-08-05",
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing"
+    },
+    "billing": "subscription",
+    "cli": "Claude Code",
+    "description": "Anthropic's small, fast model for low-cost tasks."
+  },
+  "codex-gpt-5-6-sol": {
+    "lab": "OpenAI",
+    "model": "GPT-5.6 Sol",
+    "contextWindow": "1.05M tokens",
+    "pricingPerMTok": {
+      "input": 5.0,
+      "output": 30.0,
+      "asOf": "2026-08-05",
+      "source": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/"
+    },
+    "billing": "subscription",
+    "cli": "Codex CLI",
+    "description": "OpenAI's flagship GPT-5.6 tier for the hardest coding and reasoning work."
+  },
+  "codex-gpt-5-6-terra": {
+    "lab": "OpenAI",
+    "model": "GPT-5.6 Terra",
+    "contextWindow": "1.05M tokens",
+    "pricingPerMTok": {
+      "input": 2.0,
+      "output": 12.0,
+      "asOf": "2026-08-05",
+      "source": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/"
+    },
+    "billing": "subscription",
+    "cli": "Codex CLI",
+    "description": "OpenAI's balanced GPT-5.6 tier, priced between Sol and Luna."
+  },
+  "codex-gpt-5-6-luna": {
+    "lab": "OpenAI",
+    "model": "GPT-5.6 Luna",
+    "contextWindow": "1.05M tokens",
+    "pricingPerMTok": {
+      "input": 0.2,
+      "output": 1.2,
+      "asOf": "2026-08-05",
+      "source": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/"
+    },
+    "billing": "subscription",
+    "cli": "Codex CLI",
+    "description": "OpenAI's fastest and cheapest GPT-5.6 tier."
+  },
+  "gemini-3-1-pro": {
+    "lab": "Google",
+    "model": "Gemini 3.1 Pro (Preview)",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 2.0,
+      "output": 12.0,
+      "asOf": "2026-08-05",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing",
+      "note": "Prompts above 200K tokens bill at 4.00 in / 18.00 out."
+    },
+    "billing": "api",
+    "cli": "Gemini CLI",
+    "description": "Google's Pro-tier Gemini in preview, aimed at complex reasoning and coding."
+  },
+  "gemini-3-6-flash": {
+    "lab": "Google",
+    "model": "Gemini 3.6 Flash",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 1.5,
+      "output": 7.5,
+      "asOf": "2026-08-05",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing"
+    },
+    "billing": "api",
+    "cli": "Gemini CLI",
+    "description": "Google's latest Flash model, tuned for speed at a mid-range price."
+  },
+  "gemini-3-5-flash-lite": {
+    "lab": "Google",
+    "model": "Gemini 3.5 Flash-Lite",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 0.3,
+      "output": 2.5,
+      "asOf": "2026-08-05",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing"
+    },
+    "billing": "api",
+    "cli": "Gemini CLI",
+    "description": "Google's most cost-efficient model in this cohort."
+  },
+  "grok-4-5": {
+    "lab": "xAI",
+    "model": "Grok 4.5",
+    "contextWindow": "500K tokens",
+    "pricingPerMTok": {
+      "input": 2.0,
+      "output": 6.0,
+      "asOf": "2026-08-05",
+      "source": "https://docs.x.ai/developers/models/grok-4.5",
+      "note": "Requests above 200K tokens bill at 4.00 in / 12.00 out."
+    },
+    "billing": "api",
+    "cli": "Qwen Code",
+    "description": "xAI's cost-efficient model for high-volume coding and agent workloads."
+  },
+  "kimi-k3": {
+    "lab": "Moonshot AI",
+    "model": "Kimi K3",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 3.0,
+      "output": 15.0,
+      "asOf": "2026-08-05",
+      "source": "https://forum.moonshot.ai/t/kimi-k3-is-here-our-most-capable-model/480"
+    },
+    "billing": "api",
+    "cli": "Claude Code",
+    "description": "Moonshot AI's frontier model, served over an Anthropic-compatible API."
+  }
+}
