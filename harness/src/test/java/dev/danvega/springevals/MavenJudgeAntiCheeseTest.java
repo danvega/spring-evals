@@ -13,10 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins the judge's anti-cheese behavior: candidate pom configuration that can
- * suppress or hide test failures is rejected before Maven ever starts, and a
- * successful Maven exit code is not trusted unless the surefire reports prove
- * every hidden test actually ran and passed.
+ * Pom configuration that can hide test failures is rejected before Maven
+ * starts, and exit 0 is not trusted without surefire proof the hidden tests ran.
  */
 class MavenJudgeAntiCheeseTest {
 
@@ -176,9 +174,8 @@ class MavenJudgeAntiCheeseTest {
     }
 
     /**
-     * Workspace with a clean pom and a stub mvnw that reports success without
-     * running anything: exactly the shape of a build rigged to exit 0. It also
-     * drops a marker file so tests can prove whether Maven was ever launched.
+     * Stub mvnw exits 0 without running anything (a rigged build) and drops a
+     * marker so tests can prove whether Maven was launched.
      */
     private Path workspaceWithStubMaven() throws IOException {
         Path workspace = workspace();

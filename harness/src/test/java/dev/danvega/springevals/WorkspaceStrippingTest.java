@@ -14,9 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins the workspace isolation behavior: fresh copies never carry agent
- * context files that could steer the model, and hidden-test injection puts the
- * trusted Maven launcher back even when the agent tampered with it.
+ * Fresh copies must never carry agent context files, and hidden-test
+ * injection must restore the trusted Maven launcher after tampering.
  */
 class WorkspaceStrippingTest {
 

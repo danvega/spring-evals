@@ -9,11 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * These tests prove the isolation mechanism the benchmark depends on:
- * variables applied to the process environment are visible to
- * System.getenv AND inherited by child processes (agent CLIs), and
- * restore puts everything back. If these fail, no paid run can be
- * trusted.
+ * Overrides must reach System.getenv and child processes, and restore must
+ * put the host environment back; otherwise no paid run can be trusted.
  */
 class EnvSandboxTest {
 

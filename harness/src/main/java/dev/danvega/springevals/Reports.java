@@ -43,10 +43,8 @@ public class Reports {
                 System.out.println(storedRecords + " stored record(s) belong to an older benchmark cohort; "
                         + "they remain in the dashboard's run history");
             }
-            // The leaderboard is empty, but run history and findings must
-            // survive cohort rotation, so the dashboard still gets rewritten,
-            // and leaderboard.md must not keep publishing rows from a retired
-            // cohort (stale rows once outlived a contamination disclosure).
+            // Run history and findings must survive cohort rotation, and
+            // leaderboard.md must not keep rows from a retired cohort.
             try {
                 Path leaderboard = repoRoot.resolve("results").resolve("leaderboard.md");
                 Files.createDirectories(leaderboard.getParent());
@@ -302,9 +300,8 @@ public class Reports {
     }
 
     /**
-     * Attempts made times each agent's configured per-attempt estimate. The
-     * honest companion to recorded spend when subscription-billed CLIs report
-     * no dollars: an API-price equivalent, clearly labeled as an estimate.
+     * Attempts made times each agent's configured per-attempt estimate; the
+     * API-price stand-in when subscription-billed CLIs report no dollars.
      */
     private double estimatedSpend(List<RunRecord> records) {
         Map<String, Double> estimates = new LinkedHashMap<>();
@@ -325,10 +322,8 @@ public class Reports {
     }
 
     /**
-     * Execution history for the dashboard: one entry per run invocation
-     * (campaign), newest first, with its attempt-level detail. Unlike the
-     * leaderboard, history includes records from older content identities;
-     * a run happened whether or not its results are still comparable.
+     * One dashboard entry per run invocation, newest first. Unlike the
+     * leaderboard, history keeps records from older content identities.
      */
     private List<Map<String, Object>> runsHistory(List<RunRecord> allRecords) {
         Map<String, List<RunRecord>> byCampaign = new LinkedHashMap<>();
@@ -376,16 +371,11 @@ public class Reports {
             runs.add(run);
         }
         runs.sort((a, b) -> String.valueOf(b.get("started")).compareTo(String.valueOf(a.get("started"))));
-        // Cap the export so the dashboard payload stays small at hundreds of
-        // runs; results.json remains the complete record.
+        // Cap the dashboard payload; results.json remains the complete record.
         return runs.size() > 50 ? runs.subList(0, 50) : runs;
     }
 
-    /**
-     * Human-readable per-run logs at results/runs/&lt;name&gt;.md: what each
-     * agent did, why failures failed, and the agent's own closing summary.
-     * The dig-through artifact for anyone who wants more than a leaderboard.
-     */
+    /** Human-readable per-run logs at results/runs/&lt;name&gt;.md. */
     private void writeRunLogs(List<RunRecord> allRecords) {
         Map<String, List<RunRecord>> byCampaign = new LinkedHashMap<>();
         for (RunRecord record : allRecords) {

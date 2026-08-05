@@ -17,11 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Pins the doctor's host-context contamination warnings: global instruction
- * files and MCP configuration for the non-Claude CLIs must surface as
- * warnings, and the content-aware checks trigger only on the exact markers
- * the implementation looks for. Everything runs through the SystemAccess
- * fake; the real home directory is never read.
+ * Contamination warnings for the non-Claude CLIs, driven entirely through the
+ * SystemAccess fake; the real home directory is never read.
  */
 class AgentDoctorContaminationTest {
 
@@ -84,8 +81,7 @@ class AgentDoctorContaminationTest {
 
     @Test
     void geminiSettingsCheckIsContentAwareNotFilenameBased() {
-        // The implementation looks for the quoted JSON key, so prose that
-        // merely mentions mcpServers must not trip the warning.
+        // Prose that merely mentions mcpServers must not trip the quoted-key check.
         FakeSystem system = geminiSystem();
         system.fileContents.put(HOME.resolve(".gemini/settings.json").toString(),
                 "{\"note\": \"no mcp servers here; mcpServers stays unset\"}");
@@ -103,8 +99,7 @@ class AgentDoctorContaminationTest {
         system.files.put(HOME.resolve(".qwen/QWEN.md").toString(), true);
         system.fileContents.put(HOME.resolve(".qwen/settings.json").toString(),
                 "{\"mcpServers\": {\"context7\": {}}}");
-        // Remote OPENAI-compatible endpoint keeps authentication READY so the
-        // report level isolates the contamination warnings.
+        // Remote endpoint keeps auth READY so the level isolates the warnings.
         AgentSpec spec = new AgentSpec("qwen-test", "qwen-code", "model", Map.of(
                 "OPENAI_BASE_URL", "https://example.test/v1",
                 "OPENAI_API_KEY", "test-key"), 0.5, 0.1, true);
@@ -157,7 +152,6 @@ class AgentDoctorContaminationTest {
         return new AgentSpec("gemini-test", "gemini", "model", Map.of(), 0.5, 0.1, true);
     }
 
-    /** Same shape as AgentDoctorTest's fake: everything answered from maps. */
     private static final class FakeSystem implements AgentDoctor.SystemAccess {
         final Map<String, String> environment = new HashMap<>();
         final Map<String, Boolean> files = new HashMap<>();

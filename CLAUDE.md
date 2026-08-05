@@ -42,6 +42,7 @@ Work is done only when the matching verification passes AND an independent revie
 - Editing any file under an eval (prompt, project, tests, checks) changes its content hash and intentionally invalidates cached results for that eval. That is correct behavior, not a bug, but it means re-running costs money. Do not touch shipped evals casually.
 - Agent workspaces live outside the repo (`$TMPDIR/spring-evals-runs`, override with `SPRING_EVALS_RUNS_DIR`). Nothing in the repo should reference workspace paths.
 - Authoring rules for evals (symptom-based prompts, black-box tests, cheese-path closure, reference solutions) live in CONTRIBUTING.md and are binding.
+- Comments state constraints the code cannot show. No narration, no change-history notes, no reviewer-directed justifications.
 
 ## Host context isolation
 
