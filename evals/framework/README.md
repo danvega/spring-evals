@@ -2,8 +2,7 @@
 
 Evals for [Spring Framework](https://spring.io/projects/spring-framework): core dependency injection, transaction management, Spring MVC, data access, and messaging.
 
-| Eval | Type | Difficulty | What it tests |
-|---|---|---|---|
+No evals here yet.
 
 Have an idea for one? Open a [benchmark proposal](../../../../issues/new?template=benchmark-proposal.yml) or see [CONTRIBUTING.md](../../CONTRIBUTING.md) to build it.
 

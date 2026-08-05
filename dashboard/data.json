@@ -1,5 +1,5 @@
 {
-  "generated" : "2026-08-05T20:49:39.601682Z",
+  "generated" : "2026-08-05T21:02:58.734664Z",
   "sample" : false,
   "spendUsd" : 3.7432034,
   "spendPartial" : true,
@@ -641,30 +641,30 @@
   "evals" : [ {
     "id" : "boot/000-initializr-parity",
     "project" : "boot",
-    "difficulty" : "medium",
     "title" : "Generate a new Boot 4 project from scratch to the Initializr bar",
-    "pilot" : false,
-    "type" : "build"
+    "type" : "build",
+    "difficulty" : "medium",
+    "pilot" : false
   }, {
     "id" : "boot/001-modular-autoconfig",
     "project" : "boot",
-    "difficulty" : "medium",
     "title" : "Restore features lost to Boot 4 modular auto-configuration",
-    "pilot" : true,
-    "type" : "fix"
+    "type" : "fix",
+    "difficulty" : "medium",
+    "pilot" : true
   }, {
     "id" : "boot/002-restclient-migration",
     "project" : "boot",
-    "difficulty" : "easy",
     "title" : "Migrate RestTemplate code to the auto-configured RestClient",
-    "pilot" : false,
-    "type" : "fix"
+    "type" : "fix",
+    "difficulty" : "easy",
+    "pilot" : false
   }, {
     "id" : "boot/003-jackson3-migration",
     "project" : "boot",
-    "difficulty" : "medium",
     "title" : "Jackson 2 to Jackson 3 migration after a Spring Boot 4 upgrade",
-    "pilot" : false,
-    "type" : "fix"
+    "type" : "fix",
+    "difficulty" : "medium",
+    "pilot" : false
   } ]
 }

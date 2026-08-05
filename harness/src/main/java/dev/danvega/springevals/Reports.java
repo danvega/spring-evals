@@ -281,11 +281,18 @@ public class Reports {
         }
         data.put("byEval", byEval);
 
-        data.put("evals", catalog.all().stream().map(eval -> Map.of(
-                "id", eval.id(), "project", eval.project(), "title", eval.title(),
-                "type", eval.meta().getOrDefault("type", ""),
-                "difficulty", eval.meta().getOrDefault("difficulty", ""),
-                "pilot", Boolean.parseBoolean(eval.meta().getOrDefault("pilot", "false")))).toList());
+        // Insertion-ordered so regenerating with unchanged results is a
+        // byte-stable no-op except the timestamp.
+        data.put("evals", catalog.all().stream().map(eval -> {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", eval.id());
+            entry.put("project", eval.project());
+            entry.put("title", eval.title());
+            entry.put("type", eval.meta().getOrDefault("type", ""));
+            entry.put("difficulty", eval.meta().getOrDefault("difficulty", ""));
+            entry.put("pilot", Boolean.parseBoolean(eval.meta().getOrDefault("pilot", "false")));
+            return entry;
+        }).toList());
         try {
             mapper.writeValue(dashboard.resolve("data.json").toFile(), data);
             System.out.println("wrote dashboard/data.json");

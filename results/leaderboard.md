@@ -1,6 +1,6 @@
 # Spring Evals Leaderboard
 
-Generated 2026-08-05T20:49:39.600388Z
+Generated 2026-08-05T21:02:58.733961Z
 
 | Agent | Model | Coverage | Pass@1 | Pass@k | 95% CI | Attempts | Avg Task Tokens | Avg Task Time | Avg Task Cost | Cost / Pass | Total Cost |
 |---|---|---|---|---|---|---|---|---|---|---|---|
