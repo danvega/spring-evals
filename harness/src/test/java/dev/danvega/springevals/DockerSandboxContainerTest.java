@@ -12,10 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/**
- * Container plumbing checks. Self-skipping: they need a docker daemon
- * and the benchmark image, and are meaningless without them.
- */
+/** Self-skipping: these need a docker daemon and the benchmark image. */
 class DockerSandboxContainerTest {
 
     @TempDir

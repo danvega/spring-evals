@@ -15,9 +15,7 @@ class DockerSandboxTest {
         assertEquals(List.of("claude", "-p", "fix it", "--model", "claude-x",
                 "--dangerously-skip-permissions", "--output-format", "json"),
                 DockerSandbox.agentCommand("claude", "claude-x", "fix it"));
-        // The container is the sandbox; codex's own sandbox would leave
-        // the bind-mounted workspace read-only and every attempt would
-        // record a fake failure.
+        // Codex's own sandbox would leave the bind-mounted workspace read-only.
         assertEquals(List.of("codex", "exec", "--skip-git-repo-check",
                 "--dangerously-bypass-approvals-and-sandbox", "-m", "gpt-x", "fix it"),
                 DockerSandbox.agentCommand("codex", "gpt-x", "fix it"));

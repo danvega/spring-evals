@@ -13,10 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Fresh copies must never carry agent context files, and hidden-test
- * injection must restore the trusted Maven launcher after tampering.
- */
+/** Hidden-test injection must restore the trusted Maven launcher after tampering. */
 class WorkspaceStrippingTest {
 
     @TempDir

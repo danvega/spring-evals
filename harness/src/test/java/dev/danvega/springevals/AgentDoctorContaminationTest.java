@@ -16,10 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Contamination warnings for the non-Claude CLIs, driven entirely through the
- * SystemAccess fake; the real home directory is never read.
- */
+/** Driven entirely through the SystemAccess fake; the real home directory is never read. */
 class AgentDoctorContaminationTest {
 
     private static final Path HOME = Path.of(System.getProperty("user.home"));

@@ -17,7 +17,6 @@
 	</properties>
 
 	<dependencies>
-		<!-- Agent invocation: unified client over Claude Code, Codex, Gemini CLI -->
 		<dependency>
 			<groupId>org.springaicommunity.agents</groupId>
 			<artifactId>agent-client-core</artifactId>
@@ -44,7 +43,6 @@
 			<version>${agent-client.version}</version>
 		</dependency>
 
-		<!-- Verdicts: judge framework with sandboxed command execution -->
 		<dependency>
 			<groupId>org.springaicommunity</groupId>
 			<artifactId>agent-judge-core</artifactId>

@@ -18,22 +18,7 @@ import org.springaicommunity.judge.result.Judgment;
 import dev.danvega.springevals.Agents.AgentSpec;
 import dev.danvega.springevals.ResultStore.RunRecord;
 
-/**
- * Spring Evals harness, built on the Spring AI Community Agent Client.
- *
- * Usage:
- *   ./spring-evals list
- *   ./spring-evals validate [evalId...] [--sandbox docker|host]
- *   ./spring-evals doctor [--agent a[,b,c] | --family claude | --all-agents] [--sandbox docker]
- *   ./spring-evals run --agent a[,b,c] | --family claude | --all-agents
- *                      [--eval boot/000-initializr-parity] [--project boot] [--difficulty easy,medium]
- *                      [--pilot] [--attempts 1] [--force] [--run-name my-run]
- *                      [--sandbox docker|host]
- *                      [--allow-paid-run --max-total-cost USD]
- *   ./spring-evals report
- *
- * --sandbox defaults to docker when `docker info` succeeds, host otherwise.
- */
+/** Entry point behind ./spring-evals; --sandbox defaults to docker when available. */
 public class Main {
 
     private final Path root;
@@ -72,21 +57,15 @@ public class Main {
                 System.exit(command.isEmpty() ? 0 : 1);
             }
         }
-        // Agent CLI SDKs can leave non-daemon threads behind, which keeps
-        // the JVM hanging after all output is written. Everything is
-        // flushed and saved by now, so exit explicitly.
+        // Agent CLI SDKs can leave non-daemon threads behind; exit explicitly.
         System.exit(0);
     }
 
-    /**
-     * Projects spend before running: expected assumes ~1.7 attempts per eval,
-     * worst case assumes every attempt is used.
-     */
+    /** Expected assumes ~1.7 attempts per eval; worst case assumes every attempt is used. */
     void estimate(Map<String, String> opts) {
         int attempts = Integer.parseInt(opts.getOrDefault("attempts", "1"));
         List<EvalDefinition> evals = selectTargets(opts);
-        // Selector-less estimate mirrors run --all-agents: enabled only, so
-        // the projection matches what a run would actually spend.
+        // No selector mirrors run --all-agents (enabled only), so the projection matches a run.
         List<AgentSpec> specs = opts.containsKey("agent") || opts.containsKey("family") || opts.containsKey("all-agents")
                 ? resolveAgents(opts)
                 : agents.loadAll().stream().filter(AgentSpec::enabled).toList();
@@ -127,8 +106,7 @@ public class Main {
     }
 
     int doctor(Map<String, String> opts) {
-        // The container self-check is opt-in: an image build on first use
-        // is minutes of work a plain doctor call should not trigger.
+        // Opt-in: a first-use image build takes minutes a plain doctor call must not trigger.
         boolean dockerCheckFailed = false;
         if ("docker".equals(opts.get("sandbox"))) {
             List<EvalDefinition> all = catalog.all();
@@ -245,14 +223,9 @@ public class Main {
         }
     }
 
-    /**
-     * Resolves which agents a command targets: --agent a[,b,c] for explicit
-     * picks, --family <prefix> for a model family (matches the agent name
-     * prefix, e.g. "claude" or "codex"), or --all-agents for the whole matrix.
-     */
+    /** --family matches the agent-name prefix; explicit --agent picks override the enabled flag. */
     private List<AgentSpec> resolveAgents(Map<String, String> opts) {
         if (opts.containsKey("agent")) {
-            // Explicit picks override the enabled flag; say so when they do.
             List<AgentSpec> picked = List.of(opts.get("agent").split(",")).stream().map(agents::load).toList();
             picked.stream().filter(spec -> !spec.enabled()).forEach(spec -> System.out.printf(
                     "note: %s has \"enabled\": false in agents/%s.json; running it anyway because you named it%n",
@@ -321,9 +294,7 @@ public class Main {
                     projectedMaximum, costCap);
         }
 
-        // Fail before any money is spent if the isolation mechanism for the
-        // chosen mode is unavailable: the container image for docker mode,
-        // the process-env mechanism (e.g. missing add-opens) for host mode.
+        // The chosen mode's isolation mechanism must be proven before any money is spent.
         String image = null;
         if ("docker".equals(sandbox)) {
             DockerSandbox.pruneStaleContainers();
@@ -349,9 +320,8 @@ public class Main {
 
         String benchmarkImage = image;
         for (AgentSpec spec : specs) {
-            // Docker mode records the image's CLI and JDK versions (both
-            // prefixed "docker:"), so host- and docker-mode records never
-            // satisfy each other's cache and the mode is visible per record.
+            // "docker:"-prefixed versions keep host- and docker-mode records
+            // from ever satisfying each other's cache.
             String cliVersion = cliVersions.computeIfAbsent(spec.provider(),
                     provider -> benchmarkImage != null
                             ? DockerSandbox.cliVersion(provider, benchmarkImage)
@@ -406,12 +376,8 @@ public class Main {
                     String candidateHash;
                     boolean untouched;
                     if (benchmarkImage != null) {
-                        // Agent and judge get SEPARATE fresh containers from
-                        // the same image: identical toolchain, but the agent
-                        // container (its processes, $HOME, env) is destroyed
-                        // before hidden tests are injected and judged, so
-                        // nothing the agent left running or wrote outside
-                        // the workspace can touch the judgment.
+                        // The agent container is destroyed before hidden tests are injected, so
+                        // nothing it left running or wrote outside the workspace touches judging.
                         try (DockerSandbox.Container agentContainer = DockerSandbox.start(ws,
                                 Agents.expandAll(spec.env()), benchmarkImage)) {
                             if ("codex".equals(spec.provider())) {
@@ -472,12 +438,8 @@ public class Main {
     }
 
     /**
-     * Docker-mode agent phase: the CLI runs headless inside the attempt's
-     * container, not through the per-provider SDK adapters (those spawn
-     * host processes). Claude reports cost, tokens, and the result text
-     * in its headless JSON output; the other CLIs expose none of that
-     * headlessly, so their records carry null there and responseText is
-     * the CLI's combined output, truncated like the host path.
+     * Runs the CLI headless in the container (the SDK adapters would spawn host
+     * processes); only claude reports cost and tokens headlessly, others record null.
      */
     private AgentRun runAgentInContainer(DockerSandbox.Container container, AgentSpec spec, EvalDefinition eval) {
         String prompt;
@@ -519,10 +481,8 @@ public class Main {
         }
 
         long started = System.currentTimeMillis();
-        // The env plan is applied to the harness process itself; the agent
-        // CLI inherits it. This is the only channel that actually reaches
-        // the CLI (SDK option env is a dead store), so isolation and
-        // per-agent credentials both live here. Restored in finally.
+        // Env must go through the process environment (SDK option env is a
+        // dead store in agent-claude 0.16.0); restored in finally.
         Agents.EnvPlan plan = agents.envPlan(spec);
         EnvSandbox.Scope envScope = EnvSandbox.apply(plan.overrides(), plan.removals());
         AgentModel model = null;
@@ -628,11 +588,7 @@ public class Main {
             "bean", "boot", "batch", "flux", "mono", "cache", "proxy", "filter", "servlet", "actuator",
             "starter", "context", "advisor", "binder", "reactor", "webhook");
 
-    /**
-     * Every run gets a memorable name: the given --run-name, or a generated
-     * spring-flavored one like eager-bean-42. Names are the campaign identity
-     * in results and the dashboard, so collisions get a numeric suffix.
-     */
+    /** Run names are the campaign identity in results, so collisions get a numeric suffix. */
     private static String resolveRunName(String requested, List<RunRecord> existing) {
         java.util.Set<String> taken = new java.util.HashSet<>();
         for (RunRecord record : existing) {
@@ -665,11 +621,8 @@ public class Main {
         if (agentRun.error() != null) {
             return "agent_error";
         }
-        // A CLI can fail cleanly (exit 0) with an error message instead of
-        // doing the task, which would score a fake 0%. Zero workspace
-        // changes alone is not proof (a model can genuinely attempt, decide
-        // nothing needs changing, and deserve its fail), so reclassify only
-        // when the run was also far too fast to have engaged with the task.
+        // A CLI can fail cleanly (exit 0) and score a fake 0%. An untouched workspace alone
+        // is not proof, so reclassify only when the run was also too fast to have engaged.
         if (untouched && agentRun.durationMs() != null && agentRun.durationMs() < 20_000) {
             return "agent_error";
         }

@@ -10,10 +10,8 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
- * Workspace lifecycle: fresh copies of an eval's project, solution overlays,
- * and hidden-test injection. Candidate workspaces deliberately live outside
- * the repository so SOLUTION and EVAL directories are not adjacent to the
- * agent's working directory.
+ * Candidate workspaces live outside the repository so SOLUTION and EVAL
+ * directories are never adjacent to the agent's working directory.
  */
 public class Workspaces {
 
@@ -26,11 +24,7 @@ public class Workspaces {
                 : Path.of(configured).toAbsolutePath().normalize();
     }
 
-    /**
-     * Files that carry instructions or tool configuration for coding agents.
-     * They must never exist in a candidate workspace: a fixture that shipped
-     * one would steer the agent, contaminating the measurement.
-     */
+    /** Agent-steering context files; none may exist in a candidate workspace. */
     private static final java.util.List<String> AGENT_CONTEXT_FILES = java.util.List.of(
             "CLAUDE.md", "AGENTS.md", "GEMINI.md", "QWEN.md", ".claude", ".mcp.json",
             ".cursorrules", ".cursor", ".github/copilot-instructions.md");
@@ -69,11 +63,8 @@ public class Workspaces {
         restoreTrustedMavenLauncher(eval, ws);
     }
 
-    /**
-     * Restore launcher files from the trusted starter after the agent exits.
-     * The candidate pom remains intact because dependency changes are part of
-     * several evals; MavenJudge separately rejects test-skipping configuration.
-     */
+    // The candidate pom stays intact (dependency changes are part of several
+    // evals); MavenJudge separately rejects test-skipping configuration.
     private void restoreTrustedMavenLauncher(EvalDefinition eval, Path ws) {
         deleteTree(ws.resolve(".mvn"));
         Path trustedMvn = eval.projectDir().resolve(".mvn");

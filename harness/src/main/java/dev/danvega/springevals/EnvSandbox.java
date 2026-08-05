@@ -13,47 +13,18 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Applies per-attempt environment variables to THIS process so that agent
- * CLIs inherit them. This is the HOST-MODE contamination barrier; docker
- * mode isolates through the container instead.
- *
- * Why this exists: the Agent Client SDKs accept environmentVariables in
- * their options, but agent-claude 0.16.0 never forwards them to the CLI
- * process (a dead store). The CLI transports spawn processes with a
- * fully inherited environment, so the only reliable, provider-agnostic
- * way to control what a host-spawned agent CLI sees is to mutate the
- * harness process environment around each attempt. Never weaken it.
- *
- * Two layers, both required:
- * 1. libc setenv/unsetenv via the FFM API mutates the REAL process
- *    environ, so children inherit the change no matter how they are
- *    spawned (some SDKs pass envp=null, which bypasses Java's cached
- *    env map entirely).
- * 2. java.lang.ProcessEnvironment reflection keeps System.getenv and
- *    ProcessBuilder.environment() views consistent, because the claude
- *    transport re-reads System.getenv for credentials (either
- *    CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY).
- *
- * Requires --add-opens java.base/java.lang=ALL-UNNAMED and
- * --enable-native-access=ALL-UNNAMED, which the ./spring-evals wrapper
- * sets via MAVEN_OPTS. Call selfTest() before spending money so a missing
- * flag fails the run, not the isolation. Unix-only by design; the
- * benchmark runs on macOS/Linux.
+ * Host-mode contamination barrier (never weaken): agent env must go through the
+ * real process environment; SDK option env is a dead store in agent-claude 0.16.0.
  */
 final class EnvSandbox {
 
     private EnvSandbox() {
     }
 
-    /** Everything needed to undo an apply(). */
     record Scope(Map<String, String> previousValues, Set<String> previouslyAbsent) {
     }
 
-    /**
-     * Removes {@code removals}, then sets {@code overrides}, on the real
-     * process environment. Returns a scope for restore(). Overrides win
-     * over removals for the same key.
-     */
+    /** Overrides win over removals for the same key; returns a scope for restore(). */
     static Scope apply(Map<String, String> overrides, Set<String> removals) {
         Map<String, String> previousValues = new HashMap<>();
         Set<String> previouslyAbsent = new HashSet<>();
@@ -81,14 +52,9 @@ final class EnvSandbox {
         }
     }
 
-    /**
-     * Proves the mechanism works end to end: mutates a probe variable,
-     * checks both System.getenv and a child process see it, restores it.
-     * Throws with a actionable message when reflection is locked down.
-     */
+    /** Run before any paid spend: proves mutations reach System.getenv and child processes. */
     static void selfTest() {
-        // Unique key per invocation so a host variable of the same name can
-        // never make restore verification lie in either direction.
+        // Unique key per invocation so a same-named host variable cannot skew restore checks.
         String probe = "SPRING_EVALS_ENV_PROBE_" + Long.toHexString(System.nanoTime());
         String value = "probe-" + System.nanoTime();
         Scope scope = apply(Map.of(probe, value), Set.of());
