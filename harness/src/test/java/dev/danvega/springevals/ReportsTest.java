@@ -53,7 +53,7 @@ class ReportsTest {
                 "2026-08-04T00:00:00Z", "run", "provider", "agent", ContentHashes.eval(eval),
                 ContentHashes.agent(temp, "example"), ContentHashes.benchmark(temp), null, null,
                 "25", "test-os", "test-arch", "cli 1", "closed", 1, 100L, 50L, 150L,
-                "candidate-hash", "done");
+                "candidate-hash", "done", "campaign-1");
 
         new Reports(temp, new EvalCatalog(temp)).print(List.of(record));
 

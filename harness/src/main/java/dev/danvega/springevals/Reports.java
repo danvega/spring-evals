@@ -74,8 +74,13 @@ public class Reports {
                     seconds(row.avgDurationS()), usd(row.avgCostUsd()), usd(row.costPerPassUsd()),
                     usd(row.totalCostUsd())));
         }
+        double estSpend = estimatedSpend(cohort);
         table.append("\nRecorded benchmark spend: %s%s%n".formatted(usd(knownSpend),
                 spendPartial ? " (partial: some adapters did not report cost)" : ""));
+        if (spendPartial && estSpend > 0) {
+            table.append("Estimated spend at API prices: %s (attempts made x configured per-attempt estimates; "
+                    + "subscription-billed agents draw on plans instead)%n".formatted(usd(estSpend)));
+        }
         table.append("Only full-coverage rows are leaderboard-eligible; partial rows are shown for diagnostics.\n");
 
         List<String> projects = catalog.all().stream().map(EvalDefinition::project).distinct().sorted().toList();
@@ -94,7 +99,7 @@ public class Reports {
             throw new UncheckedIOException(e);
         }
 
-        writeDashboardData(cohort, rows, agentNames, projects, knownSpend, spendPartial);
+        writeDashboardData(cohort, results, rows, agentNames, projects, knownSpend, spendPartial);
     }
 
     private List<RunRecord> currentCohort(List<RunRecord> records) {
@@ -181,8 +186,8 @@ public class Reports {
         return table;
     }
 
-    private void writeDashboardData(List<RunRecord> results, List<Row> rows, Set<String> agents,
-            List<String> projects, double knownSpend, boolean spendPartial) {
+    private void writeDashboardData(List<RunRecord> results, List<RunRecord> allRecords, List<Row> rows,
+            Set<String> agents, List<String> projects, double knownSpend, boolean spendPartial) {
         Path dashboard = repoRoot.resolve("dashboard");
         if (!Files.isDirectory(dashboard)) {
             return;
@@ -192,6 +197,9 @@ public class Reports {
         data.put("sample", false);
         data.put("spendUsd", knownSpend);
         data.put("spendPartial", spendPartial);
+        double estSpend = estimatedSpend(results);
+        data.put("estSpendUsd", estSpend > 0 ? estSpend : null);
+        data.put("runs", runsHistory(allRecords));
         data.put("agents", rows);
         data.put("projects", projects);
 
@@ -235,6 +243,78 @@ public class Reports {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * Attempts made times each agent's configured per-attempt estimate. The
+     * honest companion to recorded spend when subscription-billed CLIs report
+     * no dollars: an API-price equivalent, clearly labeled as an estimate.
+     */
+    private double estimatedSpend(List<RunRecord> records) {
+        Map<String, Double> estimates = new LinkedHashMap<>();
+        try {
+            for (Agents.AgentSpec spec : new Agents(repoRoot).loadAll()) {
+                if (spec.estCostPerAttemptUsd() != null) {
+                    estimates.put(spec.name(), spec.estCostPerAttemptUsd());
+                }
+            }
+        } catch (RuntimeException e) {
+            return 0;
+        }
+        return records.stream()
+                .map(r -> estimates.get(r.agent()))
+                .filter(est -> est != null)
+                .mapToDouble(Double::doubleValue)
+                .sum();
+    }
+
+    /**
+     * Execution history for the dashboard: one entry per run invocation
+     * (campaign), newest first, with its attempt-level detail. Unlike the
+     * leaderboard, history includes records from older content identities;
+     * a run happened whether or not its results are still comparable.
+     */
+    private List<Map<String, Object>> runsHistory(List<RunRecord> allRecords) {
+        Map<String, List<RunRecord>> byCampaign = new LinkedHashMap<>();
+        for (RunRecord record : allRecords) {
+            if (record.campaignId() != null) {
+                byCampaign.computeIfAbsent(record.campaignId(), id -> new java.util.ArrayList<>()).add(record);
+            }
+        }
+        List<Map<String, Object>> runs = new java.util.ArrayList<>();
+        for (var entry : byCampaign.entrySet()) {
+            List<RunRecord> records = entry.getValue();
+            String started = records.stream().map(RunRecord::timestamp).filter(t -> t != null)
+                    .min(String::compareTo).orElse("");
+            Map<String, Object> run = new LinkedHashMap<>();
+            run.put("id", entry.getKey());
+            run.put("started", started);
+            run.put("agents", records.stream().map(RunRecord::agent).distinct().sorted().toList());
+            run.put("evals", records.stream().map(RunRecord::eval).distinct().count());
+            run.put("attempts", records.size());
+            run.put("passed", records.stream().filter(RunRecord::passed).count());
+            run.put("recordedCostUsd", records.stream().map(RunRecord::costUsd).filter(c -> c != null)
+                    .mapToDouble(Double::doubleValue).sum());
+            run.put("benchmarkVersion", records.stream().map(RunRecord::benchmarkVersion)
+                    .filter(v -> v != null).findFirst().orElse(null));
+            run.put("detail", records.stream().map(record -> {
+                Map<String, Object> attempt = new LinkedHashMap<>();
+                attempt.put("agent", record.agent());
+                attempt.put("eval", record.eval());
+                attempt.put("attempt", record.attempt());
+                attempt.put("passed", record.passed());
+                attempt.put("failureKind", record.failureKind());
+                attempt.put("durationMs", record.agentDurationMs());
+                attempt.put("costUsd", record.costUsd());
+                attempt.put("totalTokens", record.totalTokens());
+                return attempt;
+            }).toList());
+            runs.add(run);
+        }
+        runs.sort((a, b) -> String.valueOf(b.get("started")).compareTo(String.valueOf(a.get("started"))));
+        // Cap the export so the dashboard payload stays small at hundreds of
+        // runs; results.json remains the complete record.
+        return runs.size() > 50 ? runs.subList(0, 50) : runs;
     }
 
     private static boolean passed(List<RunRecord> records, String eval) {

@@ -525,5 +525,97 @@
       "type": "build",
       "difficulty": "medium"
     }
+  ],
+  "runs": [
+    {
+      "id": "eager-bean-42",
+      "started": "2026-08-04T15:30:00Z",
+      "agents": [
+        "claude-fable-5",
+        "codex-gpt-5-6-sol",
+        "gemini-2-5-pro"
+      ],
+      "evals": 1,
+      "attempts": 3,
+      "passed": 2,
+      "recordedCostUsd": 0.61,
+      "benchmarkVersion": "0.2.0+sample",
+      "detail": [
+        {
+          "agent": "claude-fable-5",
+          "eval": "boot/000-initializr-parity",
+          "attempt": 1,
+          "passed": true,
+          "failureKind": null,
+          "durationMs": 141000,
+          "costUsd": null,
+          "totalTokens": 48213
+        },
+        {
+          "agent": "codex-gpt-5-6-sol",
+          "eval": "boot/000-initializr-parity",
+          "attempt": 1,
+          "passed": true,
+          "failureKind": null,
+          "durationMs": 210000,
+          "costUsd": null,
+          "totalTokens": 51877
+        },
+        {
+          "agent": "gemini-2-5-pro",
+          "eval": "boot/000-initializr-parity",
+          "attempt": 1,
+          "passed": false,
+          "failureKind": "policy_failure",
+          "durationMs": 96000,
+          "costUsd": 0.61,
+          "totalTokens": 39112
+        }
+      ]
+    },
+    {
+      "id": "calm-proxy-07",
+      "started": "2026-08-03T09:00:00Z",
+      "agents": [
+        "claude-sonnet-5"
+      ],
+      "evals": 3,
+      "attempts": 3,
+      "passed": 3,
+      "recordedCostUsd": 0.0,
+      "benchmarkVersion": "0.2.0+older",
+      "detail": [
+        {
+          "agent": "claude-sonnet-5",
+          "eval": "boot/001-modular-autoconfig",
+          "attempt": 1,
+          "passed": true,
+          "failureKind": null,
+          "durationMs": 118000,
+          "costUsd": null,
+          "totalTokens": 30500
+        },
+        {
+          "agent": "claude-sonnet-5",
+          "eval": "framework/001-api-versioning",
+          "attempt": 1,
+          "passed": true,
+          "failureKind": null,
+          "durationMs": 132000,
+          "costUsd": null,
+          "totalTokens": 28744
+        },
+        {
+          "agent": "claude-sonnet-5",
+          "eval": "data/000-n-plus-one",
+          "attempt": 1,
+          "passed": true,
+          "failureKind": null,
+          "durationMs": 171000,
+          "costUsd": null,
+          "totalTokens": 41008
+        }
+      ]
+    }
   ]
 }

@@ -1,0 +1,11 @@
+{
+  "name": "grok-4-5",
+  "provider": "qwen-code",
+  "model": "grok-4.5",
+  "env": {
+    "OPENAI_BASE_URL": "https://api.x.ai/v1",
+    "OPENAI_API_KEY": "${XAI_API_KEY}",
+    "OPENAI_MODEL": "grok-4.5"
+  },
+  "estCostPerAttemptUsd": 0.60
+}

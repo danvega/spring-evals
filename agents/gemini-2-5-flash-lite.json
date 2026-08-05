@@ -1,0 +1,6 @@
+{
+  "name": "gemini-2-5-flash-lite",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash-lite",
+  "estCostPerAttemptUsd": 0.05
+}

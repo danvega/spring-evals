@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AgentDoctorTest {
 
     @Test
-    void authenticatedClaudeConfigWarnsAboutIsolationAssumptionOnly() {
+    void reportsAuthenticatedClaudeConfigReadyWithoutGeneration() {
         FakeSystem system = new FakeSystem();
         system.executables.put("claude", true);
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
@@ -27,12 +27,79 @@ class AgentDoctorTest {
 
         var report = new AgentDoctor(system).inspect(spec);
 
-        // WARNING, not READY: context isolation rests on a CLI default the
-        // adapter cannot force, and doctor must surface that assumption.
-        assertEquals(Level.WARNING, report.level());
+        // READY: the context isolation assumption is a per-CLI-version advisory
+        // printed once in the doctor summary, never a per-agent finding.
+        assertEquals(Level.READY, report.level());
         assertTrue(report.findings().stream().anyMatch(f -> f.message().contains("reports logged in")));
-        assertTrue(report.findings().stream().anyMatch(f -> f.message().contains("context isolation relies on")));
-        assertTrue(report.findings().stream().noneMatch(f -> f.level() == Level.BLOCKED));
+        assertTrue(report.findings().stream().noneMatch(f -> f.message().contains("context isolation")));
+    }
+
+    @Test
+    void reportsSubscriptionBillingWhenLoggedInWithoutEnvKey() {
+        FakeSystem system = new FakeSystem();
+        system.executables.put("claude", true);
+        system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
+        system.commands.put("claude auth status", new CommandResult(0,
+                "{\"loggedIn\": true, \"authMethod\": \"claude.ai\", \"subscriptionType\": \"max\"}", false));
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
+
+        var report = new AgentDoctor(system).inspect(spec);
+
+        assertEquals(Level.READY, report.level());
+        assertTrue(report.findings().stream()
+                .anyMatch(f -> f.message().contains("billing: claude.ai subscription login (max plan)")));
+    }
+
+    @Test
+    void warnsWhenEnvApiKeyWouldOverrideSubscriptionBilling() {
+        FakeSystem system = new FakeSystem();
+        system.executables.put("claude", true);
+        system.environment.put("ANTHROPIC_API_KEY", "sk-test");
+        system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
+        system.commands.put("claude auth status", new CommandResult(0,
+                "{\"loggedIn\": true, \"authMethod\": \"claude.ai\", \"subscriptionType\": \"max\"}", false));
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
+
+        var report = new AgentDoctor(system).inspect(spec);
+
+        assertEquals(Level.WARNING, report.level());
+        assertTrue(report.findings().stream()
+                .anyMatch(f -> f.message().contains("runs bill the API key")));
+    }
+
+    @Test
+    void reportsCodexSubscriptionBillingFromChatGptSignIn() {
+        FakeSystem system = new FakeSystem();
+        system.executables.put("codex", true);
+        system.commands.put("codex --version", new CommandResult(0, "0.1.0", false));
+        String authPath = java.nio.file.Path.of(System.getProperty("user.home"), ".codex", "auth.json").toString();
+        system.files.put(authPath, true);
+        system.fileContents.put(authPath,
+                "{\"OPENAI_API_KEY\": null, \"auth_mode\": \"chatgpt\", \"tokens\": {\"access_token\": \"x\"}}");
+        AgentSpec spec = new AgentSpec("codex-test", "codex", "model", Map.of(), null, 0.5);
+
+        var report = new AgentDoctor(system).inspect(spec);
+
+        assertTrue(report.findings().stream()
+                .anyMatch(f -> f.message().contains("billing: ChatGPT sign-in")));
+    }
+
+    @Test
+    void warnsWhenCodexHasBothChatGptLoginAndEnvKey() {
+        FakeSystem system = new FakeSystem();
+        system.executables.put("codex", true);
+        system.environment.put("OPENAI_API_KEY", "sk-test");
+        system.commands.put("codex --version", new CommandResult(0, "0.1.0", false));
+        String authPath = java.nio.file.Path.of(System.getProperty("user.home"), ".codex", "auth.json").toString();
+        system.files.put(authPath, true);
+        system.fileContents.put(authPath,
+                "{\"OPENAI_API_KEY\": null, \"auth_mode\": \"chatgpt\", \"tokens\": {\"access_token\": \"x\"}}");
+        AgentSpec spec = new AgentSpec("codex-test", "codex", "model", Map.of(), null, 0.5);
+
+        var report = new AgentDoctor(system).inspect(spec);
+
+        assertTrue(report.findings().stream()
+                .anyMatch(f -> f.message().contains("preferred_auth_method")));
     }
 
     @Test
@@ -70,6 +137,7 @@ class AgentDoctorTest {
     private static final class FakeSystem implements AgentDoctor.SystemAccess {
         final Map<String, String> environment = new HashMap<>();
         final Map<String, Boolean> files = new HashMap<>();
+        final Map<String, String> fileContents = new HashMap<>();
         final Map<String, Boolean> executables = new HashMap<>();
         final Map<String, CommandResult> commands = new HashMap<>();
         ProbeResult probe = new ProbeResult(false, false, "unreachable");
@@ -83,6 +151,11 @@ class AgentDoctorTest {
         @Override
         public boolean fileExists(Path path) {
             return files.getOrDefault(path.toString(), false);
+        }
+
+        @Override
+        public String fileContent(Path path) {
+            return fileContents.get(path.toString());
         }
 
         @Override

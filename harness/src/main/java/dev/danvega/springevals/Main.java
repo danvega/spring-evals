@@ -27,7 +27,7 @@ import dev.danvega.springevals.ResultStore.RunRecord;
  *   ./spring-evals doctor [--agent a[,b,c] | --family claude | --all-agents]
  *   ./spring-evals run --agent a[,b,c] | --family claude | --all-agents
  *                      [--eval boot/000-initializr-parity] [--project boot] [--difficulty easy,medium]
- *                      [--pilot] [--attempts 1] [--force]
+ *                      [--pilot] [--attempts 1] [--force] [--run-name my-run]
  *                      [--allow-paid-run --max-total-cost USD]
  *   ./spring-evals report
  */
@@ -266,6 +266,8 @@ public class Main {
 
         List<RunRecord> results = resultStore.load();
         double reservedCost = 0;
+        String campaignId = resolveRunName(opts.get("run-name"), results);
+        System.out.println("Run name: " + campaignId);
         String benchmarkVersion = benchmarkVersion();
         Map<String, String> cliVersions = new HashMap<>();
 
@@ -336,7 +338,7 @@ public class Main {
                             System.getProperty("java.version"), System.getProperty("os.name"),
                             System.getProperty("os.arch"), cliVersion, "provider-default", attempts,
                             agentRun.inputTokens(), agentRun.outputTokens(), agentRun.totalTokens(),
-                            candidateHash, agentRun.responseText()));
+                            candidateHash, agentRun.responseText(), campaignId));
                     resultStore.save(results);
                     System.out.println(verdict.pass() ? "✓ PASSED" : "✗ failed");
                     if (verdict.pass()) {
@@ -452,6 +454,43 @@ public class Main {
             throw new IllegalArgumentException("no evals matched");
         }
         return targets;
+    }
+
+    private static final List<String> RUN_ADJECTIVES = List.of(
+            "eager", "lazy", "swift", "calm", "bold", "keen", "brisk", "quiet", "lively", "steady",
+            "bright", "merry", "nimble", "sturdy", "gentle", "daring");
+
+    private static final List<String> RUN_NOUNS = List.of(
+            "bean", "boot", "batch", "flux", "mono", "cache", "proxy", "filter", "servlet", "actuator",
+            "starter", "context", "advisor", "binder", "reactor", "webhook");
+
+    /**
+     * Every run gets a memorable name: the given --run-name, or a generated
+     * spring-flavored one like eager-bean-42. Names are the campaign identity
+     * in results and the dashboard, so collisions get a numeric suffix.
+     */
+    private static String resolveRunName(String requested, List<RunRecord> existing) {
+        java.util.Set<String> taken = new java.util.HashSet<>();
+        for (RunRecord record : existing) {
+            if (record.campaignId() != null) {
+                taken.add(record.campaignId());
+            }
+        }
+        String base;
+        if (requested != null && !requested.isBlank()) {
+            base = requested.strip().toLowerCase().replaceAll("[^a-z0-9-]+", "-");
+        } else {
+            java.util.Random random = new java.util.Random();
+            base = RUN_ADJECTIVES.get(random.nextInt(RUN_ADJECTIVES.size())) + "-"
+                    + RUN_NOUNS.get(random.nextInt(RUN_NOUNS.size())) + "-"
+                    + "%02d".formatted(random.nextInt(100));
+        }
+        String name = base;
+        int suffix = 2;
+        while (taken.contains(name)) {
+            name = base + "-" + suffix++;
+        }
+        return name;
     }
 
     private String benchmarkVersion() {

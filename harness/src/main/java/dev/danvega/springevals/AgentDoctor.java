@@ -37,6 +37,9 @@ final class AgentDoctor {
 
         boolean fileExists(Path path);
 
+        /** File text for auth-mode detection, or null when unreadable. Values are never printed. */
+        String fileContent(Path path);
+
         boolean executable(String command);
 
         CommandResult command(List<String> command);
@@ -84,6 +87,11 @@ final class AgentDoctor {
         long blocked = reports.stream().filter(r -> r.level() == Level.BLOCKED).count();
         System.out.printf("Summary: %d ready, %d warning, %d blocked.%n", ready, warnings, blocked);
         System.out.println("Credential presence is checked without printing values. Remote key validity is not tested.");
+        if (specs.stream().anyMatch(spec -> spec.provider().equals("claude"))) {
+            System.out.println("Claude-family note: context isolation relies on the Claude CLI SDK-mode default of "
+                    + "loading no filesystem settings; the adapter cannot force it. Verify once per Claude CLI "
+                    + "version before published campaigns.");
+        }
         return blocked == 0 ? 0 : 1;
     }
 
@@ -136,10 +144,8 @@ final class AgentDoctor {
     private void checkContextContamination(AgentSpec spec, List<Finding> findings) {
         Path home = Path.of(System.getProperty("user.home"));
         switch (spec.provider()) {
-            case "claude" -> findings.add(new Finding(Level.WARNING,
-                    "context isolation relies on the Claude CLI SDK-mode default of loading no filesystem "
-                            + "settings; the current adapter cannot force it, so verify once per CLI version "
-                            + "before published campaigns"));
+            // The Claude isolation assumption is a per-CLI-version advisory, not a
+            // per-agent problem, so it prints once in the summary instead of here.
             case "codex" -> {
                 if (system.fileExists(home.resolve(".codex/AGENTS.md"))) {
                     findings.add(new Finding(Level.WARNING,
@@ -155,9 +161,10 @@ final class AgentDoctor {
                     findings.add(new Finding(Level.WARNING,
                             "~/.gemini/GEMINI.md exists and Gemini CLI loads it globally; move it aside for benchmark runs"));
                 }
-                if (system.fileExists(home.resolve(".gemini/settings.json"))) {
+                String geminiSettings = system.fileContent(home.resolve(".gemini/settings.json"));
+                if (geminiSettings != null && geminiSettings.contains("\"mcpServers\"")) {
                     findings.add(new Finding(Level.WARNING,
-                            "~/.gemini/settings.json exists; verify it defines no MCP servers before benchmark runs"));
+                            "~/.gemini/settings.json defines MCP servers; remove them for benchmark runs"));
                 }
             }
             case "qwen-code" -> {
@@ -165,9 +172,10 @@ final class AgentDoctor {
                     findings.add(new Finding(Level.WARNING,
                             "~/.qwen/QWEN.md exists and Qwen Code loads it globally; move it aside for benchmark runs"));
                 }
-                if (system.fileExists(home.resolve(".qwen/settings.json"))) {
+                String qwenSettings = system.fileContent(home.resolve(".qwen/settings.json"));
+                if (qwenSettings != null && qwenSettings.contains("\"mcpServers\"")) {
                     findings.add(new Finding(Level.WARNING,
-                            "~/.qwen/settings.json exists; verify it defines no MCP servers before benchmark runs"));
+                            "~/.qwen/settings.json defines MCP servers; remove them for benchmark runs"));
                 }
             }
             default -> {
@@ -220,21 +228,37 @@ final class AgentDoctor {
                 CommandResult status = command(List.of("claude", "auth", "status"));
                 if (!status.timedOut() && status.exitCode() == 0 && status.output().contains("\"loggedIn\": true")) {
                     findings.add(new Finding(Level.READY, "Claude authentication status reports logged in"));
+                    checkClaudeBillingSource(status.output(), findings);
                 } else {
                     findings.add(new Finding(Level.BLOCKED, "Claude authentication status does not report logged in"));
                 }
             }
             case "codex" -> {
                 boolean envKey = present(system.environment("OPENAI_API_KEY"));
-                boolean authFile = system.fileExists(Path.of(System.getProperty("user.home"), ".codex", "auth.json"));
-                if (envKey || authFile) {
-                    findings.add(new Finding(Level.READY, envKey
-                            ? "OPENAI_API_KEY is set" : "Codex credential file is present"));
-                    findings.add(new Finding(Level.WARNING,
-                            "this Codex CLI exposes no non-generative login-status command; credential validity is unverified"));
-                } else {
+                Path authFile = Path.of(System.getProperty("user.home"), ".codex", "auth.json");
+                String auth = system.fileExists(authFile) ? system.fileContent(authFile) : null;
+                boolean chatgptLogin = auth != null && auth.contains("\"tokens\"")
+                        && Pattern.compile("\"OPENAI_API_KEY\"\\s*:\\s*null").matcher(auth).find();
+                boolean fileKey = auth != null && Pattern.compile("\"OPENAI_API_KEY\"\\s*:\\s*\"").matcher(auth).find();
+                if (!envKey && auth == null) {
                     findings.add(new Finding(Level.BLOCKED,
                             "no OPENAI_API_KEY or ~/.codex/auth.json credential source found"));
+                } else {
+                    if (chatgptLogin && envKey) {
+                        findings.add(new Finding(Level.WARNING,
+                                "both a ChatGPT sign-in and OPENAI_API_KEY are present; set preferred_auth_method in "
+                                        + "~/.codex/config.toml to control which one bills"));
+                    } else if (chatgptLogin) {
+                        findings.add(new Finding(Level.READY,
+                                "billing: ChatGPT sign-in (subscription covers usage)"));
+                    } else if (envKey || fileKey) {
+                        findings.add(new Finding(Level.READY,
+                                "billing: OpenAI API key (metered API billing, not a subscription)"));
+                    } else {
+                        findings.add(new Finding(Level.READY, "Codex credential file is present"));
+                    }
+                    findings.add(new Finding(Level.WARNING,
+                            "this Codex CLI exposes no non-generative login-status command; credential validity is unverified"));
                 }
             }
             case "gemini" -> {
@@ -242,18 +266,62 @@ final class AgentDoctor {
                         || present(system.environment("GOOGLE_API_KEY"));
                 boolean oauth = system.fileExists(Path.of(System.getProperty("user.home"), ".gemini", "oauth_creds.json"))
                         || system.fileExists(Path.of(System.getProperty("user.home"), ".config", "gemini", "oauth_creds.json"));
-                if (key || oauth) {
-                    findings.add(new Finding(Level.READY, key
-                            ? "Gemini API-key environment is configured" : "Gemini OAuth credential file is present"));
-                } else {
+                if (!key && !oauth) {
                     findings.add(new Finding(Level.BLOCKED,
                             "no GEMINI_API_KEY, GOOGLE_API_KEY, or Gemini OAuth credential file found"));
+                } else {
+                    String settings = system.fileContent(
+                            Path.of(System.getProperty("user.home"), ".gemini", "settings.json"));
+                    String selected = settings == null ? null : jsonString(settings, "selectedAuthType");
+                    if ("oauth-personal".equals(selected) && oauth) {
+                        findings.add(new Finding(Level.READY,
+                                "billing: Google account sign-in (plan or free Code Assist quota)"));
+                    } else if (selected != null && selected.contains("api-key") && key) {
+                        findings.add(new Finding(Level.READY,
+                                "billing: Gemini API key (metered or AI Studio free tier)"));
+                    } else if (key && oauth) {
+                        findings.add(new Finding(Level.WARNING,
+                                "both a Google sign-in and an API key are present; run the CLI's /auth to pick one "
+                                        + "so the billing source is explicit"));
+                    } else {
+                        findings.add(new Finding(Level.READY, key
+                                ? "billing: Gemini API key (metered or AI Studio free tier)"
+                                : "billing: Google account sign-in (plan or free Code Assist quota)"));
+                    }
                 }
             }
             case "qwen-code" -> findings.add(new Finding(Level.BLOCKED,
                     "qwen-code requires an OPENAI-compatible endpoint configuration"));
             default -> findings.add(new Finding(Level.WARNING, "authentication check unavailable for provider"));
         }
+    }
+
+    /**
+     * A logged-in subscription and an exported ANTHROPIC_API_KEY can coexist,
+     * and the key wins: the spawned CLI inherits the host environment and
+     * bills the API key instead of the plan. Make the effective billing
+     * source explicit so nobody finds out from an invoice.
+     */
+    private void checkClaudeBillingSource(String statusJson, List<Finding> findings) {
+        if (present(system.environment("ANTHROPIC_API_KEY"))) {
+            findings.add(new Finding(Level.WARNING,
+                    "ANTHROPIC_API_KEY is set in the environment and takes precedence, so runs bill the API key, "
+                            + "not the subscription login; unset it to run on your Claude plan"));
+            return;
+        }
+        String authMethod = jsonString(statusJson, "authMethod");
+        String subscription = jsonString(statusJson, "subscriptionType");
+        if ("claude.ai".equals(authMethod)) {
+            findings.add(new Finding(Level.READY, "billing: claude.ai subscription login"
+                    + (subscription == null ? "" : " (" + subscription + " plan)")));
+        } else if (authMethod != null) {
+            findings.add(new Finding(Level.READY, "billing: " + authMethod + " (API billing, not a subscription)"));
+        }
+    }
+
+    private static String jsonString(String json, String field) {
+        var matcher = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     private void checkLocalEndpoint(Map<String, String> env, List<Finding> findings) {
@@ -315,6 +383,15 @@ final class AgentDoctor {
         @Override
         public boolean fileExists(Path path) {
             return Files.isRegularFile(path);
+        }
+
+        @Override
+        public String fileContent(Path path) {
+            try {
+                return Files.readString(path);
+            } catch (IOException e) {
+                return null;
+            }
         }
 
         @Override

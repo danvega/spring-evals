@@ -28,6 +28,7 @@
       </div>
       <nav class="flex items-center gap-6 text-sm font-medium text-zinc-600 dark:font-mono dark:text-neutral-400">
         <a href="#leaderboard" class="hover:text-zinc-950 dark:hover:text-spring">Leaderboard</a>
+        <a href="#runs" class="hover:text-zinc-950 dark:hover:text-spring">Runs</a>
         <a href="#evals" class="hover:text-zinc-950 dark:hover:text-spring">Evals</a>
         <a href="https://github.com/danvega/spring-evals" class="hover:text-zinc-950 dark:hover:text-spring">GitHub</a>
       </nav>
@@ -62,6 +63,7 @@
       <div class="pl-6">
         <p class="truncate text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">Benchmark spend</p>
         <p class="text-3xl font-semibold tracking-tight tabular-nums dark:text-white" data-slot="stat-spend">–</p>
+        <p class="mt-1 hidden text-sm text-zinc-500 tabular-nums dark:font-mono dark:text-neutral-500" data-slot="stat-spend-est"></p>
       </div>
     </section>
 
@@ -98,6 +100,14 @@
       </div>
       <p class="mt-3 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500">Cell shade = share of the suite's evals passed. Hollow = no evals in that suite yet.</p>
       <div data-slot="drill" class="mt-6"></div>
+    </section>
+
+    <section id="runs" class="border-t border-zinc-950/10 py-12 dark:border-white/10">
+      <h2 class="text-2xl font-semibold tracking-tight text-balance dark:text-white">Runs</h2>
+      <p class="mt-1 text-base/7 text-zinc-600 dark:text-neutral-400">Every run invocation by name, newest first. The leaderboard above aggregates current-identity results; this is the execution history. Click a run for its attempts.</p>
+      <ul role="list" class="mt-6 divide-y divide-zinc-950/5 dark:divide-white/5" data-slot="runs"></ul>
+      <button data-slot="runs-more" class="mt-4 hidden text-sm font-medium text-spring-deep hover:underline dark:font-mono dark:text-spring"></button>
+      <div data-slot="run-drill" class="mt-6"></div>
     </section>
 
     <section id="evals" class="border-t border-zinc-950/10 py-12 dark:border-white/10">
@@ -259,6 +269,68 @@ function renderHeatmap(data) {
     </tr>`).join("");
 }
 
+const RUNS_PAGE = 10;
+let runsShown = RUNS_PAGE;
+
+function renderRuns(data) {
+  const runs = data.runs || [];
+  const more = slot("runs-more");
+  if (runs.length === 0) {
+    slot("runs").innerHTML = `<li class="py-4 text-base/7 text-zinc-500 dark:text-neutral-500">No runs recorded yet. The first scored run appears here.</li>`;
+    return;
+  }
+  const visible = runs.slice(0, runsShown);
+  slot("runs").innerHTML = visible.map((r, i) => `
+    <li>
+      <button data-run-index="${i}" class="flex w-full flex-col gap-1 py-4 text-left hover:bg-zinc-50 sm:flex-row sm:items-center sm:justify-between dark:hover:bg-neutral-900">
+        <div class="min-w-0">
+          <p class="${S.evalTitle}">${r.id}</p>
+          <p class="${S.evalMeta}">${new Date(r.started).toLocaleString()} · ${r.agents.length} agent${r.agents.length === 1 ? "" : "s"} · ${r.evals} eval${r.evals === 1 ? "" : "s"}</p>
+        </div>
+        <div class="flex shrink-0 items-center gap-3">
+          <span class="${S.rate}">${r.passed}/${r.attempts} passed</span>
+          <span class="${S.sub} tabular-nums">${r.recordedCostUsd ? "$" + r.recordedCostUsd.toFixed(2) : ""}</span>
+        </div>
+      </button>
+    </li>`).join("");
+  if (runs.length > runsShown) {
+    more.textContent = "Show all " + runs.length + " runs";
+    more.classList.remove("hidden");
+    more.onclick = () => { runsShown = runs.length; renderRuns(data); };
+  } else {
+    more.classList.add("hidden");
+  }
+
+  slot("runs").onclick = event => {
+    const trigger = event.target.closest("[data-run-index]");
+    if (!trigger) return;
+    const r = visible[Number(trigger.dataset.runIndex)];
+    const rows = r.detail.map(d => `
+      <li class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="${S.evalTitle}">${d.agent} · ${d.eval}</p>
+          <p class="${S.evalMeta}">attempt ${d.attempt}${d.failureKind ? " · " + d.failureKind : ""}</p>
+        </div>
+        <div class="flex shrink-0 items-center gap-3 text-sm text-zinc-600 tabular-nums dark:text-neutral-400">
+          <span class="${d.passed ? S.good : S.bad}">${d.passed ? "passed" : "failed"}</span>
+          <span>${d.durationMs == null ? "" : Math.round(d.durationMs / 1000) + "s"}</span>
+          <span>${d.totalTokens == null ? "" : d.totalTokens.toLocaleString() + " tok"}</span>
+          <span>${d.costUsd == null ? "" : "$" + d.costUsd.toFixed(2)}</span>
+        </div>
+      </li>`).join("");
+    slot("run-drill").innerHTML = `<div class="rounded-lg border border-zinc-950/10 p-6 dark:border-white/10">
+      <div class="flex items-center justify-between">
+        <p class="font-medium text-zinc-950 dark:font-mono dark:text-white">${r.id} · ${new Date(r.started).toLocaleString()}</p>
+        <button data-drill-close class="text-sm font-medium text-zinc-500 hover:text-zinc-950 dark:font-mono dark:hover:text-spring">close ×</button>
+      </div>
+      <ul role="list" class="mt-2 divide-y divide-zinc-950/5 dark:divide-white/5">${rows}</ul>
+    </div>`;
+  };
+  slot("run-drill").onclick = event => {
+    if (event.target.closest("[data-drill-close]")) slot("run-drill").innerHTML = "";
+  };
+}
+
 function render(data) {
   DATA = data;
   slot("generated").textContent = new Date(data.generated).toISOString().slice(0, 10);
@@ -269,9 +341,14 @@ function render(data) {
   const eligible = data.agents.filter(a => a.eligible !== false && (a.totalEvals == null || a.evals === a.totalEvals));
   slot("stat-best").textContent = eligible.length ? pct(Math.max(...eligible.map(a => a.successRate))) : "n/a";
   slot("stat-spend").textContent = data.spendUsd == null ? "n/a" : "$" + data.spendUsd.toFixed(2) + (data.spendPartial ? "+" : "");
+  if (data.estSpendUsd != null && data.spendPartial) {
+    slot("stat-spend-est").textContent = "\u2248 $" + data.estSpendUsd.toFixed(2) + " at API prices";
+    slot("stat-spend-est").classList.remove("hidden");
+  }
 
   renderLeaderboard(data);
   renderHeatmap(data);
+  renderRuns(data);
   wireDrill(slot("heatmap-head").closest("table"), "drill");
 
   slot("evals").innerHTML = data.evals.map(e => `
@@ -287,7 +364,7 @@ function render(data) {
     </li>`).join("");
 }
 
-fetch("./data.json")
+fetch("./data.json", { cache: "no-store" })
   .then(r => r.json())
   .then(render)
   .catch(err => console.error("could not load data.json", err));

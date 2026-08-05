@@ -25,7 +25,7 @@ public class ResultStore {
             String benchmarkVersion, String failureKind, String failureReason,
             String javaVersion, String osName, String osArch, String cliVersion,
             String networkPolicy, int campaignAttempts, Long inputTokens, Long outputTokens, Long totalTokens,
-            String candidateHash, String agentResponse) {
+            String candidateHash, String agentResponse, String campaignId) {
     }
 
     private final Path resultsFile;

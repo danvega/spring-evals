@@ -1,0 +1,97 @@
+# Running the benchmark
+
+How to run evals without spending more than you intend, and how to keep results comparable over time. Agent installation and API keys are covered in [AGENT_SETUP.md](AGENT_SETUP.md).
+
+## Selecting what runs
+
+`run` and `estimate` accept the same selectors, and they combine freely (`doctor` takes only `--agent`, `--family`, or nothing for all agents):
+
+```bash
+--agent a[,b,c]          # explicit picks
+--family claude          # name-prefix match: claude-*, codex-*
+--all-agents             # everything in agents/
+--eval boot/000-initializr-parity
+--project boot           # one suite
+--difficulty easy,medium
+--pilot                  # the designated three-eval pilot subset
+--attempts 1             # default is 1; retries are explicit
+--run-name my-baseline   # names the run; omit for a generated name like eager-bean-42
+```
+
+## Estimate first, always
+
+`estimate` is free and takes the same selectors as `run`:
+
+```bash
+./spring-evals estimate --all-agents --attempts 1
+./spring-evals estimate --agent claude-sonnet-5 --project boot
+./spring-evals estimate --all-agents --pilot --attempts 1
+```
+
+Estimates come from `estCostPerAttemptUsd` in each agent config. Treat them as planning numbers and tune them as real spend data comes in. Claude Code reports the actual cost per attempt automatically; for other CLIs, check the provider console after a run and adjust the config.
+
+## The paid-run lock
+
+`run` refuses paid execution unless both flags are present:
+
+```bash
+./spring-evals run --agent claude-sonnet-5 --pilot --attempts 1 \
+  --allow-paid-run --max-total-cost 2.00
+```
+
+Before each attempt the harness reserves that agent's configured estimate and stops before the campaign cap would be exceeded. This is an estimated reservation cap, not a provider billing guarantee. Agents without a configured estimate are refused entirely. Keep provider-side spend limits in place as the real backstop, and keep `--max-total-cost` below them.
+
+## A cost-control playbook
+
+- Start with `--pilot --attempts 1`, then expand only the rows that earn it.
+- Smoke-test a new agent with `--difficulty easy` before a full run.
+- Scope with `--eval` or `--project` while iterating on anything.
+- Single attempts keep expected cost equal to worst case. Retries are where spend concentrates.
+- Claude-family configs carry a per-attempt `budgetUsd` hard cap enforced by the CLI itself. Set per-model limits in other providers' dashboards.
+- Every eval project builds with `-ntp`, so agents do not burn tokens reading Maven download logs.
+
+## Memoization and when you pay again
+
+Results accumulate in `results/results.json`. A result's cache identity includes the eval content hash, the agent config hash, the harness version, the CLI version, and the JDK and OS. A later run skips anything that already passed or exhausted its attempts under the same identity, so expanding a campaign only pays for what is new.
+
+The flip side: editing an eval, changing an agent config, upgrading a CLI, or changing the harness invalidates the matching cached results on purpose. Passing `--force` reruns the current identity and replaces those records.
+
+Recorded spend appears in the report output, `results/leaderboard.md`, and the dashboard's Benchmark spend tile.
+
+## New model day
+
+A new model dropped and claimed the crown. To get a comparable row:
+
+```bash
+# 1. describe it (one JSON file)
+cat > agents/new-hotness.json <<'JSON'
+{
+  "name": "new-hotness",
+  "provider": "claude",
+  "model": "the-new-model-id",
+  "budgetUsd": 3.00,
+  "estCostPerAttemptUsd": 1.00
+}
+JSON
+
+# 2. readiness and price, both free
+./spring-evals doctor --agent new-hotness
+./spring-evals estimate --agent new-hotness
+
+# 3. cheap first pass, then the full treatment if it earns it
+./spring-evals run --agent new-hotness --pilot --attempts 1 --allow-paid-run --max-total-cost 5
+./spring-evals run --agent new-hotness --attempts 1 --allow-paid-run --max-total-cost 15
+
+# 4. refresh the leaderboard and dashboard
+./spring-evals report
+```
+
+Every existing row stays comparable because the evals did not change under it.
+
+Supported providers today: `claude`, `codex`, `gemini`, and `qwen-code`. A new model on an existing provider is just another JSON file. A new provider is one more case in the harness's `Agents.java`, or a custom `AgentModel` for CLIs the Agent Client does not cover yet. The optional `env` map in a config is passed to the agent CLI process, and values can reference host environment variables with `${VAR}`.
+
+## Open and local models
+
+Frontier models are only half the story. The same harness runs open-weight models by pointing an agent CLI at a compatible endpoint: Kimi K3 through Moonshot's Anthropic-compatible endpoint, Grok 4.5 through xAI's OpenAI-compatible endpoint, and anything Ollama serves locally through the Qwen Code CLI. Setup for each is in [AGENT_SETUP.md](AGENT_SETUP.md).
+
+Cost for local models reports as n/a. Duration still comes through, which is half the story for local models anyway.
