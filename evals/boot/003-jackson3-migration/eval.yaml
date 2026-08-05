@@ -1,4 +1,4 @@
-name: 000-jackson3-migration
+name: 003-jackson3-migration
 project: boot
 title: Jackson 2 to Jackson 3 migration after a Spring Boot 4 upgrade
 category: json

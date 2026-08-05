@@ -1,0 +1,22 @@
+name: 000-initializr-parity
+project: boot
+title: Generate a new Boot 4 project from scratch to the Initializr bar
+category: config
+type: build
+difficulty: medium
+baseline_failure: compile_failure
+boot_version: 4.1.0
+timeout_seconds: 1200
+description: >
+  Models generate new Spring projects in chat constantly, and the stale
+  tells are famous: Boot 2 or 3 parents, the pre-rename
+  spring-boot-starter-web, ancient Java versions. This eval hands the
+  agent an empty repository and asks for a fresh Boot 4 project. The bar
+  is what start.spring.io produces today, and the reference solution is
+  literally Initializr output. Mechanism checks require a 4.x parent and
+  the current starter names, and forbid the old ones. The ban on using a
+  generator is prompt-level only; there is no reliable runtime detection
+  for it, which is a documented limitation. The mechanism checks also
+  require the Initializr conventions themselves (starter parent,
+  java.version property), so unconventional but working builds fail by
+  design: the bar is Initializr, not merely a running app.

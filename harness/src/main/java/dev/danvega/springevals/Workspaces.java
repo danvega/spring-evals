@@ -26,9 +26,21 @@ public class Workspaces {
                 : Path.of(configured).toAbsolutePath().normalize();
     }
 
+    /**
+     * Files that carry instructions or tool configuration for coding agents.
+     * They must never exist in a candidate workspace: a fixture that shipped
+     * one would steer the agent, contaminating the measurement.
+     */
+    private static final java.util.List<String> AGENT_CONTEXT_FILES = java.util.List.of(
+            "CLAUDE.md", "AGENTS.md", "GEMINI.md", "QWEN.md", ".claude", ".mcp.json",
+            ".cursorrules", ".cursor", ".github/copilot-instructions.md");
+
     public Path freshCopy(EvalDefinition eval, String label) {
         Path ws = runsDir.resolve(eval.id().replace('/', '-') + "-" + label + "-" + UUID.randomUUID());
         copyTree(eval.projectDir(), ws);
+        for (String contextFile : AGENT_CONTEXT_FILES) {
+            deleteTree(ws.resolve(contextFile));
+        }
         Path mvnw = ws.resolve("mvnw");
         if (Files.exists(mvnw)) {
             mvnw.toFile().setExecutable(true);

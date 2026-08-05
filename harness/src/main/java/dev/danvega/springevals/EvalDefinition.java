@@ -6,7 +6,7 @@ import java.util.Map;
 
 /**
  * One eval on disk: evals/&lt;project&gt;/&lt;nnn&gt;-&lt;name&gt;/. The id is
- * "project/dirname", e.g. "boot/000-jackson3-migration".
+ * "project/dirname", e.g. "boot/000-initializr-parity".
  */
 public record EvalDefinition(String id, String project, Path dir, Map<String, String> meta) {
 

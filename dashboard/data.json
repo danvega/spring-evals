@@ -3,54 +3,527 @@
   "sample": true,
   "spendUsd": 96.4,
   "agents": [
-    { "agent": "claude-fable-5", "model": "claude-fable-5", "evals": 9, "successRate": 1.0, "firstTryRate": 0.78, "avgDurationS": 141, "avgCostUsd": 1.8, "totalCostUsd": 19.8 },
-    { "agent": "codex-gpt-5-6-sol", "model": "gpt-5.6-sol", "evals": 9, "successRate": 0.89, "firstTryRate": 0.67, "avgDurationS": 212, "avgCostUsd": 1.32, "totalCostUsd": 17.2 },
-    { "agent": "claude-opus-5", "model": "claude-opus-5", "evals": 9, "successRate": 0.89, "firstTryRate": 0.67, "avgDurationS": 155, "avgCostUsd": 1.45, "totalCostUsd": 18.9 },
-    { "agent": "claude-sonnet-5", "model": "claude-sonnet-5", "evals": 9, "successRate": 0.78, "firstTryRate": 0.67, "avgDurationS": 114, "avgCostUsd": 0.61, "totalCostUsd": 7.9 },
-    { "agent": "codex-gpt-5-6-terra", "model": "gpt-5.6-terra", "evals": 9, "successRate": 0.78, "firstTryRate": 0.56, "avgDurationS": 168, "avgCostUsd": 0.46, "totalCostUsd": 6.4 },
-    { "agent": "kimi-k3", "model": "kimi-k3", "evals": 9, "successRate": 0.67, "firstTryRate": 0.44, "avgDurationS": 251, "avgCostUsd": 0.41, "totalCostUsd": 6.1 },
-    { "agent": "gemini-2-5-pro", "model": "gemini-2.5-pro", "evals": 9, "successRate": 0.67, "firstTryRate": 0.33, "avgDurationS": 132, "avgCostUsd": 0.85, "totalCostUsd": 12.7 },
-    { "agent": "claude-haiku-4-5", "model": "claude-haiku-4-5", "evals": 9, "successRate": 0.44, "firstTryRate": 0.33, "avgDurationS": 94, "avgCostUsd": 0.26, "totalCostUsd": 4.1 },
-    { "agent": "codex-gpt-5-6-luna", "model": "gpt-5.6-luna", "evals": 9, "successRate": 0.44, "firstTryRate": 0.22, "avgDurationS": 139, "avgCostUsd": 0.19, "totalCostUsd": 3.3 },
-    { "agent": "qwen3-coder-ollama", "model": "qwen3-coder:30b", "evals": 9, "successRate": 0.33, "firstTryRate": 0.11, "avgDurationS": 402, "avgCostUsd": null, "totalCostUsd": null },
-    { "agent": "gpt-oss-ollama", "model": "gpt-oss:20b", "evals": 9, "successRate": 0.11, "firstTryRate": 0.0, "avgDurationS": 493, "avgCostUsd": null, "totalCostUsd": null }
+    {
+      "agent": "claude-fable-5",
+      "model": "claude-fable-5",
+      "evals": 9,
+      "successRate": 1.0,
+      "firstTryRate": 0.78,
+      "avgDurationS": 141,
+      "avgCostUsd": 1.8,
+      "totalCostUsd": 19.8
+    },
+    {
+      "agent": "codex-gpt-5-6-sol",
+      "model": "gpt-5.6-sol",
+      "evals": 9,
+      "successRate": 0.89,
+      "firstTryRate": 0.67,
+      "avgDurationS": 212,
+      "avgCostUsd": 1.32,
+      "totalCostUsd": 17.2
+    },
+    {
+      "agent": "claude-opus-5",
+      "model": "claude-opus-5",
+      "evals": 9,
+      "successRate": 0.89,
+      "firstTryRate": 0.67,
+      "avgDurationS": 155,
+      "avgCostUsd": 1.45,
+      "totalCostUsd": 18.9
+    },
+    {
+      "agent": "claude-sonnet-5",
+      "model": "claude-sonnet-5",
+      "evals": 9,
+      "successRate": 0.78,
+      "firstTryRate": 0.67,
+      "avgDurationS": 114,
+      "avgCostUsd": 0.61,
+      "totalCostUsd": 7.9
+    },
+    {
+      "agent": "codex-gpt-5-6-terra",
+      "model": "gpt-5.6-terra",
+      "evals": 9,
+      "successRate": 0.78,
+      "firstTryRate": 0.56,
+      "avgDurationS": 168,
+      "avgCostUsd": 0.46,
+      "totalCostUsd": 6.4
+    },
+    {
+      "agent": "kimi-k3",
+      "model": "kimi-k3",
+      "evals": 9,
+      "successRate": 0.67,
+      "firstTryRate": 0.44,
+      "avgDurationS": 251,
+      "avgCostUsd": 0.41,
+      "totalCostUsd": 6.1
+    },
+    {
+      "agent": "gemini-2-5-pro",
+      "model": "gemini-2.5-pro",
+      "evals": 9,
+      "successRate": 0.67,
+      "firstTryRate": 0.33,
+      "avgDurationS": 132,
+      "avgCostUsd": 0.85,
+      "totalCostUsd": 12.7
+    },
+    {
+      "agent": "claude-haiku-4-5",
+      "model": "claude-haiku-4-5",
+      "evals": 9,
+      "successRate": 0.44,
+      "firstTryRate": 0.33,
+      "avgDurationS": 94,
+      "avgCostUsd": 0.26,
+      "totalCostUsd": 4.1
+    },
+    {
+      "agent": "codex-gpt-5-6-luna",
+      "model": "gpt-5.6-luna",
+      "evals": 9,
+      "successRate": 0.44,
+      "firstTryRate": 0.22,
+      "avgDurationS": 139,
+      "avgCostUsd": 0.19,
+      "totalCostUsd": 3.3
+    },
+    {
+      "agent": "qwen3-coder-ollama",
+      "model": "qwen3-coder:30b",
+      "evals": 9,
+      "successRate": 0.33,
+      "firstTryRate": 0.11,
+      "avgDurationS": 402,
+      "avgCostUsd": null,
+      "totalCostUsd": null
+    },
+    {
+      "agent": "gpt-oss-ollama",
+      "model": "gpt-oss:20b",
+      "evals": 9,
+      "successRate": 0.11,
+      "firstTryRate": 0.0,
+      "avgDurationS": 493,
+      "avgCostUsd": null,
+      "totalCostUsd": null
+    }
   ],
-  "projects": ["boot", "data", "framework", "security"],
+  "projects": [
+    "boot",
+    "data",
+    "framework",
+    "security"
+  ],
   "byProject": {
-    "claude-fable-5": { "boot": [3, 3], "data": [1, 1], "framework": [4, 4], "security": [1, 1] },
-    "codex-gpt-5-6-sol": { "boot": [3, 3], "data": [1, 1], "framework": [3, 4], "security": [1, 1] },
-    "claude-opus-5": { "boot": [3, 3], "data": [1, 1], "framework": [3, 4], "security": [1, 1] },
-    "claude-sonnet-5": { "boot": [3, 3], "data": [0, 1], "framework": [3, 4], "security": [1, 1] },
-    "codex-gpt-5-6-terra": { "boot": [3, 3], "data": [0, 1], "framework": [3, 4], "security": [1, 1] },
-    "kimi-k3": { "boot": [2, 3], "data": [0, 1], "framework": [3, 4], "security": [1, 1] },
-    "gemini-2-5-pro": { "boot": [2, 3], "data": [0, 1], "framework": [2, 4], "security": [1, 1] },
-    "claude-haiku-4-5": { "boot": [2, 3], "data": [0, 1], "framework": [1, 4], "security": [1, 1] },
-    "codex-gpt-5-6-luna": { "boot": [2, 3], "data": [0, 1], "framework": [2, 4], "security": [0, 1] },
-    "qwen3-coder-ollama": { "boot": [1, 3], "data": [0, 1], "framework": [1, 4], "security": [1, 1] },
-    "gpt-oss-ollama": { "boot": [1, 3], "data": [0, 1], "framework": [0, 4], "security": [0, 1] }
+    "claude-fable-5": {
+      "boot": [
+        3,
+        3,
+        4
+      ],
+      "data": [
+        1,
+        1
+      ],
+      "framework": [
+        4,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "codex-gpt-5-6-sol": {
+      "boot": [
+        3,
+        3,
+        4
+      ],
+      "data": [
+        1,
+        1
+      ],
+      "framework": [
+        3,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "claude-opus-5": {
+      "boot": [
+        3,
+        3,
+        4
+      ],
+      "data": [
+        1,
+        1
+      ],
+      "framework": [
+        3,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "claude-sonnet-5": {
+      "boot": [
+        3,
+        3,
+        4
+      ],
+      "data": [
+        0,
+        1
+      ],
+      "framework": [
+        3,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "codex-gpt-5-6-terra": {
+      "boot": [
+        3,
+        3,
+        4
+      ],
+      "data": [
+        0,
+        1
+      ],
+      "framework": [
+        3,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "kimi-k3": {
+      "boot": [
+        2,
+        3,
+        4
+      ],
+      "data": [
+        0,
+        1
+      ],
+      "framework": [
+        3,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "gemini-2-5-pro": {
+      "boot": [
+        2,
+        3,
+        4
+      ],
+      "data": [
+        0,
+        1
+      ],
+      "framework": [
+        2,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "claude-haiku-4-5": {
+      "boot": [
+        2,
+        3,
+        4
+      ],
+      "data": [
+        0,
+        1
+      ],
+      "framework": [
+        1,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "codex-gpt-5-6-luna": {
+      "boot": [
+        2,
+        3,
+        4
+      ],
+      "data": [
+        0,
+        1
+      ],
+      "framework": [
+        2,
+        4
+      ],
+      "security": [
+        0,
+        1
+      ]
+    },
+    "qwen3-coder-ollama": {
+      "boot": [
+        1,
+        3,
+        4
+      ],
+      "data": [
+        0,
+        1
+      ],
+      "framework": [
+        1,
+        4
+      ],
+      "security": [
+        1,
+        1
+      ]
+    },
+    "gpt-oss-ollama": {
+      "boot": [
+        1,
+        3,
+        4
+      ],
+      "data": [
+        0,
+        1
+      ],
+      "framework": [
+        0,
+        4
+      ],
+      "security": [
+        0,
+        1
+      ]
+    }
   },
   "byEval": {
-    "claude-fable-5": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": true, "boot/002-restclient-migration": true, "data/000-n-plus-one": true, "framework/000-resilience-annotations": true, "framework/001-api-versioning": true, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": true, "security/000-lockdown": true },
-    "codex-gpt-5-6-sol": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": true, "boot/002-restclient-migration": true, "data/000-n-plus-one": true, "framework/000-resilience-annotations": true, "framework/001-api-versioning": true, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": true },
-    "claude-opus-5": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": true, "boot/002-restclient-migration": true, "data/000-n-plus-one": true, "framework/000-resilience-annotations": true, "framework/001-api-versioning": true, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": true },
-    "claude-sonnet-5": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": true, "boot/002-restclient-migration": true, "data/000-n-plus-one": false, "framework/000-resilience-annotations": true, "framework/001-api-versioning": true, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": true },
-    "codex-gpt-5-6-terra": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": true, "boot/002-restclient-migration": true, "data/000-n-plus-one": false, "framework/000-resilience-annotations": true, "framework/001-api-versioning": true, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": true },
-    "kimi-k3": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": false, "boot/002-restclient-migration": true, "data/000-n-plus-one": false, "framework/000-resilience-annotations": true, "framework/001-api-versioning": true, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": true },
-    "gemini-2-5-pro": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": false, "boot/002-restclient-migration": true, "data/000-n-plus-one": false, "framework/000-resilience-annotations": true, "framework/001-api-versioning": false, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": true },
-    "claude-haiku-4-5": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": false, "boot/002-restclient-migration": true, "data/000-n-plus-one": false, "framework/000-resilience-annotations": false, "framework/001-api-versioning": false, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": true },
-    "codex-gpt-5-6-luna": { "boot/000-jackson3-migration": true, "boot/001-modular-autoconfig": false, "boot/002-restclient-migration": true, "data/000-n-plus-one": false, "framework/000-resilience-annotations": true, "framework/001-api-versioning": false, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": false },
-    "qwen3-coder-ollama": { "boot/000-jackson3-migration": false, "boot/001-modular-autoconfig": false, "boot/002-restclient-migration": true, "data/000-n-plus-one": false, "framework/000-resilience-annotations": false, "framework/001-api-versioning": false, "framework/002-problem-details": true, "framework/003-transactional-self-invocation": false, "security/000-lockdown": true },
-    "gpt-oss-ollama": { "boot/000-jackson3-migration": false, "boot/001-modular-autoconfig": false, "boot/002-restclient-migration": true, "data/000-n-plus-one": false, "framework/000-resilience-annotations": false, "framework/001-api-versioning": false, "framework/002-problem-details": false, "framework/003-transactional-self-invocation": false, "security/000-lockdown": false }
+    "claude-fable-5": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": true,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": true,
+      "framework/000-resilience-annotations": true,
+      "framework/001-api-versioning": true,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": true,
+      "security/000-lockdown": true
+    },
+    "codex-gpt-5-6-sol": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": true,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": true,
+      "framework/000-resilience-annotations": true,
+      "framework/001-api-versioning": true,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": true
+    },
+    "claude-opus-5": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": true,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": true,
+      "framework/000-resilience-annotations": true,
+      "framework/001-api-versioning": true,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": true
+    },
+    "claude-sonnet-5": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": true,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": false,
+      "framework/000-resilience-annotations": true,
+      "framework/001-api-versioning": true,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": true
+    },
+    "codex-gpt-5-6-terra": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": true,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": false,
+      "framework/000-resilience-annotations": true,
+      "framework/001-api-versioning": true,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": true
+    },
+    "kimi-k3": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": false,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": false,
+      "framework/000-resilience-annotations": true,
+      "framework/001-api-versioning": true,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": true
+    },
+    "gemini-2-5-pro": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": false,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": false,
+      "framework/000-resilience-annotations": true,
+      "framework/001-api-versioning": false,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": true
+    },
+    "claude-haiku-4-5": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": false,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": false,
+      "framework/000-resilience-annotations": false,
+      "framework/001-api-versioning": false,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": true
+    },
+    "codex-gpt-5-6-luna": {
+      "boot/003-jackson3-migration": true,
+      "boot/001-modular-autoconfig": false,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": false,
+      "framework/000-resilience-annotations": true,
+      "framework/001-api-versioning": false,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": false
+    },
+    "qwen3-coder-ollama": {
+      "boot/003-jackson3-migration": false,
+      "boot/001-modular-autoconfig": false,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": false,
+      "framework/000-resilience-annotations": false,
+      "framework/001-api-versioning": false,
+      "framework/002-problem-details": true,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": true
+    },
+    "gpt-oss-ollama": {
+      "boot/003-jackson3-migration": false,
+      "boot/001-modular-autoconfig": false,
+      "boot/002-restclient-migration": true,
+      "data/000-n-plus-one": false,
+      "framework/000-resilience-annotations": false,
+      "framework/001-api-versioning": false,
+      "framework/002-problem-details": false,
+      "framework/003-transactional-self-invocation": false,
+      "security/000-lockdown": false
+    }
   },
   "evals": [
-    { "id": "boot/000-jackson3-migration", "project": "boot", "title": "Jackson 2 to Jackson 3 migration after a Spring Boot 4 upgrade", "type": "fix", "difficulty": "medium" },
-    { "id": "boot/001-modular-autoconfig", "project": "boot", "title": "Restore features lost to Boot 4 modular auto-configuration", "type": "fix", "difficulty": "medium" },
-    { "id": "boot/002-restclient-migration", "project": "boot", "title": "Migrate RestTemplate code to the auto-configured RestClient", "type": "fix", "difficulty": "easy" },
-    { "id": "data/000-n-plus-one", "project": "data", "title": "Eliminate an N+1 query problem without changing the response", "type": "fix", "difficulty": "hard" },
-    { "id": "framework/000-resilience-annotations", "project": "framework", "title": "Add retries and concurrency limits without new dependencies", "type": "build", "difficulty": "medium" },
-    { "id": "framework/001-api-versioning", "project": "framework", "title": "Version an endpoint with Framework 7 native API versioning", "type": "build", "difficulty": "medium" },
-    { "id": "framework/002-problem-details", "project": "framework", "title": "RFC 9457 problem details for error responses", "type": "build", "difficulty": "easy" },
-    { "id": "framework/003-transactional-self-invocation", "project": "framework", "title": "Fix a partial-write bug caused by transactional self-invocation", "type": "fix", "difficulty": "hard" },
-    { "id": "security/000-lockdown", "project": "security", "title": "Secure an API with a stateless SecurityFilterChain", "type": "build", "difficulty": "medium" }
+    {
+      "id": "boot/000-initializr-parity",
+      "project": "boot",
+      "title": "Generate a new Boot 4 project from scratch to the Initializr bar",
+      "type": "build",
+      "difficulty": "medium"
+    },
+    {
+      "id": "boot/001-modular-autoconfig",
+      "project": "boot",
+      "title": "Restore features lost to Boot 4 modular auto-configuration",
+      "type": "fix",
+      "difficulty": "medium"
+    },
+    {
+      "id": "boot/002-restclient-migration",
+      "project": "boot",
+      "title": "Migrate RestTemplate code to the auto-configured RestClient",
+      "type": "fix",
+      "difficulty": "easy"
+    },
+    {
+      "id": "boot/003-jackson3-migration",
+      "project": "boot",
+      "title": "Jackson 2 to Jackson 3 migration after a Spring Boot 4 upgrade",
+      "type": "fix",
+      "difficulty": "medium"
+    },
+    {
+      "id": "data/000-n-plus-one",
+      "project": "data",
+      "title": "Eliminate an N+1 query problem without changing the response",
+      "type": "fix",
+      "difficulty": "hard"
+    },
+    {
+      "id": "framework/000-resilience-annotations",
+      "project": "framework",
+      "title": "Add retries and concurrency limits without new dependencies",
+      "type": "build",
+      "difficulty": "medium"
+    },
+    {
+      "id": "framework/001-api-versioning",
+      "project": "framework",
+      "title": "Version an endpoint with Framework 7 native API versioning",
+      "type": "build",
+      "difficulty": "medium"
+    },
+    {
+      "id": "framework/002-problem-details",
+      "project": "framework",
+      "title": "RFC 9457 problem details for error responses",
+      "type": "build",
+      "difficulty": "easy"
+    },
+    {
+      "id": "framework/003-transactional-self-invocation",
+      "project": "framework",
+      "title": "Fix a partial-write bug caused by transactional self-invocation",
+      "type": "fix",
+      "difficulty": "hard"
+    },
+    {
+      "id": "security/000-lockdown",
+      "project": "security",
+      "title": "Secure an API with a stateless SecurityFilterChain",
+      "type": "build",
+      "difficulty": "medium"
+    }
   ]
 }

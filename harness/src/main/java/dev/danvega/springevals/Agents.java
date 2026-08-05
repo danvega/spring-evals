@@ -127,6 +127,12 @@ public class Agents {
 
     public AgentModel createModel(AgentSpec spec, Duration timeout) {
         return switch (spec.provider()) {
+            // settingSources stays empty ON PURPOSE so no host CLAUDE.md, user
+            // skills, or MCP servers are requested. KNOWN LIMIT: agent-claude
+            // 0.16.0 does not forward this option, so isolation currently rests
+            // on the Claude CLI's SDK-mode default of loading no filesystem
+            // settings. Verify empirically per CLI version before published
+            // campaigns, and never add sources here.
             case "claude" -> ClaudeAgentModel.builder()
                     .defaultOptions(ClaudeAgentOptions.builder()
                             .model(spec.model())
@@ -134,6 +140,7 @@ public class Agents {
                             .timeout(timeout)
                             .environmentVariables(expandAll(spec.env()))
                             .maxBudgetUsd(spec.budgetUsd())
+                            .settingSources(List.of())
                             .build())
                     .build();
             case "codex" -> new CodexAgentModel(CodexClient.create(),

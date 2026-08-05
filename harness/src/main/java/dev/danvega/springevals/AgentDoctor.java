@@ -121,7 +121,58 @@ final class AgentDoctor {
             checkAuthentication(spec, resolved, customEndpoint, findings);
             checkLocalEndpoint(resolved, findings);
         }
+        checkContextContamination(spec, findings);
         return new Report(spec, List.copyOf(findings));
+    }
+
+    /**
+     * Host-level agent context (global instruction files, user skills, MCP
+     * config) can leak knowledge into benchmark runs and invalidate results.
+     * The Claude CLI's SDK-mode default is to load no filesystem settings,
+     * but the current adapter cannot force that, so it is surfaced as an
+     * assumption to verify. Other CLIs read global context files the harness
+     * cannot disable, so their presence is a warning.
+     */
+    private void checkContextContamination(AgentSpec spec, List<Finding> findings) {
+        Path home = Path.of(System.getProperty("user.home"));
+        switch (spec.provider()) {
+            case "claude" -> findings.add(new Finding(Level.WARNING,
+                    "context isolation relies on the Claude CLI SDK-mode default of loading no filesystem "
+                            + "settings; the current adapter cannot force it, so verify once per CLI version "
+                            + "before published campaigns"));
+            case "codex" -> {
+                if (system.fileExists(home.resolve(".codex/AGENTS.md"))) {
+                    findings.add(new Finding(Level.WARNING,
+                            "~/.codex/AGENTS.md exists and Codex loads it globally; move it aside for benchmark runs"));
+                }
+                if (system.fileExists(home.resolve(".codex/config.toml"))) {
+                    findings.add(new Finding(Level.WARNING,
+                            "~/.codex/config.toml exists; verify it defines no MCP servers or instructions before benchmark runs"));
+                }
+            }
+            case "gemini" -> {
+                if (system.fileExists(home.resolve(".gemini/GEMINI.md"))) {
+                    findings.add(new Finding(Level.WARNING,
+                            "~/.gemini/GEMINI.md exists and Gemini CLI loads it globally; move it aside for benchmark runs"));
+                }
+                if (system.fileExists(home.resolve(".gemini/settings.json"))) {
+                    findings.add(new Finding(Level.WARNING,
+                            "~/.gemini/settings.json exists; verify it defines no MCP servers before benchmark runs"));
+                }
+            }
+            case "qwen-code" -> {
+                if (system.fileExists(home.resolve(".qwen/QWEN.md"))) {
+                    findings.add(new Finding(Level.WARNING,
+                            "~/.qwen/QWEN.md exists and Qwen Code loads it globally; move it aside for benchmark runs"));
+                }
+                if (system.fileExists(home.resolve(".qwen/settings.json"))) {
+                    findings.add(new Finding(Level.WARNING,
+                            "~/.qwen/settings.json exists; verify it defines no MCP servers before benchmark runs"));
+                }
+            }
+            default -> {
+            }
+        }
     }
 
     private Map<String, String> resolveEnvironment(AgentSpec spec, List<Finding> findings) {

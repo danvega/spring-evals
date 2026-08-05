@@ -26,7 +26,7 @@ import dev.danvega.springevals.ResultStore.RunRecord;
  *   ./spring-evals validate [evalId...]
  *   ./spring-evals doctor [--agent a[,b,c] | --family claude | --all-agents]
  *   ./spring-evals run --agent a[,b,c] | --family claude | --all-agents
- *                      [--eval boot/000-jackson3-migration] [--project boot] [--difficulty easy,medium]
+ *                      [--eval boot/000-initializr-parity] [--project boot] [--difficulty easy,medium]
  *                      [--pilot] [--attempts 1] [--force]
  *                      [--allow-paid-run --max-total-cost USD]
  *   ./spring-evals report

@@ -50,7 +50,7 @@ public class EvalCatalog {
         Path yaml = dir.resolve("eval.yaml");
         if (!Files.exists(yaml)) {
             throw new IllegalArgumentException(
-                    "eval not found: " + id + " (expected " + yaml + "; ids look like boot/000-jackson3-migration)");
+                    "eval not found: " + id + " (expected " + yaml + "; ids look like boot/000-initializr-parity)");
         }
         try {
             return new EvalDefinition(id, id.split("/")[0], dir, parseYaml(Files.readString(yaml)));

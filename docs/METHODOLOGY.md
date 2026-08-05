@@ -53,3 +53,15 @@ Public prompts and solutions eventually become searchable and may enter training
 ## Catalog balance
 
 The overall score should not be considered stable until the catalog has enough tasks to balance Spring portfolio, task type, difficulty, and skill dimension. Target dimensions include upgrade/API recall, diagnosis, data access, security, testing, observability, messaging, architecture, and maintainability. Boot 4.0 and Boot 4.1 should be separate versioned cohorts rather than silently replacing one another.
+
+## Host context isolation
+
+A benchmark run is invalid if the agent can see instructions or knowledge the host machine happens to carry: a global CLAUDE.md, user-installed skills, MCP servers, or global agent context files. On a maintainer's machine these can amount to answer keys for the very tasks being measured.
+
+Controls, per layer:
+
+- **Workspace**: candidate workspaces are created outside the repository, and the harness strips agent context files (CLAUDE.md, AGENTS.md, GEMINI.md, QWEN.md, .claude/, .mcp.json, Cursor and Copilot instruction files) from every fresh copy before the agent starts.
+- **Claude Code**: the harness requests no setting sources, and in SDK mode the Claude CLI's documented default is to load no filesystem settings: no host CLAUDE.md, no user skills, no user or project MCP servers. Known limit: the current Agent Client adapter (0.16.0) does not forward the setting-sources option, so this isolation rests on the CLI default rather than an explicit flag. Verify it empirically once per CLI version before a published campaign, and treat any adapter or CLI upgrade as invalidating that verification.
+- **Codex, Gemini CLI, Qwen Code**: these CLIs read global context files the harness cannot disable per invocation (~/.codex/AGENTS.md and config.toml, ~/.gemini/GEMINI.md, ~/.qwen/QWEN.md). `doctor` warns when they exist on the host. Published campaigns should run these CLIs in a container or a clean account so the warning list is empty.
+
+Residual risk: prompt-level bans (for example the generator ban in the initializr-parity eval) rely on agent compliance and are documented as limitations rather than enforced guarantees.

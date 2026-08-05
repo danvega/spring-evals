@@ -10,7 +10,7 @@ Complementary to [Agent Bench](https://github.com/markpollack/agent-bench), whic
 
 Evals are organized into suites, one per project on [spring.io/projects](https://spring.io/projects). Every portfolio project has a suite directory under [evals/](evals), from the big ones (`framework`, `boot`, `data`, `security`, `cloud`, `ai`) to the full long tail (`batch`, `integration`, `kafka`, `amqp`, `graphql`, `grpc`, `modulith`, `session`, `authorization-server`, `hateoas`, `rest-docs`, `ldap`, `pulsar`, `shell`, `web-flow`, `web-services`). Most are empty today. Each suite README says what belongs there and links to the proposal form.
 
-Each eval id is `<project>/<nnn>-<name>`, for example `boot/000-jackson3-migration`. The leaderboard reports an overall score plus a per-project breakdown, so you can see that a model handles Boot upgrades well but falls over on Spring AI.
+Each eval id is `<project>/<nnn>-<name>`, for example `boot/003-jackson3-migration`. The leaderboard reports an overall score plus a per-project breakdown, so you can see that a model handles Boot upgrades well but falls over on Spring AI.
 
 Each eval is a self-contained Spring Boot project plus a task:
 
@@ -58,7 +58,7 @@ Requirements: JDK 25+ and network access for Maven. Scored runs also need agent 
 
 # run just one project's suite, or one eval
 ./spring-evals estimate --agent claude-sonnet-5 --project boot
-./spring-evals estimate --agent claude-sonnet-5 --eval boot/000-jackson3-migration
+./spring-evals estimate --agent claude-sonnet-5 --eval boot/003-jackson3-migration
 
 # print the leaderboard from accumulated results
 ./spring-evals report
@@ -70,9 +70,10 @@ Results accumulate in `results/results.json`. Cache identity includes the eval c
 
 | Eval | Project | Type | Difficulty | What it tests |
 |---|---|---|---|---|
-| [boot/000-jackson3-migration](evals/boot/000-jackson3-migration) | spring-boot | fix | medium | Migrating Jackson 2 code to the Jackson 3 / `tools.jackson` stack while preserving the API's JSON contract |
+| [boot/000-initializr-parity](evals/boot/000-initializr-parity) | spring-boot | build | medium | Generating a new Boot 4 project from scratch, judged against the Spring Initializr bar |
 | [boot/001-modular-autoconfig](evals/boot/001-modular-autoconfig) | spring-boot | fix | medium | Diagnosing features that silently vanished under Boot 4 modular auto-configuration (Flyway, H2 console) |
 | [boot/002-restclient-migration](evals/boot/002-restclient-migration) | spring-boot | fix | easy | Migrating RestTemplate code to the auto-configured RestClient with the right starter |
+| [boot/003-jackson3-migration](evals/boot/003-jackson3-migration) | spring-boot | fix | medium | Migrating Jackson 2 code to the Jackson 3 / `tools.jackson` stack while preserving the API's JSON contract |
 | [security/000-lockdown](evals/security/000-lockdown) | spring-security | build | medium | A stateless SecurityFilterChain with public reads, authenticated writes, and an ADMIN area |
 | [framework/000-resilience-annotations](evals/framework/000-resilience-annotations) | spring-framework | build | medium | Core @Retryable and @ConcurrencyLimit instead of adding Spring Retry or Resilience4j |
 | [framework/001-api-versioning](evals/framework/001-api-versioning) | spring-framework | build | medium | Framework 7 native API versioning: two shapes, one path, header-selected |
@@ -132,6 +133,18 @@ Run `./spring-evals doctor` first. It exits non-zero if any selected agent is bl
 - **Gemini**: the `gemini` CLI installed, with `GEMINI_API_KEY` set or OAuth login done.
 - **Kimi K3**: no extra CLI. It runs through Claude Code against Moonshot's endpoint; set `MOONSHOT_API_KEY` in your shell.
 - **Local models**: [Ollama](https://ollama.com) running, models pulled first (`ollama pull qwen3-coder:30b`, about 20GB on disk), and the `qwen` CLI installed. Free to run, but slow on laptop hardware.
+
+## Host context isolation
+
+A run is only worth publishing if the agent could not see your machine's context. A global CLAUDE.md, user-installed skills, or an MCP server full of Spring docs would quietly inflate scores. On a Spring developer's machine those files are close to answer keys.
+
+What the harness does about it:
+
+- **Workspaces are stripped.** Candidate workspaces are created outside the repository, and agent context files (CLAUDE.md, AGENTS.md, GEMINI.md, QWEN.md, `.claude/`, `.mcp.json`, Cursor and Copilot instruction files) are removed from every fresh copy before the agent starts.
+- **Claude Code runs without filesystem settings.** In SDK mode the Claude CLI defaults to loading no host CLAUDE.md, no skills, and no MCP servers. Known limit: the current Agent Client adapter cannot pass the flag explicitly, so this rests on the CLI default. Verify it once per CLI version before publishing results; `doctor` surfaces this assumption as a warning so it is never silently trusted.
+- **Other CLIs are checked, not controlled.** Codex, Gemini CLI, and Qwen Code read global context files and MCP settings the harness cannot disable per run. `doctor` warns when they exist (`~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`, `settings.json` MCP config, and so on). For published campaigns, run these CLIs in a container or a clean account until the warning list is empty.
+
+The full policy, including residual risks like prompt-level bans, is in [Benchmark methodology](docs/METHODOLOGY.md) under Host context isolation.
 
 ## Cost warning
 

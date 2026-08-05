@@ -1,0 +1,15 @@
+{
+  "requiredPomPatterns": [
+    "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*4\\.",
+    "spring-boot-starter-webmvc",
+    "spring-boot-starter-data-jpa",
+    "<artifactId>h2</artifactId>",
+    "spring-boot-maven-plugin",
+    "spring-boot-starter-[a-z-]*test",
+    "<(java\\.version|maven\\.compiler\\.release)>25<"
+  ],
+  "forbiddenPomPatterns": [
+    "spring-boot-starter-web</artifactId>",
+    "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*[123]\\."
+  ]
+}

@@ -41,3 +41,7 @@ Work is done only when the matching verification passes AND an independent revie
 - Editing any file under an eval (prompt, project, tests, checks) changes its content hash and intentionally invalidates cached results for that eval. That is correct behavior, not a bug, but it means re-running costs money. Do not touch shipped evals casually.
 - Agent workspaces live outside the repo (`$TMPDIR/spring-evals-runs`, override with `SPRING_EVALS_RUNS_DIR`). Nothing in the repo should reference workspace paths.
 - Authoring rules for evals (symptom-based prompts, black-box tests, cheese-path closure, reference solutions) live in CONTRIBUTING.md and are binding.
+
+## Host context isolation
+
+Benchmark validity depends on agents not seeing host context. The Claude adapter runs with no setting sources (never relax this), fresh workspaces are stripped of agent context files, and `doctor` warns about global context files for the other CLIs. Details in docs/METHODOLOGY.md under Host context isolation.

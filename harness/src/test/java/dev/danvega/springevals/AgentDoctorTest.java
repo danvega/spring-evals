@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AgentDoctorTest {
 
     @Test
-    void reportsAuthenticatedClaudeConfigReadyWithoutGeneration() {
+    void authenticatedClaudeConfigWarnsAboutIsolationAssumptionOnly() {
         FakeSystem system = new FakeSystem();
         system.executables.put("claude", true);
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
@@ -27,8 +27,12 @@ class AgentDoctorTest {
 
         var report = new AgentDoctor(system).inspect(spec);
 
-        assertEquals(Level.READY, report.level());
+        // WARNING, not READY: context isolation rests on a CLI default the
+        // adapter cannot force, and doctor must surface that assumption.
+        assertEquals(Level.WARNING, report.level());
         assertTrue(report.findings().stream().anyMatch(f -> f.message().contains("reports logged in")));
+        assertTrue(report.findings().stream().anyMatch(f -> f.message().contains("context isolation relies on")));
+        assertTrue(report.findings().stream().noneMatch(f -> f.level() == Level.BLOCKED));
     }
 
     @Test

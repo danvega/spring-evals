@@ -33,7 +33,9 @@ public class MavenJudge {
             Pattern.compile("<skip>\\s*true\\s*</skip>", Pattern.CASE_INSENSITIVE),
             Pattern.compile("<testSourceDirectory>", Pattern.CASE_INSENSITIVE),
             Pattern.compile("<testClassesDirectory>", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("<(?:excludes|includes)>", Pattern.CASE_INSENSITIVE));
+            Pattern.compile("<(?:excludes|includes)>", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("maven\\.test\\.failure\\.ignore", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("testFailureIgnore", Pattern.CASE_INSENSITIVE));
 
     private final CommandJudge delegate = new CommandJudge(
             "./mvnw -B -ntp -Dmaven.test.skip=false -DskipTests=false clean test", 0, MAVEN_TIMEOUT);
@@ -155,6 +157,14 @@ public class MavenJudge {
                 var tests = Pattern.compile("tests=\"(\\d+)\"").matcher(xml);
                 if (!tests.find() || Integer.parseInt(tests.group(1)) == 0) {
                     missing.add(qualified + " (zero tests)");
+                    continue;
+                }
+                var failures = Pattern.compile("(?:failures|errors)=\"(\\d+)\"").matcher(xml);
+                while (failures.find()) {
+                    if (Integer.parseInt(failures.group(1)) > 0) {
+                        missing.add(qualified + " (report records failing tests despite build success)");
+                        break;
+                    }
                 }
             }
         } catch (IOException e) {
