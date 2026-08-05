@@ -2,6 +2,8 @@
 
 Evals for Spring to test how well AI models and coding agents write real Spring code.
 
+**New here?** The [getting started guide](docs/GETTING_STARTED.md) takes you from clone to your first scored run in about ten minutes, one agent, a dollar or two. The rest of this README is the full reference.
+
 Modern models score well on generic coding benchmarks. They do much worse on framework-specific work, especially anything released after their training data. Spring Boot 4 and Spring Framework 7 shipped breaking changes (Jackson 3, modular auto-configuration, new HTTP clients, new testing tools) that trip up even frontier models. This project measures that gap, per agent and per model, with tasks a real Spring developer would recognize.
 
 Complementary to [Agent Bench](https://github.com/markpollack/agent-bench), which benchmarks agents on enterprise workflows. This project benchmarks framework competency: does the model actually know Spring? See [Built on](#built-on) for the projects underneath this one.
