@@ -1,0 +1,23 @@
+name: 004-jms-client
+project: framework
+title: Migrate JmsTemplate order messaging to the fluent JmsClient
+category: messaging
+type: fix
+difficulty: medium
+baseline_failure: test_failure
+boot_version: 4.1.0
+timeout_seconds: 900
+description: >
+  Spring Framework 7 introduced JmsClient, the fluent front door for JMS
+  that replaces JmsTemplate-and-callback code. The fixture publishes order
+  events with JmsTemplate and carries a real, subtle defect: priority,
+  time to live and delivery mode are set on the template without enabling
+  explicit QoS, so the broker silently ignores all three. The agent must
+  diagnose the silent QoS drop and migrate the messaging layer to
+  JmsClient with per-send QoS and a single request-reply confirmation
+  call, against an embedded Artemis broker. Hidden tests place orders
+  through the REST API and read the event back with a raw JMS consumer to
+  assert the delivered QoS headers. Mechanism checks require JmsClient
+  and forbid template or raw-producer fallbacks, because
+  setExplicitQosEnabled(true) alone would pass the behavioral tests
+  without any migration.
