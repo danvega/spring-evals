@@ -13,10 +13,10 @@ Two rules before you start:
 Runs `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, and `claude-haiku-4-5` through [Claude Code](https://claude.com/claude-code).
 
 1. Install the CLI: `npm install -g @anthropic-ai/claude-code`
-2. Sign in: run `claude` once and follow the login flow. A Claude subscription (Pro or Max) covers usage through the login. For API billing instead, create a key at [console.anthropic.com](https://console.anthropic.com) and set `ANTHROPIC_API_KEY`.
+2. Create an API key at [console.anthropic.com](https://console.anthropic.com) and set `ANTHROPIC_API_KEY`. A subscription login is fine for your own interactive Claude Code use, but benchmark runs cannot use it (see below).
 3. Verify: `./spring-evals doctor --family claude`
 
-**Subscription or API key?** Both can be active at once, and the API key wins: if `ANTHROPIC_API_KEY` is exported in your shell, runs bill the key even though you are logged in with a plan. Doctor tells you the effective billing source explicitly. `billing: claude.ai subscription login (max plan)` means your plan covers it; a warning about `ANTHROPIC_API_KEY` means unset the variable if you want to run on the subscription.
+**Benchmark runs require `ANTHROPIC_API_KEY`.** The harness runs Claude Code inside an isolated, empty config directory so your CLAUDE.md, skills, plugins, and MCP servers cannot leak into a benchmark (the first real run proved they otherwise do). Subscription login does not carry into that isolated config, so scored runs bill the API key, which also gives you exact per-attempt costs. Your subscription still covers normal interactive Claude Code use outside the benchmark.
 
 Benchmark runs give the CLI full autonomy in the workspace, so use an account whose spend you are comfortable with. The Claude configs carry a per-attempt `budgetUsd` cap the CLI enforces itself.
 

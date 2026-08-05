@@ -18,54 +18,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AgentDoctorTest {
 
     @Test
-    void reportsAuthenticatedClaudeConfigReadyWithoutGeneration() {
-        FakeSystem system = new FakeSystem();
-        system.executables.put("claude", true);
-        system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
-        system.commands.put("claude auth status", new CommandResult(0, "{\"loggedIn\": true}", false));
-        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
-
-        var report = new AgentDoctor(system).inspect(spec);
-
-        // READY: the context isolation assumption is a per-CLI-version advisory
-        // printed once in the doctor summary, never a per-agent finding.
-        assertEquals(Level.READY, report.level());
-        assertTrue(report.findings().stream().anyMatch(f -> f.message().contains("reports logged in")));
-        assertTrue(report.findings().stream().noneMatch(f -> f.message().contains("context isolation")));
-    }
-
-    @Test
-    void reportsSubscriptionBillingWhenLoggedInWithoutEnvKey() {
-        FakeSystem system = new FakeSystem();
-        system.executables.put("claude", true);
-        system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
-        system.commands.put("claude auth status", new CommandResult(0,
-                "{\"loggedIn\": true, \"authMethod\": \"claude.ai\", \"subscriptionType\": \"max\"}", false));
-        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
-
-        var report = new AgentDoctor(system).inspect(spec);
-
-        assertEquals(Level.READY, report.level());
-        assertTrue(report.findings().stream()
-                .anyMatch(f -> f.message().contains("billing: claude.ai subscription login (max plan)")));
-    }
-
-    @Test
-    void warnsWhenEnvApiKeyWouldOverrideSubscriptionBilling() {
+    void claudeIsReadyWithApiKeyForIsolatedRuns() {
         FakeSystem system = new FakeSystem();
         system.executables.put("claude", true);
         system.environment.put("ANTHROPIC_API_KEY", "sk-test");
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
-        system.commands.put("claude auth status", new CommandResult(0,
-                "{\"loggedIn\": true, \"authMethod\": \"claude.ai\", \"subscriptionType\": \"max\"}", false));
         AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
 
         var report = new AgentDoctor(system).inspect(spec);
 
-        assertEquals(Level.WARNING, report.level());
-        assertTrue(report.findings().stream()
-                .anyMatch(f -> f.message().contains("runs bill the API key")));
+        assertEquals(Level.READY, report.level());
+        assertTrue(report.findings().stream().anyMatch(f -> f.message().contains("isolated Claude config dir")));
     }
+
+    @Test
+    void claudeIsBlockedWithoutApiKeyBecauseIsolationDisablesSubscription() {
+        FakeSystem system = new FakeSystem();
+        system.executables.put("claude", true);
+        system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
+
+        var report = new AgentDoctor(system).inspect(spec);
+
+        assertEquals(Level.BLOCKED, report.level());
+        assertTrue(report.findings().stream()
+                .anyMatch(f -> f.message().contains("ANTHROPIC_API_KEY must be set")));
+    }
+
 
     @Test
     void reportsCodexSubscriptionBillingFromChatGptSignIn() {

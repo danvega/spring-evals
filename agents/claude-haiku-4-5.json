@@ -2,6 +2,6 @@
   "name": "claude-haiku-4-5",
   "provider": "claude",
   "model": "claude-haiku-4-5-20251001",
-  "budgetUsd": 1.00,
-  "estCostPerAttemptUsd": 0.15
+  "budgetUsd": 1.0,
+  "estCostPerAttemptUsd": 0.12
 }

@@ -137,7 +137,7 @@ A run is only worth publishing if the agent could not see your machine's context
 What the harness does about it:
 
 - **Workspaces are stripped.** Candidate workspaces are created outside the repository, and agent context files (CLAUDE.md, AGENTS.md, GEMINI.md, QWEN.md, `.claude/`, `.mcp.json`, Cursor and Copilot instruction files) are removed from every fresh copy before the agent starts.
-- **Claude Code runs without filesystem settings.** In SDK mode the Claude CLI defaults to loading no host CLAUDE.md, no skills, and no MCP servers. Known limit: the current Agent Client adapter cannot pass the flag explicitly, so this rests on the CLI default. Verify it once per CLI version before publishing results; `doctor` prints this assumption as a summary advisory whenever Claude-family agents are selected, so it is never silently trusted.
+- **Claude Code is forced into an isolated config directory.** Every run sets `CLAUDE_CONFIG_DIR` to an empty directory, so host CLAUDE.md, skills, plugins, and MCP servers cannot load. This is enforced by the harness, not assumed. The cost: subscription login does not work inside the sterile config, so Claude-family runs require `ANTHROPIC_API_KEY`.
 - **Other CLIs are checked, not controlled.** Codex, Gemini CLI, and Qwen Code read global context files and MCP settings the harness cannot disable per run. `doctor` warns when they exist (`~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`, `settings.json` MCP config, and so on). For published campaigns, run these CLIs in a container or a clean account until the warning list is empty.
 
 The full policy, including residual risks like prompt-level bans, is in [Benchmark methodology](docs/METHODOLOGY.md) under Host context isolation.

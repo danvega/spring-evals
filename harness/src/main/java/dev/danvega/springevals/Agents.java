@@ -125,28 +125,49 @@ public class Agents {
         });
     }
 
+    static String sterileClaudeConfigDir() {
+        try {
+            return Files.createTempDirectory("spring-evals-claude-config-").toString();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     public AgentModel createModel(AgentSpec spec, Duration timeout) {
         return switch (spec.provider()) {
-            // settingSources stays empty ON PURPOSE so no host CLAUDE.md, user
-            // skills, or MCP servers are requested. KNOWN LIMIT: agent-claude
-            // 0.16.0 does not forward this option, so isolation currently rests
-            // on the Claude CLI's SDK-mode default of loading no filesystem
-            // settings. Verify empirically per CLI version before published
-            // campaigns, and never add sources here.
-            case "claude" -> ClaudeAgentModel.builder()
-                    .defaultOptions(ClaudeAgentOptions.builder()
-                            .model(spec.model())
-                            .yolo(true)
-                            .timeout(timeout)
-                            .environmentVariables(expandAll(spec.env()))
-                            .maxBudgetUsd(spec.budgetUsd())
-                            .settingSources(List.of())
-                            .build())
-                    .build();
+            // Host context isolation is ENFORCED here: CLAUDE_CONFIG_DIR points
+            // the CLI at an empty config directory, so no host CLAUDE.md, user
+            // skills, plugins, or MCP servers can load (the first-light run
+            // proved they otherwise do). Consequence: subscription login does
+            // not carry into the sterile dir, so claude runs require
+            // ANTHROPIC_API_KEY. Never remove this; it is the contamination
+            // barrier. settingSources stays empty as a second layer.
+            case "claude" -> {
+                Map<String, String> env = new java.util.HashMap<>(expandAll(spec.env()));
+                // Forced, not defaulted: no agent config may redirect the CLI to
+                // a populated config dir, and each attempt gets a FRESH empty
+                // dir so state written by one attempt can never leak into the
+                // next. Both were independent review findings.
+                env.put("CLAUDE_CONFIG_DIR", sterileClaudeConfigDir());
+                yield ClaudeAgentModel.builder()
+                        .defaultOptions(ClaudeAgentOptions.builder()
+                                .model(spec.model())
+                                .yolo(true)
+                                .timeout(timeout)
+                                .environmentVariables(Map.copyOf(env))
+                                .maxBudgetUsd(spec.budgetUsd())
+                                .settingSources(List.of())
+                                .build())
+                        .build();
+            }
+            // skipGitCheck: candidate workspaces are plain directories, and
+            // modern Codex refuses non-git dirs without it. workspace-write
+            // replaces the deprecated --full-auto.
             case "codex" -> new CodexAgentModel(CodexClient.create(),
                     CodexAgentOptions.builder()
                             .model(spec.model())
-                            .fullAuto(true)
+                            .sandboxMode(org.springaicommunity.agents.codexsdk.types.SandboxMode.WORKSPACE_WRITE)
+                            .skipGitCheck(true)
                             .timeout(timeout)
                             .build(),
                     null);

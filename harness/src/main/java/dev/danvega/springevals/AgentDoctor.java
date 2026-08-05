@@ -88,9 +88,9 @@ final class AgentDoctor {
         System.out.printf("Summary: %d ready, %d warning, %d blocked.%n", ready, warnings, blocked);
         System.out.println("Credential presence is checked without printing values. Remote key validity is not tested.");
         if (specs.stream().anyMatch(spec -> spec.provider().equals("claude"))) {
-            System.out.println("Claude-family note: context isolation relies on the Claude CLI SDK-mode default of "
-                    + "loading no filesystem settings; the adapter cannot force it. Verify once per Claude CLI "
-                    + "version before published campaigns.");
+            System.out.println("Claude-family note: runs are isolated via CLAUDE_CONFIG_DIR (an empty config dir), "
+                    + "so host CLAUDE.md, skills, and MCP servers cannot load. This requires ANTHROPIC_API_KEY; "
+                    + "subscription login does not apply inside the sterile config.");
         }
         return blocked == 0 ? 0 : 1;
     }
@@ -136,10 +136,9 @@ final class AgentDoctor {
     /**
      * Host-level agent context (global instruction files, user skills, MCP
      * config) can leak knowledge into benchmark runs and invalidate results.
-     * The Claude CLI's SDK-mode default is to load no filesystem settings,
-     * but the current adapter cannot force that, so it is surfaced as an
-     * assumption to verify. Other CLIs read global context files the harness
-     * cannot disable, so their presence is a warning.
+     * Claude isolation is enforced by the harness: every attempt runs with a
+     * fresh empty CLAUDE_CONFIG_DIR. Other CLIs read global context files the
+     * harness cannot disable, so their presence is a warning.
      */
     private void checkContextContamination(AgentSpec spec, List<Finding> findings) {
         Path home = Path.of(System.getProperty("user.home"));
@@ -222,15 +221,17 @@ final class AgentDoctor {
         }
         switch (spec.provider()) {
             case "claude" -> {
-                if (!system.executable("claude")) {
-                    return;
-                }
-                CommandResult status = command(List.of("claude", "auth", "status"));
-                if (!status.timedOut() && status.exitCode() == 0 && status.output().contains("\"loggedIn\": true")) {
-                    findings.add(new Finding(Level.READY, "Claude authentication status reports logged in"));
-                    checkClaudeBillingSource(status.output(), findings);
+                // Benchmark runs use an isolated CLAUDE_CONFIG_DIR where the
+                // subscription login does not apply, so an API key is the only
+                // working credential for claude-provider runs.
+                if (present(system.environment("ANTHROPIC_API_KEY"))) {
+                    findings.add(new Finding(Level.READY,
+                            "billing: ANTHROPIC_API_KEY (required; runs use an isolated Claude config dir "
+                                    + "where subscription login does not apply)"));
                 } else {
-                    findings.add(new Finding(Level.BLOCKED, "Claude authentication status does not report logged in"));
+                    findings.add(new Finding(Level.BLOCKED,
+                            "benchmark runs use an isolated Claude config dir; subscription login does not carry "
+                                    + "into it, so ANTHROPIC_API_KEY must be set"));
                 }
             }
             case "codex" -> {
@@ -276,6 +277,11 @@ final class AgentDoctor {
                     if ("oauth-personal".equals(selected) && oauth) {
                         findings.add(new Finding(Level.READY,
                                 "billing: Google account sign-in (plan or free Code Assist quota)"));
+                        if (!present(system.environment("GOOGLE_CLOUD_PROJECT"))) {
+                            findings.add(new Finding(Level.WARNING,
+                                    "some Google accounts require GOOGLE_CLOUD_PROJECT for non-interactive runs; "
+                                            + "if runs fail with a project error, set it or use GEMINI_API_KEY instead"));
+                        }
                     } else if (selected != null && selected.contains("api-key") && key) {
                         findings.add(new Finding(Level.READY,
                                 "billing: Gemini API key (metered or AI Studio free tier)"));
@@ -287,35 +293,17 @@ final class AgentDoctor {
                         findings.add(new Finding(Level.READY, key
                                 ? "billing: Gemini API key (metered or AI Studio free tier)"
                                 : "billing: Google account sign-in (plan or free Code Assist quota)"));
+                        if (!key && !present(system.environment("GOOGLE_CLOUD_PROJECT"))) {
+                            findings.add(new Finding(Level.WARNING,
+                                    "some Google accounts require GOOGLE_CLOUD_PROJECT for non-interactive runs; "
+                                            + "if runs fail with a project error, set it or use GEMINI_API_KEY instead"));
+                        }
                     }
                 }
             }
             case "qwen-code" -> findings.add(new Finding(Level.BLOCKED,
                     "qwen-code requires an OPENAI-compatible endpoint configuration"));
             default -> findings.add(new Finding(Level.WARNING, "authentication check unavailable for provider"));
-        }
-    }
-
-    /**
-     * A logged-in subscription and an exported ANTHROPIC_API_KEY can coexist,
-     * and the key wins: the spawned CLI inherits the host environment and
-     * bills the API key instead of the plan. Make the effective billing
-     * source explicit so nobody finds out from an invoice.
-     */
-    private void checkClaudeBillingSource(String statusJson, List<Finding> findings) {
-        if (present(system.environment("ANTHROPIC_API_KEY"))) {
-            findings.add(new Finding(Level.WARNING,
-                    "ANTHROPIC_API_KEY is set in the environment and takes precedence, so runs bill the API key, "
-                            + "not the subscription login; unset it to run on your Claude plan"));
-            return;
-        }
-        String authMethod = jsonString(statusJson, "authMethod");
-        String subscription = jsonString(statusJson, "subscriptionType");
-        if ("claude.ai".equals(authMethod)) {
-            findings.add(new Finding(Level.READY, "billing: claude.ai subscription login"
-                    + (subscription == null ? "" : " (" + subscription + " plan)")));
-        } else if (authMethod != null) {
-            findings.add(new Finding(Level.READY, "billing: " + authMethod + " (API billing, not a subscription)"));
         }
     }
 

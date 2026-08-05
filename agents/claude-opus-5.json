@@ -2,6 +2,6 @@
   "name": "claude-opus-5",
   "provider": "claude",
   "model": "claude-opus-5",
-  "budgetUsd": 3.00,
-  "estCostPerAttemptUsd": 1.25
+  "budgetUsd": 3.0,
+  "estCostPerAttemptUsd": 1.45
 }

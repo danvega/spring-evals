@@ -45,4 +45,4 @@ Work is done only when the matching verification passes AND an independent revie
 
 ## Host context isolation
 
-Benchmark validity depends on agents not seeing host context. The Claude adapter runs with no setting sources (never relax this), fresh workspaces are stripped of agent context files, and `doctor` warns about global context files for the other CLIs. Details in docs/METHODOLOGY.md under Host context isolation.
+Benchmark validity depends on agents not seeing host context. The Claude adapter forces an isolated CLAUDE_CONFIG_DIR (never relax this; it requires ANTHROPIC_API_KEY because subscription login does not carry into the sterile config), fresh workspaces are stripped of agent context files, and `doctor` warns about global context files for the other CLIs. Details in docs/METHODOLOGY.md under Host context isolation.

@@ -2,6 +2,6 @@
   "name": "claude-fable-5",
   "provider": "claude",
   "model": "claude-fable-5",
-  "budgetUsd": 3.00,
-  "estCostPerAttemptUsd": 1.50
+  "budgetUsd": 3.0,
+  "estCostPerAttemptUsd": 1.3
 }

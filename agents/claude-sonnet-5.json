@@ -2,6 +2,6 @@
   "name": "claude-sonnet-5",
   "provider": "claude",
   "model": "claude-sonnet-5",
-  "budgetUsd": 2.00,
-  "estCostPerAttemptUsd": 0.50
+  "budgetUsd": 2.0,
+  "estCostPerAttemptUsd": 1.2
 }
