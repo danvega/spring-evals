@@ -23,13 +23,16 @@ import dev.danvega.springevals.ResultStore.RunRecord;
  *
  * Usage:
  *   ./spring-evals list
- *   ./spring-evals validate [evalId...]
- *   ./spring-evals doctor [--agent a[,b,c] | --family claude | --all-agents]
+ *   ./spring-evals validate [evalId...] [--sandbox docker|host]
+ *   ./spring-evals doctor [--agent a[,b,c] | --family claude | --all-agents] [--sandbox docker]
  *   ./spring-evals run --agent a[,b,c] | --family claude | --all-agents
  *                      [--eval boot/000-initializr-parity] [--project boot] [--difficulty easy,medium]
  *                      [--pilot] [--attempts 1] [--force] [--run-name my-run]
+ *                      [--sandbox docker|host]
  *                      [--allow-paid-run --max-total-cost USD]
  *   ./spring-evals report
+ *
+ * --sandbox defaults to docker when `docker info` succeeds, host otherwise.
  */
 public class Main {
 
@@ -58,7 +61,7 @@ public class Main {
 
         switch (command) {
             case "list" -> main.list();
-            case "validate" -> System.exit(main.validate(positionals) ? 0 : 1);
+            case "validate" -> System.exit(main.validate(positionals, opts) ? 0 : 1);
             case "doctor" -> System.exit(main.doctor(opts));
             case "run" -> main.run(opts);
             case "report" -> main.reports.print(main.resultStore.load());
@@ -69,10 +72,9 @@ public class Main {
                 System.exit(command.isEmpty() ? 0 : 1);
             }
         }
-        // Agent CLI SDKs can leave non-daemon threads behind (the qwen-code
-        // wrapper does after a failed session), which keeps the JVM hanging
-        // after all output is written. Everything is flushed and saved by
-        // now, so exit explicitly.
+        // Agent CLI SDKs can leave non-daemon threads behind, which keeps
+        // the JVM hanging after all output is written. Everything is
+        // flushed and saved by now, so exit explicitly.
         System.exit(0);
     }
 
@@ -125,6 +127,14 @@ public class Main {
     }
 
     int doctor(Map<String, String> opts) {
+        // The container self-check is opt-in: an image build on first use
+        // is minutes of work a plain doctor call should not trigger.
+        boolean dockerCheckFailed = false;
+        if ("docker".equals(opts.get("sandbox"))) {
+            List<EvalDefinition> all = catalog.all();
+            dockerCheckFailed = !DockerSandbox.selfCheck(root, all.isEmpty() ? null : all.get(0).projectDir());
+            System.out.println();
+        }
         List<String> names;
         if (opts.containsKey("agent")) {
             names = List.of(opts.get("agent").split(","));
@@ -153,10 +163,17 @@ public class Main {
         if (invalid > 0) {
             System.out.println("Additionally, " + invalid + " agent config file(s) could not be parsed.");
         }
-        return invalid > 0 ? 1 : result;
+        return dockerCheckFailed || invalid > 0 ? 1 : result;
     }
 
-    boolean validate(List<String> ids) {
+    boolean validate(List<String> ids, Map<String, String> opts) {
+        String sandbox = DockerSandbox.resolveMode(opts.get("sandbox"));
+        String image = null;
+        if ("docker".equals(sandbox)) {
+            DockerSandbox.pruneStaleContainers();
+            image = DockerSandbox.ensureImage(root);
+        }
+        System.out.println(sandboxBanner(sandbox, image));
         List<EvalDefinition> targets = ids.isEmpty()
                 ? catalog.all()
                 : ids.stream().map(catalog::load).toList();
@@ -175,7 +192,7 @@ public class Main {
             System.out.println("1/2 broken project must FAIL the hidden tests...");
             Path brokenWs = workspaces.freshCopy(eval, "validate-broken");
             workspaces.injectEvalTests(eval, brokenWs);
-            Judgment broken = mavenJudge.judgeBehaviorOnly(eval, brokenWs);
+            Judgment broken = judgeWorkspace(image, eval, brokenWs, true);
             if (broken.pass()) {
                 ok = false;
                 System.out.println("   ✗ broken project unexpectedly PASSED (" + brokenWs + ")");
@@ -196,7 +213,7 @@ public class Main {
             Path solutionWs = workspaces.freshCopy(eval, "validate-solution");
             workspaces.applySolution(eval, solutionWs);
             workspaces.injectEvalTests(eval, solutionWs);
-            Judgment solution = mavenJudge.judge(eval, solutionWs);
+            Judgment solution = judgeWorkspace(image, eval, solutionWs, false);
             if (!solution.pass()) {
                 ok = false;
                 System.out.println("   ✗ solution FAILED: " + solution.reasoning());
@@ -208,6 +225,24 @@ public class Main {
 
         System.out.println(ok ? "\nAll validations passed." : "\nValidation FAILED.");
         return ok;
+    }
+
+    private static String sandboxBanner(String sandbox, String image) {
+        return "docker".equals(sandbox)
+                ? "Sandbox mode: docker (agent and judge run in fresh per-attempt containers from " + image + ")"
+                : "Sandbox mode: host (process-level isolation via EnvSandbox)";
+    }
+
+    /** Judges one workspace; a non-null image means docker mode with a fresh, env-free judge container. */
+    private Judgment judgeWorkspace(String image, EvalDefinition eval, Path ws, boolean behaviorOnly) {
+        if (image == null) {
+            return behaviorOnly ? mavenJudge.judgeBehaviorOnly(eval, ws) : mavenJudge.judge(eval, ws);
+        }
+        try (DockerSandbox.Container container = DockerSandbox.start(ws, Map.of(), image)) {
+            return behaviorOnly
+                    ? mavenJudge.judgeBehaviorOnly(eval, ws, container.buildRunner())
+                    : mavenJudge.judge(eval, ws, container.buildRunner());
+        }
     }
 
     /**
@@ -248,6 +283,7 @@ public class Main {
     }
 
     void run(Map<String, String> opts) throws Exception {
+        String sandbox = DockerSandbox.resolveMode(opts.get("sandbox"));
         List<AgentSpec> specs = resolveAgents(opts);
         int attempts = Integer.parseInt(opts.getOrDefault("attempts", "1"));
         if (attempts < 1 || attempts > 10) {
@@ -285,9 +321,24 @@ public class Main {
                     projectedMaximum, costCap);
         }
 
-        // Fail before any money is spent if the process-env mechanism that
-        // enforces agent isolation is unavailable (e.g. missing add-opens).
-        EnvSandbox.selfTest();
+        // Fail before any money is spent if the isolation mechanism for the
+        // chosen mode is unavailable: the container image for docker mode,
+        // the process-env mechanism (e.g. missing add-opens) for host mode.
+        String image = null;
+        if ("docker".equals(sandbox)) {
+            DockerSandbox.pruneStaleContainers();
+            image = DockerSandbox.ensureImage(root);
+            if (specs.stream().anyMatch(spec -> "claude".equals(spec.provider()) && spec.budgetUsd() != null)) {
+                System.out.println("note: docker mode cannot enforce per-attempt budgetUsd; "
+                        + "the campaign cap uses per-attempt estimates plus claude-reported actuals");
+            }
+        } else {
+            EnvSandbox.selfTest();
+        }
+        System.out.println(sandboxBanner(sandbox, image));
+        String recordedJavaVersion = image == null
+                ? System.getProperty("java.version")
+                : DockerSandbox.javaVersion(image);
 
         List<RunRecord> results = resultStore.load();
         double reservedCost = 0;
@@ -296,8 +347,15 @@ public class Main {
         String benchmarkVersion = benchmarkVersion();
         Map<String, String> cliVersions = new HashMap<>();
 
+        String benchmarkImage = image;
         for (AgentSpec spec : specs) {
-            String cliVersion = cliVersions.computeIfAbsent(spec.provider(), Main::detectCliVersion);
+            // Docker mode records the image's CLI and JDK versions (both
+            // prefixed "docker:"), so host- and docker-mode records never
+            // satisfy each other's cache and the mode is visible per record.
+            String cliVersion = cliVersions.computeIfAbsent(spec.provider(),
+                    provider -> benchmarkImage != null
+                            ? DockerSandbox.cliVersion(provider, benchmarkImage)
+                            : detectCliVersion(provider));
             for (EvalDefinition eval : targets) {
                 String evalHash = ContentHashes.eval(eval);
                 String agentHash = ContentHashes.agent(root, spec.name());
@@ -306,7 +364,7 @@ public class Main {
                         .filter(r -> evalHash.equals(r.evalHash()) && agentHash.equals(r.agentConfigHash()))
                         .filter(r -> benchmarkVersion.equals(r.benchmarkVersion()))
                         .filter(r -> cliVersion.equals(r.cliVersion()))
-                        .filter(r -> System.getProperty("java.version").equals(r.javaVersion()))
+                        .filter(r -> recordedJavaVersion.equals(r.javaVersion()))
                         .filter(r -> System.getProperty("os.name").equals(r.osName()))
                         .filter(r -> System.getProperty("os.arch").equals(r.osArch()))
                         .toList();
@@ -317,7 +375,7 @@ public class Main {
                                     && evalHash.equals(r.evalHash()) && agentHash.equals(r.agentConfigHash())
                                     && benchmarkVersion.equals(r.benchmarkVersion())
                                     && cliVersion.equals(r.cliVersion())
-                                    && System.getProperty("java.version").equals(r.javaVersion())
+                                    && recordedJavaVersion.equals(r.javaVersion())
                                     && System.getProperty("os.name").equals(r.osName())
                                     && System.getProperty("os.arch").equals(r.osArch())))
                             .toList());
@@ -343,17 +401,46 @@ public class Main {
                     Path ws = workspaces.freshCopy(eval, spec.name() + "-a" + attempt);
                     String baselineHash = ContentHashes.candidate(ws);
 
-                    System.out.println("running agent through AgentClient...");
-                    AgentRun agentRun = runAgent(spec, eval, ws);
-                    String candidateHash = ContentHashes.candidate(ws);
-                    boolean untouched = baselineHash.equals(candidateHash);
+                    AgentRun agentRun;
+                    Judgment verdict;
+                    String candidateHash;
+                    boolean untouched;
+                    if (benchmarkImage != null) {
+                        // Agent and judge get SEPARATE fresh containers from
+                        // the same image: identical toolchain, but the agent
+                        // container (its processes, $HOME, env) is destroyed
+                        // before hidden tests are injected and judged, so
+                        // nothing the agent left running or wrote outside
+                        // the workspace can touch the judgment.
+                        try (DockerSandbox.Container agentContainer = DockerSandbox.start(ws,
+                                Agents.expandAll(spec.env()), benchmarkImage)) {
+                            if ("codex".equals(spec.provider())) {
+                                agentContainer.seedCodexAuth(Path.of(System.getProperty("user.home"),
+                                        ".codex", "auth.json"));
+                            }
+                            System.out.println("running agent CLI in container " + agentContainer.name() + "...");
+                            agentRun = runAgentInContainer(agentContainer, spec, eval);
+                        }
+                        candidateHash = ContentHashes.candidate(ws);
+                        untouched = baselineHash.equals(candidateHash);
+                        System.out.println("injecting hidden tests, judging with ./mvnw clean test in a fresh container...");
+                        workspaces.injectEvalTests(eval, ws);
+                        try (DockerSandbox.Container judgeContainer = DockerSandbox.start(ws,
+                                Map.of(), benchmarkImage)) {
+                            verdict = mavenJudge.judge(eval, ws, judgeContainer.buildRunner());
+                        }
+                    } else {
+                        System.out.println("running agent through AgentClient...");
+                        agentRun = runAgent(spec, eval, ws);
+                        candidateHash = ContentHashes.candidate(ws);
+                        untouched = baselineHash.equals(candidateHash);
+                        System.out.println("injecting hidden tests, judging with ./mvnw clean test...");
+                        workspaces.injectEvalTests(eval, ws);
+                        verdict = mavenJudge.judge(eval, ws);
+                    }
                     if (agentRun.costUsd() != null && agentRun.costUsd() > reservation) {
                         reservedCost += agentRun.costUsd() - reservation;
                     }
-
-                    System.out.println("injecting hidden tests, judging with ./mvnw clean test...");
-                    workspaces.injectEvalTests(eval, ws);
-                    Judgment verdict = mavenJudge.judge(eval, ws);
 
                     String failureKind = verdict.pass() ? null : failureKind(agentRun, verdict, ws, untouched);
                     String failureReason = verdict.pass() ? null
@@ -365,7 +452,7 @@ public class Main {
                             verdict.pass(), agentRun.durationMs(), agentRun.costUsd(), ws.toString(),
                             Instant.now().toString(), UUID.randomUUID().toString(), spec.provider(), "agent",
                             evalHash, agentHash, benchmarkVersion, failureKind, failureReason,
-                            System.getProperty("java.version"), System.getProperty("os.name"),
+                            recordedJavaVersion, System.getProperty("os.name"),
                             System.getProperty("os.arch"), cliVersion, "provider-default", attempts,
                             agentRun.inputTokens(), agentRun.outputTokens(), agentRun.totalTokens(),
                             candidateHash, agentRun.responseText(), campaignId));
@@ -382,6 +469,45 @@ public class Main {
 
     private record AgentRun(Long durationMs, Double costUsd, String error,
             Long inputTokens, Long outputTokens, Long totalTokens, String responseText) {
+    }
+
+    /**
+     * Docker-mode agent phase: the CLI runs headless inside the attempt's
+     * container, not through the per-provider SDK adapters (those spawn
+     * host processes). Claude reports cost, tokens, and the result text
+     * in its headless JSON output; the other CLIs expose none of that
+     * headlessly, so their records carry null there and responseText is
+     * the CLI's combined output, truncated like the host path.
+     */
+    private AgentRun runAgentInContainer(DockerSandbox.Container container, AgentSpec spec, EvalDefinition eval) {
+        String prompt;
+        try {
+            prompt = Files.readString(eval.promptFile());
+        } catch (Exception e) {
+            throw new IllegalStateException("could not read " + eval.promptFile(), e);
+        }
+        try {
+            DockerSandbox.ExecResult result = container.exec(
+                    DockerSandbox.agentCommand(spec.provider(), spec.model(), prompt), eval.agentTimeout());
+            String error = result.timedOut()
+                    ? "agent timed out after " + eval.agentTimeout().toSeconds() + "s"
+                    : result.exitCode() != 0 ? "agent CLI exited " + result.exitCode() : null;
+            DockerSandbox.ClaudeHeadlessResult parsed = "claude".equals(spec.provider())
+                    ? DockerSandbox.parseClaudeJson(result.output())
+                    : null;
+            if (parsed == null) {
+                return new AgentRun(result.durationMs(), null, error, null, null, null, truncate(result.output()));
+            }
+            Long total = parsed.inputTokens() == null || parsed.outputTokens() == null ? null
+                    : parsed.inputTokens() + parsed.outputTokens();
+            return new AgentRun(result.durationMs(), parsed.costUsd(), error, parsed.inputTokens(),
+                    parsed.outputTokens(), total,
+                    truncate(parsed.resultText() != null ? parsed.resultText() : result.output()));
+        } catch (RuntimeException e) {
+            System.out.println("agent execution failed: " + e.getMessage());
+            return new AgentRun(null, null, e.getClass().getSimpleName() + ": " + e.getMessage(),
+                    null, null, null, null);
+        }
     }
 
     private AgentRun runAgent(AgentSpec spec, EvalDefinition eval, Path ws) {
@@ -540,11 +666,10 @@ public class Main {
             return "agent_error";
         }
         // A CLI can fail cleanly (exit 0) with an error message instead of
-        // doing the task; kimi-k3 in second-light scored a fake 0% that way
-        // in 1.2 seconds. Zero workspace changes alone is not proof (a model
-        // can genuinely attempt, decide nothing needs changing, and deserve
-        // its fail), so this only reclassifies when the run was also far too
-        // fast to have engaged with the task at all.
+        // doing the task, which would score a fake 0%. Zero workspace
+        // changes alone is not proof (a model can genuinely attempt, decide
+        // nothing needs changing, and deserve its fail), so reclassify only
+        // when the run was also far too fast to have engaged with the task.
         if (untouched && agentRun.durationMs() != null && agentRun.durationMs() < 20_000) {
             return "agent_error";
         }

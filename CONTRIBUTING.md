@@ -105,10 +105,10 @@ The benchmark version string (for example `0.3.0+11b0497585a6`) is part of resul
 - **Results with the same full version string are comparable.** That is what the version means. Nothing else.
 - **Bumps happen only in harness batches that change measurement behavior.** Isolation, judging, scoring, workspace handling. Exactly one bump per batch.
 - **Never bump for docs, dashboard, or eval-content changes.** Eval edits already rotate that eval's own content hash. Docs and dashboard are not part of measurement.
-- **Do not touch the hashed harness files outside a declared bump batch.** The hash suffix covers `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `EnvSandbox.java`, `harness/pom.xml`, and `spring-evals`. A changed suffix under the same prefix means undeclared measurement drift, and the 0.2.0 era shows why that hurts.
+- **Do not touch the hashed harness files outside a declared bump batch.** The hash suffix covers `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `EnvSandbox.java`, `DockerSandbox.java`, `harness/docker/Dockerfile`, `harness/pom.xml`, and `spring-evals`. A changed suffix under the same prefix means undeclared measurement drift, and the 0.2.0 era shows why that hurts.
 - **Every bump adds its row to [docs/VERSIONS.md](docs/VERSIONS.md) in the same commit** that changes the constant in `ContentHashes.java`.
 
-Planned: 0.4.x for container isolation, then a deliberate 1.0.0 freeze after it stabilizes.
+Current: 0.4.0 (container isolation). Planned: a deliberate 1.0.0 freeze after it stabilizes.
 
 ## Questions
 

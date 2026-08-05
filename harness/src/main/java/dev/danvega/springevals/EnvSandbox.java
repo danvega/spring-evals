@@ -14,26 +14,25 @@ import java.util.Set;
 
 /**
  * Applies per-attempt environment variables to THIS process so that agent
- * CLIs inherit them.
+ * CLIs inherit them. This is the HOST-MODE contamination barrier; docker
+ * mode isolates through the container instead.
  *
  * Why this exists: the Agent Client SDKs accept environmentVariables in
  * their options, but agent-claude 0.16.0 never forwards them to the CLI
- * process (a dead store, verified by bytecode inspection of
- * ClaudeAgentModel.buildCLIOptions). The CLI transports spawn processes
- * with a fully inherited environment, so the only reliable, provider-
- * agnostic way to control what an agent CLI sees is to mutate the harness
- * process environment around each attempt. This is the contamination
- * barrier; never weaken it.
+ * process (a dead store). The CLI transports spawn processes with a
+ * fully inherited environment, so the only reliable, provider-agnostic
+ * way to control what a host-spawned agent CLI sees is to mutate the
+ * harness process environment around each attempt. Never weaken it.
  *
  * Two layers, both required:
  * 1. libc setenv/unsetenv via the FFM API mutates the REAL process
  *    environ, so children inherit the change no matter how they are
  *    spawned (some SDKs pass envp=null, which bypasses Java's cached
  *    env map entirely).
- * 2. java.lang.ProcessEnvironment reflection (the junit-pioneer /
- *    system-stubs approach) keeps System.getenv and
+ * 2. java.lang.ProcessEnvironment reflection keeps System.getenv and
  *    ProcessBuilder.environment() views consistent, because the claude
- *    transport re-reads System.getenv for ANTHROPIC_API_KEY.
+ *    transport re-reads System.getenv for credentials (either
+ *    CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY).
  *
  * Requires --add-opens java.base/java.lang=ALL-UNNAMED and
  * --enable-native-access=ALL-UNNAMED, which the ./spring-evals wrapper

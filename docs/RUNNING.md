@@ -49,7 +49,7 @@ Before each attempt the harness reserves that agent's configured estimate and st
 - Smoke-test a new agent with `--difficulty easy` before a full run.
 - Scope with `--eval` or `--project` while iterating on anything.
 - Single attempts keep expected cost equal to worst case. Retries are where spend concentrates.
-- Claude-family configs carry a per-attempt `budgetUsd` hard cap enforced by the CLI itself. Set per-model limits in other providers' dashboards.
+- Claude-family configs carry a per-attempt `budgetUsd` cap that host mode passes to the CLI. Docker mode cannot pass it (the CLI runs headless in a container); there the campaign cap works from per-attempt estimates plus claude-reported actual costs, and the run prints a note saying so. Set per-model limits in provider dashboards either way.
 - Every eval project builds with `-ntp`, so agents do not burn tokens reading Maven download logs.
 
 ## Memoization and when you pay again
