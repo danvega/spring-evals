@@ -38,10 +38,13 @@ final class ContentHashes {
         String hash = tree(List.of(java.resolve("Main.java"), java.resolve("Agents.java"),
                 java.resolve("Workspaces.java"), java.resolve("MavenJudge.java"),
                 java.resolve("EvalDefinition.java"), java.resolve("EnvSandbox.java"),
+                java.resolve("DockerSandbox.java"),
+                repoRoot.resolve("harness/docker/Dockerfile"),
                 repoRoot.resolve("harness/pom.xml"), repoRoot.resolve("spring-evals")));
-        // 0.3.0: process-level environment isolation (EnvSandbox). Results
-        // recorded before 0.3 ran Claude CLIs against the host config.
-        return "0.3.0+" + hash.substring(0, 12);
+        // 0.4.0: docker sandbox mode (agent CLI and judge in one container
+        // per attempt, Maven overlay reset before judging) and XML comment
+        // stripping before pom policy patterns. History: docs/VERSIONS.md.
+        return "0.4.0+" + hash.substring(0, 12);
     }
 
     static String tree(List<Path> roots) {

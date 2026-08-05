@@ -146,17 +146,19 @@ public class Agents {
     }
 
     /**
-     * Host context isolation is ENFORCED here, at the process-environment
-     * level via EnvSandbox. CLAUDE_CONFIG_DIR points the CLI at a FRESH
+     * HOST-MODE context isolation is ENFORCED here, at the process-
+     * environment level via EnvSandbox (docker mode replaces this barrier
+     * with a container). CLAUDE_CONFIG_DIR points the CLI at a FRESH
      * empty config directory per attempt, so no host CLAUDE.md, user
      * skills, plugins, or MCP servers can load, and no state leaks between
      * attempts. It cannot go through the SDK options: agent-claude 0.16.0
-     * drops environmentVariables on the floor (bytecode-verified dead
-     * store, found when second-light ran kimi against the wrong API and
-     * the sterile dirs stayed empty). Host credentials the agent config
-     * does not explicitly re-declare are removed for the attempt.
-     * Consequence: claude runs require ANTHROPIC_API_KEY in the agent
-     * config env. Never weaken this; it is the contamination barrier.
+     * drops environmentVariables (a dead store). Host credentials the
+     * agent config does not explicitly re-declare are removed for the
+     * attempt. Consequence: claude runs need a credential in the agent
+     * config env, either CLAUDE_CODE_OAUTH_TOKEN (subscription token from
+     * `claude setup-token`) or ANTHROPIC_API_KEY (metered API); the
+     * interactive host login never reaches the sterile config dir.
+     * Never weaken this; it is the host-mode contamination barrier.
      */
     public EnvPlan envPlan(AgentSpec spec) {
         Map<String, String> overrides = new java.util.HashMap<>(expandAll(spec.env()));
@@ -172,8 +174,7 @@ public class Agents {
             // Prefix-based, not a fixed list: host auth and routing vars in
             // these families (CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CODE_USE_BEDROCK,
             // ANTHROPIC_CUSTOM_HEADERS, ...) can silently redirect billing or
-            // the API endpoint, which is exactly the failure class that broke
-            // kimi-k3 in second-light. Anything the agent config re-declares
+            // the API endpoint. Anything the agent config re-declares
             // survives via the override map.
             case "claude" -> System.getenv().keySet().stream()
                     .filter(key -> key.startsWith("ANTHROPIC") || key.startsWith("CLAUDE"))

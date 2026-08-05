@@ -19,13 +19,27 @@ import org.springaicommunity.judge.result.Judgment;
 
 /**
  * The deterministic verdict tier: hidden tests must pass under
- * "./mvnw clean test". Wraps the community CommandJudge, which executes
- * through the agent-sandbox abstraction (LocalSandbox today, DockerSandbox
- * when we flip isolation on).
+ * "./mvnw clean test". Host mode executes through the community
+ * CommandJudge on the host. Docker mode supplies a BuildRunner that
+ * executes the same command inside the attempt's container, so the
+ * judge toolchain is identical to the agent's. Both modes must run
+ * the exact same Maven command; JUDGE_COMMAND is the single source.
  */
 public class MavenJudge {
 
     private static final Duration MAVEN_TIMEOUT = Duration.ofMinutes(15);
+
+    /** The one judged build command. Host and docker mode must not diverge. */
+    static final List<String> JUDGE_COMMAND = List.of("./mvnw", "-B", "-ntp",
+            "-Dmaven.test.skip=false", "-DskipTests=false", "clean", "test");
+
+    /** Executes the judged build in a specific environment (e.g. the attempt's container). */
+    interface BuildRunner {
+        BuildResult run(Path workspace, List<String> command, Duration timeout);
+    }
+
+    record BuildResult(int exitCode, String output, boolean timedOut) {
+    }
 
     private static final List<Pattern> FORBIDDEN_BUILD_CONFIG = List.of(
             Pattern.compile("maven\\.test\\.skip", Pattern.CASE_INSENSITIVE),
@@ -38,34 +52,37 @@ public class MavenJudge {
             Pattern.compile("testFailureIgnore", Pattern.CASE_INSENSITIVE));
 
     private final CommandJudge delegate = new CommandJudge(
-            "./mvnw -B -ntp -Dmaven.test.skip=false -DskipTests=false clean test", 0, MAVEN_TIMEOUT);
+            String.join(" ", JUDGE_COMMAND), 0, MAVEN_TIMEOUT);
     private final ObjectMapper mapper = new ObjectMapper();
 
     public Judgment judge(EvalDefinition eval, Path workspace) {
-        return judge(eval, workspace, true);
+        return judge(eval, workspace, true, null);
     }
 
     /** Used for the intentionally broken baseline, before mechanism requirements are expected to hold. */
     public Judgment judgeBehaviorOnly(EvalDefinition eval, Path workspace) {
-        return judge(eval, workspace, false);
+        return judge(eval, workspace, false, null);
+    }
+
+    public Judgment judge(EvalDefinition eval, Path workspace, BuildRunner runner) {
+        return judge(eval, workspace, true, runner);
+    }
+
+    public Judgment judgeBehaviorOnly(EvalDefinition eval, Path workspace, BuildRunner runner) {
+        return judge(eval, workspace, false, runner);
     }
 
     Judgment validatePolicy(EvalDefinition eval, Path workspace) {
         return validateCandidatePolicy(eval, workspace, true);
     }
 
-    private Judgment judge(EvalDefinition eval, Path workspace, boolean applyMechanismChecks) {
+    private Judgment judge(EvalDefinition eval, Path workspace, boolean applyMechanismChecks, BuildRunner runner) {
         Judgment policy = validateCandidatePolicy(eval, workspace, applyMechanismChecks);
         if (policy != null) {
             writeLog(workspace, policy);
             return policy;
         }
-        Judgment judgment = delegate.judge(JudgmentContext.builder()
-                .goal("Hidden eval tests for " + eval.id())
-                .workspace(workspace)
-                .executionTime(Duration.ZERO)
-                .startedAt(Instant.now())
-                .build());
+        Judgment judgment = runner == null ? judgeOnHost(eval, workspace) : judgeWithRunner(workspace, runner);
         if (judgment.pass()) {
             Judgment reports = verifyHiddenTestsExecuted(eval, workspace);
             if (reports != null) {
@@ -77,10 +94,42 @@ public class MavenJudge {
         return judgment;
     }
 
+    private Judgment judgeOnHost(EvalDefinition eval, Path workspace) {
+        return delegate.judge(JudgmentContext.builder()
+                .goal("Hidden eval tests for " + eval.id())
+                .workspace(workspace)
+                .executionTime(Duration.ZERO)
+                .startedAt(Instant.now())
+                .build());
+    }
+
+    private static Judgment judgeWithRunner(Path workspace, BuildRunner runner) {
+        BuildResult result = runner.run(workspace, JUDGE_COMMAND, MAVEN_TIMEOUT);
+        if (result.timedOut()) {
+            return Judgment.builder()
+                    .status(org.springaicommunity.judge.result.JudgmentStatus.FAIL)
+                    .reasoning("judged build timed out after " + MAVEN_TIMEOUT.toMinutes() + " minutes")
+                    .metadata("output", result.output() == null ? "" : result.output())
+                    .build();
+        }
+        return Judgment.builder()
+                .status(result.exitCode() == 0
+                        ? org.springaicommunity.judge.result.JudgmentStatus.PASS
+                        : org.springaicommunity.judge.result.JudgmentStatus.FAIL)
+                .reasoning(result.exitCode() == 0
+                        ? "Command completed successfully with exit code 0"
+                        : "Command failed with exit code " + result.exitCode())
+                .metadata("output", result.output() == null ? "" : result.output())
+                .build();
+    }
+
     private Judgment validateCandidatePolicy(EvalDefinition eval, Path workspace, boolean applyMechanismChecks) {
         Path pom = workspace.resolve("pom.xml");
         try {
-            String pomText = Files.exists(pom) ? Files.readString(pom) : "";
+            // Comments are inert to Maven, so pom patterns must not see
+            // them: a commented-out artifactId must not satisfy a required
+            // pattern, and commented-out config must not trip a forbidden one.
+            String pomText = pomPolicyText(Files.exists(pom) ? Files.readString(pom) : "");
             for (Pattern pattern : FORBIDDEN_BUILD_CONFIG) {
                 if (pattern.matcher(pomText).find()) {
                     return Judgment.fail("candidate build configuration can suppress or redirect hidden tests: "
@@ -121,6 +170,50 @@ public class MavenJudge {
 
     private static List<String> safe(List<String> values) {
         return values == null ? List.of() : values;
+    }
+
+    /**
+     * Policy text for pom pattern checks. The pom is parsed as XML with
+     * comments dropped as nodes and CDATA coalesced into plain text, then
+     * serialized back. A regex over the raw text is not enough: fake
+     * comment markers spliced through CDATA sections would delete ACTIVE
+     * configuration from the checked text and let forbidden content hide.
+     * Fallback for a pom that is not well-formed XML is plain comment
+     * stripping; such a pom fails the Maven build anyway, so no verdict
+     * can be gained through the fallback.
+     */
+    static String pomPolicyText(String xml) {
+        try {
+            var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+            factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setXIncludeAware(false);
+            factory.setExpandEntityReferences(false);
+            factory.setIgnoringComments(true);
+            factory.setCoalescing(true);
+            var document = factory.newDocumentBuilder()
+                    .parse(new org.xml.sax.InputSource(new java.io.StringReader(xml)));
+            var transformerFactory = javax.xml.transform.TransformerFactory.newInstance();
+            transformerFactory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            var transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(javax.xml.transform.OutputKeys.OMIT_XML_DECLARATION, "yes");
+            var writer = new java.io.StringWriter();
+            transformer.transform(new javax.xml.transform.dom.DOMSource(document),
+                    new javax.xml.transform.stream.StreamResult(writer));
+            return writer.toString();
+        } catch (Exception e) {
+            return stripXmlComments(xml);
+        }
+    }
+
+    /**
+     * Fallback only, for text that is not well-formed XML. Removes XML
+     * comments, including an unterminated trailing one.
+     */
+    static String stripXmlComments(String xml) {
+        return xml.replaceAll("(?s)<!--.*?(?:-->|\\z)", "");
     }
 
     private static String readMainSources(Path workspace) throws IOException {
