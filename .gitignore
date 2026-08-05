@@ -4,5 +4,6 @@ target/
 *.log
 .DS_Store
 .idea/
-.claude/
+.claude/*
+!.claude/agents/
 dashboard/*.png
