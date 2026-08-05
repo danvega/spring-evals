@@ -8,6 +8,24 @@ Modern models score well on generic coding benchmarks. They do much worse on fra
 
 Complementary to [Agent Bench](https://github.com/markpollack/agent-bench), which benchmarks agents on enterprise workflows. This project benchmarks framework competency: does the model actually know Spring? See [Built on](#built-on) for the projects underneath this one.
 
+## What it produces
+
+Real results from a real run (12 agents, one build eval, one attempt each). The task: write a new Spring Boot 4 project from an empty repository to the standard start.spring.io would produce today. Seven agents passed. Every failure made the same mistake: pre-Boot-4 conventions, caught by hidden mechanism checks.
+
+![Leaderboard with per-agent Pass@1, confidence intervals, tokens, and cost](docs/images/dashboard-leaderboard.png)
+
+Every run is recorded by name with its own scoreboard and a findings write-up, so infrastructure failures are never mistaken for model failures:
+
+![Run detail with findings narrative and per-agent scoreboard](docs/images/dashboard-run-detail.png)
+
+Coverage across the Spring portfolio, with room to grow into all 22 project suites:
+
+![Per-project heatmap](docs/images/dashboard-projects.png)
+
+There is also a terminal-style dark mode:
+
+![Dark mode dashboard](docs/images/dashboard-dark.png)
+
 ## How it works
 
 Evals are organized into suites, one per project on [spring.io/projects](https://spring.io/projects). Every portfolio project has a suite directory under [evals/](evals), from the big ones (`framework`, `boot`, `data`, `security`, `cloud`, `ai`) to the full long tail (`batch`, `integration`, `kafka`, `amqp`, `graphql`, `grpc`, `modulith`, `session`, `authorization-server`, `hateoas`, `rest-docs`, `ldap`, `pulsar`, `shell`, `web-flow`, `web-services`). Most are empty today. Each suite README says what belongs there and links to the proposal form.

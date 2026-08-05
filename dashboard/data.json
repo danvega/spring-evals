@@ -1,10 +1,129 @@
 {
-  "generated" : "2026-08-05T16:57:45.971386Z",
+  "generated" : "2026-08-05T17:51:24.855191Z",
   "sample" : false,
-  "spendUsd" : 0.0,
+  "spendUsd" : 3.71558975,
   "spendPartial" : true,
-  "estSpendUsd" : null,
+  "estSpendUsd" : 6.82,
   "runs" : [ {
+    "id" : "eager-boot-85",
+    "started" : "2026-08-05T17:14:41.342823Z",
+    "agents" : [ "claude-fable-5", "claude-haiku-4-5", "claude-opus-5", "claude-sonnet-5", "codex-gpt-5-6-luna", "codex-gpt-5-6-sol", "codex-gpt-5-6-terra", "gemini-3-1-pro", "gemini-3-5-flash-lite", "gemini-3-6-flash", "grok-4-5", "kimi-k3" ],
+    "evals" : 1,
+    "attempts" : 12,
+    "passed" : 7,
+    "recordedCostUsd" : 3.71558975,
+    "benchmarkVersion" : "0.3.0+11b0497585a6",
+    "findings" : "The first run where every measurement control worked. All 12 agents reached their models, isolation was enforced and verified, and the fake-verdict path is closed. 7 passed, 3 failed on the merits, 2 infrastructure failures that the evidence shows would have failed on the merits too.\n\n**Isolation verified, not assumed.** The env self-test ran before spending. The sterile Claude config dirs are populated this run (the CLI actually used them), and the \"claude.ai connectors disabled\" warning is gone from every Claude attempt because the CLI no longer sees the host login. These runs measured the models, not the host machine.\n\n**The headline result: this eval cleanly separates models on Boot 4 knowledge.** Every failure failed the same way: the old `spring-boot-starter-web` artifact instead of Boot 4's `spring-boot-starter-webmvc`. The mechanism check caught all of them.\n\n- Passed: claude-fable-5 ($0.95), claude-opus-5 ($1.69), all three GPT-5.6 tiers (sol, terra, luna), gemini-3.6-flash, grok-4.5.\n- Failed on the merits: claude-haiku-4-5, claude-sonnet-5, kimi-k3. All three policy_failure, missing spring-boot-starter-webmvc.\n- The passers' transcripts show them verifying against Maven Central instead of trusting training data. The failers shipped from memory. That behavioral difference, not raw capability, decided this eval.\n\n**The contamination proof.** claude-sonnet-5 \"passed\" second-light when the host config (including Dan's Spring skills) was visible to it. Under real isolation it failed. This is why the pre-0.3 results were voided and why the isolation self-test now gates every run.\n\n**kimi-k3 is fully functional now** (the env fix delivered its Moonshot routing): 265s, 31,430 tokens, $0.48, and a real fail on the same webmvc gap.\n\n**Infrastructure notes:**\n\n- A widespread SDK parsing bug (the defaultObjectSupplier NullPointerException) fired on all codex, gemini, and qwen-code attempts even when the CLI succeeded. Verdicts are unaffected because judging is workspace-based, but summaries, tokens, and cost are lost for those agents (their cost columns show n/a). Worth reporting upstream to the Spring AI Community SDKs.\n- gemini-3-1-pro (160s) and gemini-3-5-flash-lite (38s) are recorded as agent_error because the SDK exception fired on them, but both workspaces contain finished projects using the old starter-web naming, so neither lost a would-be pass. Classified conservatively as no-verdict.\n- The Claude CLI now emits a `tool_progress` message type the SDK does not recognize. Harmless log noise, also worth an upstream report.\n\n**ContentOS was killed again despite SERVER_PORT=0.** The transcripts show why the guard is only advisory: claude-opus-5 noticed the variable, judged it environmental noise, unset it, and bound port 8080 deliberately (\"I re-verified with it unset and got 8080\"). Four of the seven passing agents have no transcript (the SDK parsing bug), so exact attribution of the kill is not possible. Conclusion: no environment tweak fences in an agent with full shell access. Container isolation (DockerSandbox) is now the top harness priority, and until then a benchmark run should be treated as exclusive use of the machine.\n\n**What this run cost:** $3.72 recorded (Claude family and kimi report cost; codex ran on the ChatGPT subscription; gemini/grok did not report). Estimated $7.47 at API list prices.\n\n**Next steps:** report the SDK parse bug and tool_progress gap upstream; container isolation; then grow eval coverage so these one-eval snapshots become a real leaderboard.",
+    "detail" : [ {
+      "agent" : "claude-fable-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 194543,
+      "costUsd" : 0.9491755,
+      "totalTokens" : null
+    }, {
+      "agent" : "claude-haiku-4-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 83126,
+      "costUsd" : 0.12250174999999999,
+      "totalTokens" : null
+    }, {
+      "agent" : "claude-opus-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 338365,
+      "costUsd" : 1.69475,
+      "totalTokens" : null
+    }, {
+      "agent" : "claude-sonnet-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 122739,
+      "costUsd" : 0.4662454999999999,
+      "totalTokens" : null
+    }, {
+      "agent" : "codex-gpt-5-6-luna",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 223990,
+      "costUsd" : null,
+      "totalTokens" : null
+    }, {
+      "agent" : "codex-gpt-5-6-sol",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 242808,
+      "costUsd" : null,
+      "totalTokens" : null
+    }, {
+      "agent" : "codex-gpt-5-6-terra",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 250782,
+      "costUsd" : null,
+      "totalTokens" : null
+    }, {
+      "agent" : "gemini-3-1-pro",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "agent_error",
+      "durationMs" : 160342,
+      "costUsd" : null,
+      "totalTokens" : null
+    }, {
+      "agent" : "gemini-3-5-flash-lite",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "agent_error",
+      "durationMs" : 38554,
+      "costUsd" : null,
+      "totalTokens" : null
+    }, {
+      "agent" : "gemini-3-6-flash",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 175127,
+      "costUsd" : null,
+      "totalTokens" : null
+    }, {
+      "agent" : "grok-4-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 77367,
+      "costUsd" : null,
+      "totalTokens" : null
+    }, {
+      "agent" : "kimi-k3",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 265159,
+      "costUsd" : 0.48291699999999993,
+      "totalTokens" : null
+    } ]
+  }, {
     "id" : "second-light",
     "started" : "2026-08-05T15:54:21.520255Z",
     "agents" : [ "claude-fable-5", "claude-haiku-4-5", "claude-opus-5", "claude-sonnet-5", "codex-gpt-5-6-luna", "codex-gpt-5-6-sol", "codex-gpt-5-6-terra", "gemini-2-5-flash", "gemini-2-5-flash-lite", "gemini-2-5-pro", "grok-4-5", "kimi-k3" ],
@@ -225,80 +344,352 @@
       "totalTokens" : null
     } ]
   } ],
-  "noVerdict" : [ ],
-  "agents" : [ ],
+  "noVerdict" : [ {
+    "agent" : "gemini-3-1-pro",
+    "model" : "gemini-3.1-pro-preview",
+    "attempts" : 1,
+    "kinds" : [ "agent_error" ]
+  }, {
+    "agent" : "gemini-3-5-flash-lite",
+    "model" : "gemini-3.5-flash-lite",
+    "attempts" : 1,
+    "kinds" : [ "agent_error" ]
+  } ],
+  "agents" : [ {
+    "agent" : "claude-fable-5",
+    "model" : "claude-fable-5",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.20654931437723745,
+    "ciUpper" : 1.0,
+    "avgTokens" : 8162,
+    "avgDurationS" : 194.543,
+    "avgCostUsd" : 0.9491755,
+    "costPerPassUsd" : 0.9491755,
+    "totalCostUsd" : 0.9491755
+  }, {
+    "agent" : "claude-opus-5",
+    "model" : "claude-opus-5",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.20654931437723745,
+    "ciUpper" : 1.0,
+    "avgTokens" : 24257,
+    "avgDurationS" : 338.365,
+    "avgCostUsd" : 1.69475,
+    "costPerPassUsd" : 1.69475,
+    "totalCostUsd" : 1.69475
+  }, {
+    "agent" : "codex-gpt-5-6-luna",
+    "model" : "gpt-5.6-luna",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.20654931437723745,
+    "ciUpper" : 1.0,
+    "avgTokens" : null,
+    "avgDurationS" : 223.99,
+    "avgCostUsd" : null,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : null
+  }, {
+    "agent" : "codex-gpt-5-6-sol",
+    "model" : "gpt-5.6-sol",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.20654931437723745,
+    "ciUpper" : 1.0,
+    "avgTokens" : null,
+    "avgDurationS" : 242.808,
+    "avgCostUsd" : null,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : null
+  }, {
+    "agent" : "codex-gpt-5-6-terra",
+    "model" : "gpt-5.6-terra",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.20654931437723745,
+    "ciUpper" : 1.0,
+    "avgTokens" : null,
+    "avgDurationS" : 250.782,
+    "avgCostUsd" : null,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : null
+  }, {
+    "agent" : "gemini-3-6-flash",
+    "model" : "gemini-3.6-flash",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.20654931437723745,
+    "ciUpper" : 1.0,
+    "avgTokens" : null,
+    "avgDurationS" : 175.127,
+    "avgCostUsd" : null,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : null
+  }, {
+    "agent" : "grok-4-5",
+    "model" : "grok-4.5",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.20654931437723745,
+    "ciUpper" : 1.0,
+    "avgTokens" : null,
+    "avgDurationS" : 77.367,
+    "avgCostUsd" : null,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : null
+  }, {
+    "agent" : "claude-haiku-4-5",
+    "model" : "claude-haiku-4-5-20251001",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 0.0,
+    "firstTryRate" : 0.0,
+    "ciLower" : 0.0,
+    "ciUpper" : 0.7934506856227626,
+    "avgTokens" : 6406,
+    "avgDurationS" : 83.126,
+    "avgCostUsd" : 0.12250174999999999,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : 0.12250174999999999
+  }, {
+    "agent" : "claude-sonnet-5",
+    "model" : "claude-sonnet-5",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 0.0,
+    "firstTryRate" : 0.0,
+    "ciLower" : 0.0,
+    "ciUpper" : 0.7934506856227626,
+    "avgTokens" : 8166,
+    "avgDurationS" : 122.739,
+    "avgCostUsd" : 0.4662454999999999,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : 0.4662454999999999
+  }, {
+    "agent" : "kimi-k3",
+    "model" : "kimi-k3",
+    "evals" : 1,
+    "totalEvals" : 10,
+    "attempts" : 1,
+    "eligible" : false,
+    "coverage" : 0.1,
+    "successRate" : 0.0,
+    "firstTryRate" : 0.0,
+    "ciLower" : 0.0,
+    "ciUpper" : 0.7934506856227626,
+    "avgTokens" : 31430,
+    "avgDurationS" : 265.159,
+    "avgCostUsd" : 0.48291699999999993,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : 0.48291699999999993
+  } ],
   "projects" : [ "boot", "data", "framework", "security" ],
-  "byProject" : { },
-  "byEval" : { },
+  "byProject" : {
+    "claude-fable-5" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "claude-haiku-4-5" : {
+      "boot" : [ 0, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "claude-opus-5" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "claude-sonnet-5" : {
+      "boot" : [ 0, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "codex-gpt-5-6-luna" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "codex-gpt-5-6-sol" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "codex-gpt-5-6-terra" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "gemini-3-6-flash" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "grok-4-5" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "kimi-k3" : {
+      "boot" : [ 0, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    }
+  },
+  "byEval" : {
+    "claude-fable-5" : {
+      "boot/000-initializr-parity" : true
+    },
+    "claude-haiku-4-5" : {
+      "boot/000-initializr-parity" : false
+    },
+    "claude-opus-5" : {
+      "boot/000-initializr-parity" : true
+    },
+    "claude-sonnet-5" : {
+      "boot/000-initializr-parity" : false
+    },
+    "codex-gpt-5-6-luna" : {
+      "boot/000-initializr-parity" : true
+    },
+    "codex-gpt-5-6-sol" : {
+      "boot/000-initializr-parity" : true
+    },
+    "codex-gpt-5-6-terra" : {
+      "boot/000-initializr-parity" : true
+    },
+    "gemini-3-6-flash" : {
+      "boot/000-initializr-parity" : true
+    },
+    "grok-4-5" : {
+      "boot/000-initializr-parity" : true
+    },
+    "kimi-k3" : {
+      "boot/000-initializr-parity" : false
+    }
+  },
   "evals" : [ {
+    "type" : "build",
+    "id" : "boot/000-initializr-parity",
     "project" : "boot",
     "difficulty" : "medium",
     "title" : "Generate a new Boot 4 project from scratch to the Initializr bar",
-    "pilot" : false,
-    "type" : "build",
-    "id" : "boot/000-initializr-parity"
+    "pilot" : false
   }, {
+    "type" : "fix",
+    "id" : "boot/001-modular-autoconfig",
     "project" : "boot",
     "difficulty" : "medium",
     "title" : "Restore features lost to Boot 4 modular auto-configuration",
-    "pilot" : true,
-    "type" : "fix",
-    "id" : "boot/001-modular-autoconfig"
+    "pilot" : true
   }, {
+    "type" : "fix",
+    "id" : "boot/002-restclient-migration",
     "project" : "boot",
     "difficulty" : "easy",
     "title" : "Migrate RestTemplate code to the auto-configured RestClient",
-    "pilot" : false,
-    "type" : "fix",
-    "id" : "boot/002-restclient-migration"
+    "pilot" : false
   }, {
+    "type" : "fix",
+    "id" : "boot/003-jackson3-migration",
     "project" : "boot",
     "difficulty" : "medium",
     "title" : "Jackson 2 to Jackson 3 migration after a Spring Boot 4 upgrade",
-    "pilot" : false,
-    "type" : "fix",
-    "id" : "boot/003-jackson3-migration"
+    "pilot" : false
   }, {
+    "type" : "fix",
+    "id" : "data/000-n-plus-one",
     "project" : "data",
     "difficulty" : "hard",
     "title" : "Eliminate an N+1 query problem without changing the response",
-    "pilot" : true,
-    "type" : "fix",
-    "id" : "data/000-n-plus-one"
+    "pilot" : true
   }, {
+    "type" : "build",
+    "id" : "framework/000-resilience-annotations",
     "project" : "framework",
     "difficulty" : "medium",
     "title" : "Add retries and concurrency limits without new dependencies",
-    "pilot" : false,
-    "type" : "build",
-    "id" : "framework/000-resilience-annotations"
+    "pilot" : false
   }, {
+    "type" : "build",
+    "id" : "framework/001-api-versioning",
     "project" : "framework",
     "difficulty" : "medium",
     "title" : "Version an endpoint with Framework 7 native API versioning",
-    "pilot" : true,
-    "type" : "build",
-    "id" : "framework/001-api-versioning"
+    "pilot" : true
   }, {
+    "type" : "build",
+    "id" : "framework/002-problem-details",
     "project" : "framework",
     "difficulty" : "easy",
     "title" : "RFC 9457 problem details for error responses",
-    "pilot" : false,
-    "type" : "build",
-    "id" : "framework/002-problem-details"
+    "pilot" : false
   }, {
+    "type" : "fix",
+    "id" : "framework/003-transactional-self-invocation",
     "project" : "framework",
     "difficulty" : "hard",
     "title" : "Fix a partial-write bug caused by transactional self-invocation",
-    "pilot" : false,
-    "type" : "fix",
-    "id" : "framework/003-transactional-self-invocation"
+    "pilot" : false
   }, {
+    "type" : "build",
+    "id" : "security/000-lockdown",
     "project" : "security",
     "difficulty" : "medium",
     "title" : "Secure an API with a stateless SecurityFilterChain",
-    "pilot" : false,
-    "type" : "build",
-    "id" : "security/000-lockdown"
+    "pilot" : false
   } ]
 }
