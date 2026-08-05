@@ -53,7 +53,7 @@ Rows measure an **agent configuration**: model plus coding-agent CLI, tool polic
 
 ## Quick start
 
-Requirements: JDK 25+ and network access for Maven. Scored runs also need agent CLIs set up; see [Setup for real runs](#setup-for-real-runs) and read the [cost warning](#cost-warning) first.
+Requirements: JDK 25+ and network access for Maven (SDKMAN users: `sdk env` activates the pinned JDK from `.sdkmanrc`). Scored runs also need agent CLIs set up; see [Setup for real runs](#setup-for-real-runs) and read the [cost warning](#cost-warning) first.
 
 ```bash
 # see available evals

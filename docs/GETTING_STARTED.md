@@ -8,7 +8,7 @@ Spring Evals measures how well AI models and coding agents write real Spring cod
 
 ## 1. Check the basics
 
-You need JDK 25+ and network access for Maven. That is all for the free parts.
+You need JDK 25+ and network access for Maven. That is all for the free parts. SDKMAN users can just run `sdk env` in the repo root; the checked-in `.sdkmanrc` pins a matching JDK.
 
 ```bash
 ./spring-evals list
