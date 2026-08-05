@@ -1,0 +1,23 @@
+name: 001-method-security
+project: security
+title: Enforce admin-only operations on every path, not just the web layer
+category: security
+type: fix
+difficulty: medium
+baseline_failure: test_failure
+boot_version: 4.1.0
+timeout_seconds: 900
+description: >
+  A document management app guards its admin-only operations (delete
+  document, change owner) with URL rules on /api/admin/** only. A bulk
+  cleanup endpoint open to the USER role calls the same service methods
+  and bypasses the web-layer guard, so a plain user can delete anything.
+  The correct fix moves authorization to the operations themselves with
+  @EnableMethodSecurity plus @PreAuthorize (or an equivalent method
+  security annotation) on the service methods. The trap is fixing the
+  symptom instead of the class of bug: adding a role check inside the
+  bulk endpoint makes the web tests pass but leaves the service open,
+  which a hidden direct-invocation test catches by asserting
+  AccessDeniedException under a USER security context. Hand-rolled
+  checks that read the security context inside business code are
+  forbidden by prompt constraint and mechanism checks.
