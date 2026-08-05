@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,7 +37,17 @@ import org.springaicommunity.agents.qwencode.QwenCodeAgentOptions;
 public class Agents {
 
     public record AgentSpec(String name, String provider, String model, Map<String, String> env,
-            Double budgetUsd, Double estCostPerAttemptUsd) {
+            Double budgetUsd, Double estCostPerAttemptUsd, boolean enabled) {
+    }
+
+    /**
+     * Environment changes to apply to the harness process around one
+     * attempt: removals first, then overrides. Agent CLIs inherit the
+     * process environment, so this is what the agent actually sees. The
+     * SDK options env is a dead store in agent-claude 0.16.0 and cannot
+     * be relied on for any provider.
+     */
+    public record EnvPlan(Map<String, String> overrides, Set<String> removals) {
     }
 
     private final Path agentsDir;
@@ -64,7 +75,8 @@ public class Agents {
             AgentSpec spec = new AgentSpec(node.get("name").asText(), node.get("provider").asText(),
                     node.get("model").asText(), Map.copyOf(env),
                     node.has("budgetUsd") ? node.get("budgetUsd").asDouble() : null,
-                    node.has("estCostPerAttemptUsd") ? node.get("estCostPerAttemptUsd").asDouble() : null);
+                    node.has("estCostPerAttemptUsd") ? node.get("estCostPerAttemptUsd").asDouble() : null,
+                    !node.has("enabled") || node.get("enabled").asBoolean());
             validate(file, spec);
             return spec;
         } catch (IOException e) {
@@ -133,33 +145,73 @@ public class Agents {
         }
     }
 
-    public AgentModel createModel(AgentSpec spec, Duration timeout) {
-        return switch (spec.provider()) {
-            // Host context isolation is ENFORCED here: CLAUDE_CONFIG_DIR points
-            // the CLI at an empty config directory, so no host CLAUDE.md, user
-            // skills, plugins, or MCP servers can load (the first-light run
-            // proved they otherwise do). Consequence: subscription login does
-            // not carry into the sterile dir, so claude runs require
-            // ANTHROPIC_API_KEY. Never remove this; it is the contamination
-            // barrier. settingSources stays empty as a second layer.
-            case "claude" -> {
-                Map<String, String> env = new java.util.HashMap<>(expandAll(spec.env()));
-                // Forced, not defaulted: no agent config may redirect the CLI to
-                // a populated config dir, and each attempt gets a FRESH empty
-                // dir so state written by one attempt can never leak into the
-                // next. Both were independent review findings.
-                env.put("CLAUDE_CONFIG_DIR", sterileClaudeConfigDir());
-                yield ClaudeAgentModel.builder()
-                        .defaultOptions(ClaudeAgentOptions.builder()
-                                .model(spec.model())
-                                .yolo(true)
-                                .timeout(timeout)
-                                .environmentVariables(Map.copyOf(env))
-                                .maxBudgetUsd(spec.budgetUsd())
-                                .settingSources(List.of())
-                                .build())
-                        .build();
+    /**
+     * Host context isolation is ENFORCED here, at the process-environment
+     * level via EnvSandbox. CLAUDE_CONFIG_DIR points the CLI at a FRESH
+     * empty config directory per attempt, so no host CLAUDE.md, user
+     * skills, plugins, or MCP servers can load, and no state leaks between
+     * attempts. It cannot go through the SDK options: agent-claude 0.16.0
+     * drops environmentVariables on the floor (bytecode-verified dead
+     * store, found when second-light ran kimi against the wrong API and
+     * the sterile dirs stayed empty). Host credentials the agent config
+     * does not explicitly re-declare are removed for the attempt.
+     * Consequence: claude runs require ANTHROPIC_API_KEY in the agent
+     * config env. Never weaken this; it is the contamination barrier.
+     */
+    public EnvPlan envPlan(AgentSpec spec) {
+        Map<String, String> overrides = new java.util.HashMap<>(expandAll(spec.env()));
+        // Any Spring app an agent starts binds an ephemeral port instead of
+        // 8080, so agent verification can never collide with (or kill) apps
+        // the host user has running. Uniform across agents, so it is fair.
+        overrides.putIfAbsent("SERVER_PORT", "0");
+        Set<String> removals = new java.util.HashSet<>();
+        // Agent-spawned builds must not inherit the harness JVM flags the
+        // wrapper exports for EnvSandbox.
+        removals.add("MAVEN_OPTS");
+        switch (spec.provider()) {
+            // Prefix-based, not a fixed list: host auth and routing vars in
+            // these families (CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CODE_USE_BEDROCK,
+            // ANTHROPIC_CUSTOM_HEADERS, ...) can silently redirect billing or
+            // the API endpoint, which is exactly the failure class that broke
+            // kimi-k3 in second-light. Anything the agent config re-declares
+            // survives via the override map.
+            case "claude" -> System.getenv().keySet().stream()
+                    .filter(key -> key.startsWith("ANTHROPIC") || key.startsWith("CLAUDE"))
+                    .forEach(removals::add);
+            // GOOGLE_CLOUD_PROJECT stays: OAuth-based setups need it, and the
+            // CLI's auth choice itself lives in ~/.gemini/settings.json where
+            // doctor reports it. Credential material is still stripped.
+            case "gemini" -> removals.addAll(Set.of("GOOGLE_API_KEY", "GEMINI_API_KEY",
+                    "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_GENAI_USE_VERTEXAI"));
+            default -> {
             }
+        }
+        removals.removeAll(overrides.keySet());
+        if ("claude".equals(spec.provider())) {
+            overrides.put("CLAUDE_CONFIG_DIR", sterileClaudeConfigDir());
+        }
+        return new EnvPlan(Map.copyOf(overrides), Set.copyOf(removals));
+    }
+
+    /**
+     * The env plan's overrides must already be applied to the process
+     * environment (EnvSandbox) when the returned model runs; the
+     * environmentVariables passed to the SDK below are a dead store in
+     * 0.16.0 and are kept only so a future SDK fix agrees with the
+     * process-level values.
+     */
+    public AgentModel createModel(AgentSpec spec, Duration timeout, EnvPlan plan) {
+        return switch (spec.provider()) {
+            case "claude" -> ClaudeAgentModel.builder()
+                    .defaultOptions(ClaudeAgentOptions.builder()
+                            .model(spec.model())
+                            .yolo(true)
+                            .timeout(timeout)
+                            .environmentVariables(plan.overrides())
+                            .maxBudgetUsd(spec.budgetUsd())
+                            .settingSources(List.of())
+                            .build())
+                    .build();
             // skipGitCheck: candidate workspaces are plain directories, and
             // modern Codex refuses non-git dirs without it. workspace-write
             // replaces the deprecated --full-auto.
@@ -178,7 +230,7 @@ public class Agents {
                                     .model(spec.model())
                                     .yolo(true)
                                     .timeout(timeout)
-                                    .environmentVariables(expandAll(spec.env()))
+                                    .environmentVariables(plan.overrides())
                                     .build(),
                             null);
                 } catch (Exception e) {
@@ -189,7 +241,7 @@ public class Agents {
                     .model(spec.model())
                     .yolo(true)
                     .timeout(timeout)
-                    .environmentVariables(expandAll(spec.env()))
+                    .environmentVariables(plan.overrides())
                     .build());
             default -> throw new IllegalArgumentException(
                     "unknown provider '%s' (supported: claude, codex, gemini, qwen-code)".formatted(spec.provider()));

@@ -37,9 +37,11 @@ final class ContentHashes {
         Path java = repoRoot.resolve("harness/src/main/java/dev/danvega/springevals");
         String hash = tree(List.of(java.resolve("Main.java"), java.resolve("Agents.java"),
                 java.resolve("Workspaces.java"), java.resolve("MavenJudge.java"),
-                java.resolve("EvalDefinition.java"), repoRoot.resolve("harness/pom.xml"),
-                repoRoot.resolve("spring-evals")));
-        return "0.2.0+" + hash.substring(0, 12);
+                java.resolve("EvalDefinition.java"), java.resolve("EnvSandbox.java"),
+                repoRoot.resolve("harness/pom.xml"), repoRoot.resolve("spring-evals")));
+        // 0.3.0: process-level environment isolation (EnvSandbox). Results
+        // recorded before 0.3 ran Claude CLIs against the host config.
+        return "0.3.0+" + hash.substring(0, 12);
     }
 
     static String tree(List<Path> roots) {

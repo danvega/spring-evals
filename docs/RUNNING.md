@@ -9,7 +9,7 @@ How to run evals without spending more than you intend, and how to keep results 
 ```bash
 --agent a[,b,c]          # explicit picks
 --family claude          # name-prefix match: claude-*, codex-*
---all-agents             # everything in agents/
+--all-agents             # every enabled agent in agents/
 --eval boot/000-initializr-parity
 --project boot           # one suite
 --difficulty easy,medium
@@ -17,6 +17,8 @@ How to run evals without spending more than you intend, and how to keep results 
 --attempts 1             # default is 1; retries are explicit
 --run-name my-baseline   # names the run; omit for a generated name like eager-bean-42
 ```
+
+To keep an agent defined but out of `--all-agents` and `--family` selections, set `"enabled": false` in its `agents/<name>.json`. Naming it explicitly with `--agent` still runs it. This is the easy way to keep the full matrix on disk while only paying for the agents you have keys for.
 
 ## Estimate first, always
 

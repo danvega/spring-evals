@@ -69,6 +69,11 @@ public class Main {
                 System.exit(command.isEmpty() ? 0 : 1);
             }
         }
+        // Agent CLI SDKs can leave non-daemon threads behind (the qwen-code
+        // wrapper does after a failed session), which keeps the JVM hanging
+        // after all output is written. Everything is flushed and saved by
+        // now, so exit explicitly.
+        System.exit(0);
     }
 
     /**
@@ -78,9 +83,11 @@ public class Main {
     void estimate(Map<String, String> opts) {
         int attempts = Integer.parseInt(opts.getOrDefault("attempts", "1"));
         List<EvalDefinition> evals = selectTargets(opts);
+        // Selector-less estimate mirrors run --all-agents: enabled only, so
+        // the projection matches what a run would actually spend.
         List<AgentSpec> specs = opts.containsKey("agent") || opts.containsKey("family") || opts.containsKey("all-agents")
                 ? resolveAgents(opts)
-                : agents.loadAll();
+                : agents.loadAll().stream().filter(AgentSpec::enabled).toList();
 
         double expectedAttempts = attempts == 1 ? 1.0 : 1.7;
         double totalExpected = 0;
@@ -173,7 +180,8 @@ public class Main {
                 ok = false;
                 System.out.println("   ✗ broken project unexpectedly PASSED (" + brokenWs + ")");
             } else {
-                String actualFailure = failureKind(new AgentRun(0L, null, null, null, null, null, null), broken, brokenWs);
+                String actualFailure = failureKind(new AgentRun(0L, null, null, null, null, null, null), broken,
+                        brokenWs, false);
                 String expectedFailure = eval.meta().get("baseline_failure");
                 if (!expectedFailure.equals(actualFailure)) {
                     ok = false;
@@ -209,19 +217,31 @@ public class Main {
      */
     private List<AgentSpec> resolveAgents(Map<String, String> opts) {
         if (opts.containsKey("agent")) {
-            return List.of(opts.get("agent").split(",")).stream().map(agents::load).toList();
+            // Explicit picks override the enabled flag; say so when they do.
+            List<AgentSpec> picked = List.of(opts.get("agent").split(",")).stream().map(agents::load).toList();
+            picked.stream().filter(spec -> !spec.enabled()).forEach(spec -> System.out.printf(
+                    "note: %s has \"enabled\": false in agents/%s.json; running it anyway because you named it%n",
+                    spec.name(), spec.name()));
+            return picked;
         }
         if (opts.containsKey("family")) {
             List<AgentSpec> family = agents.loadAll().stream()
+                    .filter(AgentSpec::enabled)
                     .filter(spec -> spec.name().startsWith(opts.get("family")))
                     .toList();
             if (family.isEmpty()) {
-                throw new IllegalArgumentException("no agents match family '" + opts.get("family") + "'");
+                throw new IllegalArgumentException("no enabled agents match family '" + opts.get("family") + "'");
             }
             return family;
         }
         if (opts.containsKey("all-agents")) {
-            return agents.loadAll();
+            List<AgentSpec> enabled = agents.loadAll().stream().filter(AgentSpec::enabled).toList();
+            long disabled = agents.loadAll().size() - enabled.size();
+            if (disabled > 0) {
+                System.out.printf("skipping %d disabled agent(s); set \"enabled\": true in agents/<name>.json to include them%n",
+                        disabled);
+            }
+            return enabled;
         }
         throw new IllegalArgumentException(
                 "pick agents with --agent <name[,name...]>, --family <prefix>, or --all-agents");
@@ -264,6 +284,10 @@ public class Main {
             System.out.printf("Paid run authorized: projected maximum $%.2f; estimated campaign cap $%.2f.%n",
                     projectedMaximum, costCap);
         }
+
+        // Fail before any money is spent if the process-env mechanism that
+        // enforces agent isolation is unavailable (e.g. missing add-opens).
+        EnvSandbox.selfTest();
 
         List<RunRecord> results = resultStore.load();
         double reservedCost = 0;
@@ -317,10 +341,12 @@ public class Main {
                     System.out.printf("%n=== %s / %s / attempt %d/%d ===%n", eval.id(), spec.name(), attempt,
                             attempts);
                     Path ws = workspaces.freshCopy(eval, spec.name() + "-a" + attempt);
+                    String baselineHash = ContentHashes.candidate(ws);
 
                     System.out.println("running agent through AgentClient...");
                     AgentRun agentRun = runAgent(spec, eval, ws);
                     String candidateHash = ContentHashes.candidate(ws);
+                    boolean untouched = baselineHash.equals(candidateHash);
                     if (agentRun.costUsd() != null && agentRun.costUsd() > reservation) {
                         reservedCost += agentRun.costUsd() - reservation;
                     }
@@ -329,9 +355,12 @@ public class Main {
                     workspaces.injectEvalTests(eval, ws);
                     Judgment verdict = mavenJudge.judge(eval, ws);
 
-                    String failureKind = verdict.pass() ? null : failureKind(agentRun, verdict, ws);
+                    String failureKind = verdict.pass() ? null : failureKind(agentRun, verdict, ws, untouched);
                     String failureReason = verdict.pass() ? null
-                            : agentRun.error() != null ? agentRun.error() : verdict.reasoning();
+                            : agentRun.error() != null ? agentRun.error()
+                            : untouched && "agent_error".equals(failureKind) ? untouchedReason(agentRun)
+                            : untouched ? "workspace unchanged after the agent ran; " + verdict.reasoning()
+                            : verdict.reasoning();
                     results.add(new RunRecord(spec.name(), spec.model(), eval.id(), eval.project(), attempt,
                             verdict.pass(), agentRun.durationMs(), agentRun.costUsd(), ws.toString(),
                             Instant.now().toString(), UUID.randomUUID().toString(), spec.provider(), "agent",
@@ -364,8 +393,15 @@ public class Main {
         }
 
         long started = System.currentTimeMillis();
-        AgentModel model = agents.createModel(spec, eval.agentTimeout());
+        // The env plan is applied to the harness process itself; the agent
+        // CLI inherits it. This is the only channel that actually reaches
+        // the CLI (SDK option env is a dead store), so isolation and
+        // per-agent credentials both live here. Restored in finally.
+        Agents.EnvPlan plan = agents.envPlan(spec);
+        EnvSandbox.Scope envScope = EnvSandbox.apply(plan.overrides(), plan.removals());
+        AgentModel model = null;
         try {
+            model = agents.createModel(spec, eval.agentTimeout(), plan);
             AgentClientResponse response = AgentClient.create(model)
                     .goal(prompt)
                     .workingDirectory(ws)
@@ -389,6 +425,7 @@ public class Main {
                 } catch (Exception ignored) {
                 }
             }
+            EnvSandbox.restore(envScope);
         }
     }
 
@@ -498,8 +535,17 @@ public class Main {
         return ContentHashes.benchmark(root);
     }
 
-    private static String failureKind(AgentRun agentRun, Judgment verdict, Path workspace) {
+    private static String failureKind(AgentRun agentRun, Judgment verdict, Path workspace, boolean untouched) {
         if (agentRun.error() != null) {
+            return "agent_error";
+        }
+        // A CLI can fail cleanly (exit 0) with an error message instead of
+        // doing the task; kimi-k3 in second-light scored a fake 0% that way
+        // in 1.2 seconds. Zero workspace changes alone is not proof (a model
+        // can genuinely attempt, decide nothing needs changing, and deserve
+        // its fail), so this only reclassifies when the run was also far too
+        // fast to have engaged with the task at all.
+        if (untouched && agentRun.durationMs() != null && agentRun.durationMs() < 20_000) {
             return "agent_error";
         }
         if (verdict.error() != null) {
@@ -521,6 +567,15 @@ public class Main {
             return "compile_failure";
         }
         return "test_failure";
+    }
+
+    private static String untouchedReason(AgentRun agentRun) {
+        String said = agentRun.responseText() == null ? "(no response)"
+                : agentRun.responseText().length() > 300
+                        ? agentRun.responseText().substring(0, 300) + "…"
+                        : agentRun.responseText();
+        return "agent made no changes to the workspace; the CLI likely failed without a nonzero exit. Agent said: "
+                + said;
     }
 
     private static String detectCliVersion(String provider) {

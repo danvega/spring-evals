@@ -45,7 +45,7 @@ Requirements: JDK 25+ and network access for Maven. Scored runs also need agent 
 # no prompt is sent and no generation request is made
 ./spring-evals doctor
 ./spring-evals doctor --family codex
-./spring-evals doctor --agent claude-sonnet-5,gemini-2-5-pro
+./spring-evals doctor --agent claude-sonnet-5,gemini-3-1-pro
 
 # check every eval is well-formed (broken fails, solution passes)
 ./spring-evals validate
@@ -91,7 +91,7 @@ An agent config is an (agent CLI, model) pair, so comparing models within one CL
 |---|---|---|
 | `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5` | Claude Code | the Claude family |
 | `codex-gpt-5-6-sol`, `codex-gpt-5-6-terra`, `codex-gpt-5-6-luna` | Codex | the GPT-5.6 family: Sol (flagship), Terra (balanced), Luna (cost-efficient) |
-| `gemini-2-5-pro`, `gemini-2-5-flash`, `gemini-2-5-flash-lite` | Gemini CLI | the Gemini family: Pro plus the fast, cheap Flash tiers |
+| `gemini-3-1-pro`, `gemini-3-6-flash`, `gemini-3-5-flash-lite` | Gemini CLI | the Gemini family: Pro plus the fast, cheap Flash tiers |
 | `kimi-k3` | Claude Code | Kimi K3 via Moonshot's Anthropic-compatible endpoint |
 | `grok-4-5` | Qwen Code | Grok 4.5 via xAI's OpenAI-compatible endpoint (set `XAI_API_KEY`) |
 

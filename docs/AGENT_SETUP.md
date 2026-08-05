@@ -34,13 +34,15 @@ Doctor will also note that Codex has no non-generative way to confirm the creden
 
 ## Google (Gemini)
 
-Runs `gemini-2-5-pro`, `gemini-2-5-flash`, and `gemini-2-5-flash-lite` through the Gemini CLI.
+Runs `gemini-3-1-pro`, `gemini-3-6-flash`, and `gemini-3-5-flash-lite` through the Gemini CLI.
 
 1. Install the CLI: `npm install -g @google/gemini-cli`
 2. Sign in: run `gemini` once and complete the Google login, or get a key at [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`.
 3. Verify: `./spring-evals doctor --family gemini`
 
 **Subscription or API key?** The Google sign-in draws on the free Code Assist quota for individuals, and a Google AI Pro or Ultra plan raises those limits. An API key means AI Studio billing instead (free tier or metered). Doctor reports which one is active: `billing: Google account sign-in (plan or free Code Assist quota)` or `billing: Gemini API key`. If both are present, pick one explicitly with the CLI's `/auth` command.
+
+During benchmark attempts the harness hides any host `GOOGLE_API_KEY` from the agent and supplies `GEMINI_API_KEY` from the agent config, so the CLI's "GOOGLE_API_KEY takes precedence" behavior cannot silently switch which project gets billed. Google retires older model generations for new API projects (the 2.5 line returned 404 for new users), so if doctor is green but runs fail with `NOT_FOUND`, check the model IDs in `agents/gemini-*.json` against `https://generativelanguage.googleapis.com/v1beta/models`.
 
 ## xAI (Grok)
 

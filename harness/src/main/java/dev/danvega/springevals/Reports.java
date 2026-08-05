@@ -44,7 +44,19 @@ public class Reports {
                         + "they remain in the dashboard's run history");
             }
             // The leaderboard is empty, but run history and findings must
-            // survive cohort rotation, so the dashboard still gets rewritten.
+            // survive cohort rotation, so the dashboard still gets rewritten,
+            // and leaderboard.md must not keep publishing rows from a retired
+            // cohort (stale rows once outlived a contamination disclosure).
+            try {
+                Path leaderboard = repoRoot.resolve("results").resolve("leaderboard.md");
+                Files.createDirectories(leaderboard.getParent());
+                Files.writeString(leaderboard, "# Spring Evals Leaderboard\n\nGenerated " + Instant.now()
+                        + "\n\nNo leaderboard-eligible results in the current benchmark cohort. "
+                        + "Past runs remain in results/runs/ and the dashboard's run history.\n");
+                System.out.println("wrote results/leaderboard.md (empty cohort)");
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
             writeDashboardData(List.of(), results, List.of(), new LinkedHashSet<>(),
                     catalog.all().stream().map(EvalDefinition::project).distinct().sorted().toList(),
                     0, true, new LinkedHashMap<>());

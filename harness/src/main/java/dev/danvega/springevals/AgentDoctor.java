@@ -70,8 +70,9 @@ final class AgentDoctor {
         System.out.println("Agent configuration doctor (no model prompts or generation requests)\n");
         List<Report> reports = specs.stream().map(this::inspect).toList();
         for (Report report : reports) {
-            System.out.printf("%-9s %s  (%s / %s)%n", report.level(), report.spec().name(),
-                    report.spec().provider(), report.spec().model());
+            System.out.printf("%-9s %s  (%s / %s)%s%n", report.level(), report.spec().name(),
+                    report.spec().provider(), report.spec().model(),
+                    report.spec().enabled() ? "" : "  [disabled: skipped by --all-agents and --family]");
             for (Finding finding : report.findings()) {
                 String marker = switch (finding.level()) {
                     case READY -> "✓";

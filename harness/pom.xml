@@ -75,6 +75,10 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.5.2</version>
+				<configuration>
+					<!-- EnvSandbox mutates the process environment for agent isolation -->
+					<argLine>--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED</argLine>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>

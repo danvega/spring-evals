@@ -5,7 +5,8 @@
   "env": {
     "OPENAI_BASE_URL": "https://api.x.ai/v1",
     "OPENAI_API_KEY": "${XAI_API_KEY}",
-    "OPENAI_MODEL": "grok-4.5"
+    "OPENAI_MODEL": "grok-4.5",
+    "QWEN_CODE_SUPPRESS_YOLO_WARNING": "1"
   },
-  "estCostPerAttemptUsd": 0.60
+  "estCostPerAttemptUsd": 0.6
 }
