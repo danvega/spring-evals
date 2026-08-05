@@ -103,6 +103,7 @@ Results accumulate in `results/results.json`. Cache identity includes the eval c
 | [framework/004-jms-client](evals/framework/004-jms-client) | spring-framework | fix | medium | Migrating JmsTemplate to the fluent JmsClient, exposing silently dropped QoS settings |
 | [data/000-n-plus-one](evals/data/000-n-plus-one) | spring-data | fix | hard | Recognizing and fixing an N+1 query pattern from a symptom description, verified by statement counts |
 | [data/001-repository-aot](evals/data/001-repository-aot) | spring-data | fix | hard | Enabling build-time Spring Data AOT query generation and fixing the broken finder it exposes |
+| [ai/000-chatclient-basics](evals/ai/000-chatclient-basics) | spring-ai | fix | medium | Structured LLM output through the framework's converters against a deterministic stub model |
 
 ## Agents and models
 
