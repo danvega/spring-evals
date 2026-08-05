@@ -1,9 +1,9 @@
 {
-  "generated" : "2026-08-05T21:02:58.734664Z",
+  "generated" : "2026-08-05T22:44:46.726297Z",
   "sample" : false,
-  "spendUsd" : 3.7432034,
+  "spendUsd" : 0.0,
   "spendPartial" : true,
-  "estSpendUsd" : 6.819999999999999,
+  "estSpendUsd" : null,
   "runs" : [ {
     "id" : "sturdy-mono-00",
     "started" : "2026-08-05T20:02:31.866067Z",
@@ -391,253 +391,11 @@
       "totalTokens" : null
     } ]
   } ],
-  "noVerdict" : [ {
-    "agent" : "gemini-3-1-pro",
-    "model" : "gemini-3.1-pro-preview",
-    "attempts" : 1,
-    "kinds" : [ "agent_error" ]
-  }, {
-    "agent" : "gemini-3-5-flash-lite",
-    "model" : "gemini-3.5-flash-lite",
-    "attempts" : 1,
-    "kinds" : [ "agent_error" ]
-  } ],
-  "agents" : [ {
-    "agent" : "claude-fable-5",
-    "model" : "claude-fable-5",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 1.0,
-    "firstTryRate" : 1.0,
-    "ciLower" : 0.20654931437723745,
-    "ciUpper" : 1.0,
-    "avgTokens" : 7949,
-    "avgDurationS" : 161.38,
-    "avgCostUsd" : 1.074725,
-    "costPerPassUsd" : 1.074725,
-    "totalCostUsd" : 1.074725
-  }, {
-    "agent" : "claude-opus-5",
-    "model" : "claude-opus-5",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 1.0,
-    "firstTryRate" : 1.0,
-    "ciLower" : 0.20654931437723745,
-    "ciUpper" : 1.0,
-    "avgTokens" : 16007,
-    "avgDurationS" : 242.557,
-    "avgCostUsd" : 1.3520145000000001,
-    "costPerPassUsd" : 1.3520145000000001,
-    "totalCostUsd" : 1.3520145000000001
-  }, {
-    "agent" : "codex-gpt-5-6-luna",
-    "model" : "gpt-5.6-luna",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 1.0,
-    "firstTryRate" : 1.0,
-    "ciLower" : 0.20654931437723745,
-    "ciUpper" : 1.0,
-    "avgTokens" : null,
-    "avgDurationS" : 223.99,
-    "avgCostUsd" : null,
-    "costPerPassUsd" : null,
-    "totalCostUsd" : null
-  }, {
-    "agent" : "codex-gpt-5-6-sol",
-    "model" : "gpt-5.6-sol",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 1.0,
-    "firstTryRate" : 1.0,
-    "ciLower" : 0.20654931437723745,
-    "ciUpper" : 1.0,
-    "avgTokens" : null,
-    "avgDurationS" : 242.808,
-    "avgCostUsd" : null,
-    "costPerPassUsd" : null,
-    "totalCostUsd" : null
-  }, {
-    "agent" : "codex-gpt-5-6-terra",
-    "model" : "gpt-5.6-terra",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 1.0,
-    "firstTryRate" : 1.0,
-    "ciLower" : 0.20654931437723745,
-    "ciUpper" : 1.0,
-    "avgTokens" : null,
-    "avgDurationS" : 250.782,
-    "avgCostUsd" : null,
-    "costPerPassUsd" : null,
-    "totalCostUsd" : null
-  }, {
-    "agent" : "gemini-3-6-flash",
-    "model" : "gemini-3.6-flash",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 1.0,
-    "firstTryRate" : 1.0,
-    "ciLower" : 0.20654931437723745,
-    "ciUpper" : 1.0,
-    "avgTokens" : null,
-    "avgDurationS" : 175.127,
-    "avgCostUsd" : null,
-    "costPerPassUsd" : null,
-    "totalCostUsd" : null
-  }, {
-    "agent" : "grok-4-5",
-    "model" : "grok-4.5",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 1.0,
-    "firstTryRate" : 1.0,
-    "ciLower" : 0.20654931437723745,
-    "ciUpper" : 1.0,
-    "avgTokens" : null,
-    "avgDurationS" : 77.367,
-    "avgCostUsd" : null,
-    "costPerPassUsd" : null,
-    "totalCostUsd" : null
-  }, {
-    "agent" : "claude-haiku-4-5",
-    "model" : "claude-haiku-4-5-20251001",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 0.0,
-    "firstTryRate" : 0.0,
-    "ciLower" : 0.0,
-    "ciUpper" : 0.7934506856227626,
-    "avgTokens" : 5324,
-    "avgDurationS" : 106.741,
-    "avgCostUsd" : 0.1307798,
-    "costPerPassUsd" : null,
-    "totalCostUsd" : 0.1307798
-  }, {
-    "agent" : "claude-sonnet-5",
-    "model" : "claude-sonnet-5",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 0.0,
-    "firstTryRate" : 0.0,
-    "ciLower" : 0.0,
-    "ciUpper" : 0.7934506856227626,
-    "avgTokens" : 8124,
-    "avgDurationS" : 186.906,
-    "avgCostUsd" : 0.7027671,
-    "costPerPassUsd" : null,
-    "totalCostUsd" : 0.7027671
-  }, {
-    "agent" : "kimi-k3",
-    "model" : "kimi-k3",
-    "evals" : 1,
-    "totalEvals" : 4,
-    "attempts" : 1,
-    "eligible" : false,
-    "coverage" : 0.25,
-    "successRate" : 0.0,
-    "firstTryRate" : 0.0,
-    "ciLower" : 0.0,
-    "ciUpper" : 0.7934506856227626,
-    "avgTokens" : 31430,
-    "avgDurationS" : 265.159,
-    "avgCostUsd" : 0.48291699999999993,
-    "costPerPassUsd" : null,
-    "totalCostUsd" : 0.48291699999999993
-  } ],
+  "noVerdict" : [ ],
+  "agents" : [ ],
   "projects" : [ "boot" ],
-  "byProject" : {
-    "codex-gpt-5-6-luna" : {
-      "boot" : [ 1, 1, 4 ]
-    },
-    "codex-gpt-5-6-sol" : {
-      "boot" : [ 1, 1, 4 ]
-    },
-    "codex-gpt-5-6-terra" : {
-      "boot" : [ 1, 1, 4 ]
-    },
-    "gemini-3-6-flash" : {
-      "boot" : [ 1, 1, 4 ]
-    },
-    "grok-4-5" : {
-      "boot" : [ 1, 1, 4 ]
-    },
-    "kimi-k3" : {
-      "boot" : [ 0, 1, 4 ]
-    },
-    "claude-fable-5" : {
-      "boot" : [ 1, 1, 4 ]
-    },
-    "claude-haiku-4-5" : {
-      "boot" : [ 0, 1, 4 ]
-    },
-    "claude-opus-5" : {
-      "boot" : [ 1, 1, 4 ]
-    },
-    "claude-sonnet-5" : {
-      "boot" : [ 0, 1, 4 ]
-    }
-  },
-  "byEval" : {
-    "codex-gpt-5-6-luna" : {
-      "boot/000-initializr-parity" : true
-    },
-    "codex-gpt-5-6-sol" : {
-      "boot/000-initializr-parity" : true
-    },
-    "codex-gpt-5-6-terra" : {
-      "boot/000-initializr-parity" : true
-    },
-    "gemini-3-6-flash" : {
-      "boot/000-initializr-parity" : true
-    },
-    "grok-4-5" : {
-      "boot/000-initializr-parity" : true
-    },
-    "kimi-k3" : {
-      "boot/000-initializr-parity" : false
-    },
-    "claude-fable-5" : {
-      "boot/000-initializr-parity" : true
-    },
-    "claude-haiku-4-5" : {
-      "boot/000-initializr-parity" : false
-    },
-    "claude-opus-5" : {
-      "boot/000-initializr-parity" : true
-    },
-    "claude-sonnet-5" : {
-      "boot/000-initializr-parity" : false
-    }
-  },
+  "byProject" : { },
+  "byEval" : { },
   "evals" : [ {
     "id" : "boot/000-initializr-parity",
     "project" : "boot",
@@ -665,6 +423,20 @@
     "title" : "Jackson 2 to Jackson 3 migration after a Spring Boot 4 upgrade",
     "type" : "fix",
     "difficulty" : "medium",
+    "pilot" : false
+  }, {
+    "id" : "boot/004-flyway-module",
+    "project" : "boot",
+    "title" : "Restore Flyway migrations that silently stopped running on Boot 4",
+    "type" : "fix",
+    "difficulty" : "medium",
+    "pilot" : false
+  }, {
+    "id" : "boot/005-h2-console",
+    "project" : "boot",
+    "title" : "Restore the H2 console moved to its own Boot 4 module",
+    "type" : "fix",
+    "difficulty" : "easy",
     "pilot" : false
   } ]
 }
