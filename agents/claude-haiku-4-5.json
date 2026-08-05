@@ -2,6 +2,9 @@
   "name": "claude-haiku-4-5",
   "provider": "claude",
   "model": "claude-haiku-4-5-20251001",
+  "env": {
+    "ANTHROPIC_API_KEY": "${ANTHROPIC_BENCH_API_KEY}"
+  },
   "budgetUsd": 1.0,
   "estCostPerAttemptUsd": 0.12
 }

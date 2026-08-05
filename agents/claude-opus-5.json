@@ -2,6 +2,9 @@
   "name": "claude-opus-5",
   "provider": "claude",
   "model": "claude-opus-5",
+  "env": {
+    "ANTHROPIC_API_KEY": "${ANTHROPIC_BENCH_API_KEY}"
+  },
   "budgetUsd": 3.0,
   "estCostPerAttemptUsd": 1.45
 }

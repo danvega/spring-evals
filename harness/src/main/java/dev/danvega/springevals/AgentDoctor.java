@@ -223,8 +223,10 @@ final class AgentDoctor {
             case "claude" -> {
                 // Benchmark runs use an isolated CLAUDE_CONFIG_DIR where the
                 // subscription login does not apply, so an API key is the only
-                // working credential for claude-provider runs.
-                if (present(system.environment("ANTHROPIC_API_KEY"))) {
+                // working credential for claude-provider runs. It may come from
+                // the agent config's env (the recommended benchmark-scoped
+                // pattern) or the host environment.
+                if (present(env.get("ANTHROPIC_API_KEY")) || present(system.environment("ANTHROPIC_API_KEY"))) {
                     findings.add(new Finding(Level.READY,
                             "billing: ANTHROPIC_API_KEY (required; runs use an isolated Claude config dir "
                                     + "where subscription login does not apply)"));

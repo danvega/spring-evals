@@ -2,6 +2,9 @@
   "name": "claude-sonnet-5",
   "provider": "claude",
   "model": "claude-sonnet-5",
+  "env": {
+    "ANTHROPIC_API_KEY": "${ANTHROPIC_BENCH_API_KEY}"
+  },
   "budgetUsd": 2.0,
   "estCostPerAttemptUsd": 1.2
 }
