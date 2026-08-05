@@ -1,0 +1,22 @@
+name: 001-repository-aot
+project: data
+title: Move Spring Data query derivation to build time
+category: data
+type: fix
+difficulty: hard
+baseline_failure: test_failure
+boot_version: 4.1.0
+timeout_seconds: 900
+description: >
+  Spring Boot 4 can generate Spring Data repository query code at build
+  time, but only when the spring-boot-maven-plugin runs its process-aot
+  goal, and only before the test phase if the build is supposed to prove
+  it. The fixture is a Boot 4.1 JPA app with lazy repository bootstrap and
+  a derived finder whose method name references a property that does not
+  exist. Runtime derivation tolerates the typo until the endpoint is first
+  hit, which is how it shipped. The agent must enable build-time query
+  processing, bind it ahead of the tests, and fix the broken finder the
+  processor flushes out. Models fail this by assuming AOT is automatic,
+  by leaving process-aot on its default prepare-package phase where
+  `mvnw test` never reaches it, or by enabling AOT without noticing that
+  the processor skipped the broken method and fell back to reflection.

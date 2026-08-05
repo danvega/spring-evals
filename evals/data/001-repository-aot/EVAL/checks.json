@@ -1,0 +1,15 @@
+{
+  "requiredSourcePatterns": [
+    "(?:find|read|get|query|search|stream)\\w*ByEmail(?:IgnoreCase)?(?:Is)?End(?:ing|s)With"
+  ],
+  "forbiddenSourcePatterns": [
+    "org\\.springframework\\.data\\.jpa\\.repository\\.Query\\b",
+    "(?m)^\\s*@Query\\b"
+  ],
+  "requiredPomPatterns": [
+    "spring-boot-maven-plugin</artifactId>(?:(?!</plugin>).)*?<goal>\\s*process-aot\\s*</goal>"
+  ],
+  "forbiddenPomPatterns": [
+    "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*[123]\\."
+  ]
+}
