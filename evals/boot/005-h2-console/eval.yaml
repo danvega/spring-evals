@@ -1,0 +1,18 @@
+name: 005-h2-console
+project: boot
+title: Restore the H2 console moved to its own Boot 4 module
+category: config
+type: fix
+difficulty: easy
+baseline_failure: test_failure
+boot_version: 4.1.0
+timeout_seconds: 900
+description: >
+  Spring Boot 4 moved the H2 web console out of the monolithic
+  auto-configuration into the dedicated spring-boot-h2console module.
+  With only com.h2database:h2 on the classpath,
+  spring.h2.console.enabled=true does nothing and the console 404s.
+  The agent must diagnose a silent absence and add the one missing
+  module. Unlike boot/001, which bundles this symptom with a Flyway
+  failure at medium difficulty, this eval isolates the console concept
+  on a JPA fixture, so a miss points at exactly one missing module.
