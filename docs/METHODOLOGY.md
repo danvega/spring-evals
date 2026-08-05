@@ -23,6 +23,10 @@ Published campaigns must record the eval hash, agent-config hash, harness versio
 
 Paid execution defaults to one attempt and requires an explicit authorization flag plus a campaign cost cap. Provider-side limits remain the final billing backstop.
 
+## Measurement versioning
+
+Every result records a measurement version like `0.3.0+11b0497585a6`. Results with the same full string are comparable, and the leaderboard cohort is keyed on it. The prefix is bumped only in harness batches that change measurement behavior, exactly one bump per batch, never for docs, dashboard, or eval-content changes. The suffix is a content hash of the measurement-critical harness files, so any undeclared drift is visible in the record. The full version history, including per-version trust notes, lives in [VERSIONS.md](VERSIONS.md).
+
 ## Isolation and judging
 
 Candidate workspaces are created outside the repository so reference solutions and hidden tests are not siblings of the working directory. After an agent exits, the harness:
