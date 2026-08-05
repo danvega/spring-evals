@@ -98,9 +98,8 @@ class MavenJudgeTest {
                 {"forbiddenPomPatterns": ["spring-boot-starter-web</artifactId>"]}
                 """);
         EvalDefinition eval = new EvalDefinition("boot/000-example", "boot", evalDir, Map.of());
-        // The two CDATA sections make "<!--" and "-->" inert character
-        // data: Maven sees the dependency as live configuration. Naive
-        // comment stripping would delete the whole span.
+        // CDATA makes the markers inert character data; Maven sees the dependency
+        // as live, but naive comment stripping would delete the whole span.
         Path workspace = workspaceWithPom("""
                 <project>
                   <a><![CDATA[<!--]]></a>

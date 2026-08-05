@@ -16,41 +16,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Docker sandbox mode: one benchmark image, fresh containers per
- * attempt. The agent CLI runs headless inside an agent container; the
- * judge's Maven build runs in a SEPARATE fresh container from the same
- * image, started only after the agent container is destroyed. Same
- * image means identical toolchains; separate containers mean nothing
- * the agent left behind (background processes, $HOME state such as
- * ~/.m2/settings.xml, environment) exists while hidden tests are
- * injected and judged. The candidate workspace is the only host
- * directory mounted writable; the host Maven caches are mounted
- * read-only and Maven reads through to them via maven.repo.local.tail
- * while writing to a container-local overlay.
- *
- * Isolation contract, do not weaken:
- * - Attempts run as the image's non-root user (Claude Code refuses
- *   --dangerously-skip-permissions under root).
- * - No host HOME, no host config dirs, no host credentials reach the
- *   container except the env the agent config declares, plus (codex
- *   only) the host ~/.codex/auth.json seeded into an otherwise empty
- *   CODEX_HOME.
- * - CLAUDE_CONFIG_DIR points at an empty container path baked into the
- *   image; each container starts with it fresh.
- * - The judge container is fresh: no agent env, no agent processes,
- *   a clean $HOME, and a Maven overlay freshly seeded from the
- *   read-only cache mounts, which cannot be tampered with from inside
- *   any container.
- * - The image tag is derived from the Dockerfile content hash, so a
- *   stale local image can never serve a changed Dockerfile.
- * - Network stays on: the open-book policy is unchanged.
- *
- * Cost and token metadata: the claude CLI reports them in its headless
- * JSON output and they are parsed from it; the other CLIs do not
- * expose them headlessly, so their docker-mode records carry null.
- *
- * This class is measurement-critical and is part of the ContentHashes
- * benchmark input list, together with harness/docker/Dockerfile.
+ * Isolation contract, never weaken: the judge runs in a fresh container started
+ * only after the agent container is destroyed, so agent-planted state cannot
+ * survive into judging; only the workspace is mounted writable.
  */
 final class DockerSandbox {
 
@@ -59,8 +27,7 @@ final class DockerSandbox {
     static final String CACHE_WRAPPER = "/opt/m2-cache/wrapper";
     private static final Duration SHORT_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration BUILD_TIMEOUT = Duration.ofMinutes(30);
-    // Grace period for the in-container `timeout` wrapper to fire before
-    // the host-side backstop kills the docker client.
+    // Lets the in-container `timeout` fire before the host backstop kills the docker client.
     private static final Duration HOST_GRACE = Duration.ofSeconds(90);
 
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -79,11 +46,7 @@ final class DockerSandbox {
         }
     }
 
-    /**
-     * --sandbox docker|host. Default is docker when `docker info`
-     * succeeds, host otherwise. An explicit docker request must fail
-     * loudly rather than silently degrade to host isolation.
-     */
+    /** An explicit docker request must fail loudly, never degrade silently to host isolation. */
     static String resolveMode(String requested) {
         if (requested == null) {
             return dockerAvailable() ? "docker" : "host";
@@ -97,11 +60,7 @@ final class DockerSandbox {
         return requested;
     }
 
-    /**
-     * The image tag is content-addressed from the Dockerfile, so a
-     * Dockerfile change always forces a rebuild and can never run
-     * under a stale local image with the same name.
-     */
+    /** Content-addressed: a stale local image can never serve a changed Dockerfile. */
     static String imageTag(Path repoRoot) {
         String hash = ContentHashes.tree(List.of(repoRoot.resolve("harness/docker/Dockerfile")));
         return IMAGE_NAME + ":" + hash.substring(0, 12);
@@ -128,15 +87,8 @@ final class DockerSandbox {
     }
 
     /**
-     * Non-interactive CLI invocations, one per provider. Verified
-     * against each CLI's --help inside the benchmark image.
-     * - claude: --output-format json so cost, tokens, and the result
-     *   text are machine-readable.
-     * - codex: --dangerously-bypass-approvals-and-sandbox, because the
-     *   container is the sandbox; codex's own sandbox would leave the
-     *   bind-mounted workspace read-only.
-     * - qwen-code: -m keeps the recorded model authoritative even if
-     *   the agent config env omits OPENAI_MODEL.
+     * Headless CLI invocations; codex bypasses its own sandbox because it would
+     * leave the bind-mounted workspace read-only (the container is the sandbox).
      */
     static List<String> agentCommand(String provider, String model, String prompt) {
         return switch (provider) {
@@ -159,8 +111,7 @@ final class DockerSandbox {
         if (output == null) {
             return null;
         }
-        // The JSON object is the last thing the CLI prints; tolerate
-        // leading noise (npm warnings, progress lines).
+        // The JSON object is printed last; tolerate leading npm/progress noise.
         int start = output.indexOf('{');
         if (start < 0) {
             return null;
@@ -209,11 +160,8 @@ final class DockerSandbox {
     }
 
     /**
-     * Removes containers left behind by a DEAD harness process only.
-     * Every container is labeled with its owner's pid; a container whose
-     * owner is still alive belongs to a concurrently running lane and
-     * must never be touched, or a free command could kill a paid
-     * attempt mid-flight and record a false verdict.
+     * Removes only containers whose owner pid is dead; a live lane's container
+     * must never be touched or a free command could kill a paid attempt mid-flight.
      */
     static void pruneStaleContainers() {
         ExecResult list = process(List.of("docker", "ps", "-a", "--filter", "label=spring-evals=1",
@@ -246,16 +194,8 @@ final class DockerSandbox {
     }
 
     /**
-     * Starts one container: workspace mounted writable at /workspace,
-     * host Maven caches mounted read-only, env injected via a
-     * mode-0600 env file that is deleted right after start (never
-     * passed on a visible command line; it does land in the container
-     * config, which is why stale containers are pruned and every
-     * container is removed on close and on JVM shutdown). A write
-     * probe fails fast when the container user cannot write the
-     * bind-mounted workspace (e.g. Linux uid mismatch), so a
-     * misconfigured host aborts loudly instead of recording fake
-     * failures.
+     * Env goes through a mode-0600 env file deleted right after start, never a
+     * visible command line; a write probe fails fast on a host uid mismatch.
      */
     static Container start(Path workspace, Map<String, String> env, String image) {
         String name = "spring-evals-" + UUID.randomUUID();
@@ -327,8 +267,7 @@ final class DockerSandbox {
 
         private Container(String name) {
             this.name = name;
-            // Credentials live in the container config; an interrupted
-            // run must not leave them running on the docker daemon.
+            // Credentials live in the container config; an interrupted run must not leave it.
             this.shutdownHook = new Thread(() -> remove(name));
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         }
@@ -338,10 +277,8 @@ final class DockerSandbox {
         }
 
         /**
-         * Runs argv in the container under coreutils `timeout`, so the
-         * process tree dies inside the container on expiry. Exit code
-         * 124 marks the timeout. A host-side backstop covers a wedged
-         * docker client.
+         * Coreutils `timeout` kills the process tree inside the container (exit
+         * 124); the host-side backstop only covers a wedged docker client.
          */
         ExecResult exec(List<String> argv, Duration timeout) {
             List<String> command = new ArrayList<>(List.of("docker", "exec", "-w", "/workspace", name,
@@ -373,11 +310,7 @@ final class DockerSandbox {
             }
         }
 
-        /**
-         * Seeds the container's writable Maven state from the
-         * read-only cache mounts: fresh overlay repository, wrapper
-         * distributions copied from the read-only mount.
-         */
+        /** Reseeds writable Maven state from the tamper-proof read-only cache mounts. */
         void refreshMavenState() {
             ExecResult reset = exec(List.of("sh", "-c",
                     "rm -rf \"$HOME/.m2/repository\" \"$HOME/.m2/wrapper\""
@@ -414,12 +347,8 @@ final class DockerSandbox {
     }
 
     /**
-     * Free container readiness check for `doctor --sandbox docker`.
-     * Proves: image builds and starts, all four CLIs execute, cache
-     * mounts are visible, the workspace bind mount is writable, and
-     * the Maven wrapper resolves a JVM and a Maven distribution inside
-     * the container. What it cannot prove: a real model completing a
-     * task; that needs a paid run.
+     * Free readiness check: proves the container plumbing, not that a live
+     * model can complete a task (that needs a paid run).
      */
     static boolean selfCheck(Path repoRoot, Path sampleProject) {
         System.out.println("Docker sandbox self-check (" + IMAGE_NAME + ")\n");
@@ -499,8 +428,7 @@ final class DockerSandbox {
         long started = System.currentTimeMillis();
         try {
             Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
-            // Read concurrently so a chatty child can never fill the pipe
-            // and deadlock against waitFor.
+            // Read concurrently so a chatty child cannot fill the pipe and deadlock waitFor.
             java.util.concurrent.CompletableFuture<byte[]> output = java.util.concurrent.CompletableFuture
                     .supplyAsync(() -> {
                         try {

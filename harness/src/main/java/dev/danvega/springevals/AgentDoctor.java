@@ -135,14 +135,11 @@ final class AgentDoctor {
         return new Report(spec, List.copyOf(findings));
     }
 
-    /**
-     * Host-level agent context can leak into runs. Claude is isolated by the
-     * harness; other CLIs read global files it cannot disable, hence warnings.
-     */
+    // Claude is isolated by the harness (advisory printed once in the summary);
+    // the other CLIs read global files the harness cannot disable, hence warnings.
     private void checkContextContamination(AgentSpec spec, List<Finding> findings) {
         Path home = Path.of(System.getProperty("user.home"));
         switch (spec.provider()) {
-            // Claude isolation is a per-CLI advisory printed once in the summary.
             case "codex" -> {
                 if (system.fileExists(home.resolve(".codex/AGENTS.md"))) {
                     findings.add(new Finding(Level.WARNING,
@@ -220,8 +217,7 @@ final class AgentDoctor {
         }
         switch (spec.provider()) {
             case "claude" -> {
-                // Interactive login does not carry into the isolated
-                // CLAUDE_CONFIG_DIR; only setup-token OAuth or an API key works.
+                // Interactive login never reaches the isolated CLAUDE_CONFIG_DIR.
                 boolean oauthToken = present(env.get("CLAUDE_CODE_OAUTH_TOKEN"))
                         || present(system.environment("CLAUDE_CODE_OAUTH_TOKEN"));
                 boolean apiKey = present(env.get("ANTHROPIC_API_KEY"))
@@ -231,8 +227,7 @@ final class AgentDoctor {
                             "billing: subscription token from `claude setup-token` (draws on the Claude plan; "
                                     + "works inside the isolated config dir)"));
                     if (present(env.get("ANTHROPIC_API_KEY"))) {
-                        // Host vars are stripped at run time; only both
-                        // credentials in the config itself is a billing hazard.
+                        // Host vars are stripped at run time; only both in the config is a hazard.
                         findings.add(new Finding(Level.WARNING,
                                 "the agent config declares both CLAUDE_CODE_OAUTH_TOKEN and ANTHROPIC_API_KEY; "
                                         + "the CLI prefers the API key, so billing would be metered API"));

@@ -43,8 +43,7 @@ public class Reports {
                 System.out.println(storedRecords + " stored record(s) belong to an older benchmark cohort; "
                         + "they remain in the dashboard's run history");
             }
-            // Run history and findings must survive cohort rotation, and
-            // leaderboard.md must not keep rows from a retired cohort.
+            // Run history survives cohort rotation; leaderboard.md must not keep retired rows.
             try {
                 Path leaderboard = repoRoot.resolve("results").resolve("leaderboard.md");
                 Files.createDirectories(leaderboard.getParent());
@@ -67,8 +66,7 @@ public class Reports {
         }
 
         int totalEvals = catalog.all().size();
-        // Infrastructure failures (the agent never produced a candidate) are
-        // not verdicts. They must never score as 0% for the model.
+        // Infrastructure failures are not verdicts and must never score as 0% for the model.
         List<RunRecord> verdicts = cohort.stream().filter(Reports::isVerdict).toList();
         Set<String> agentNames = new LinkedHashSet<>(verdicts.stream().map(RunRecord::agent).toList());
         Map<String, List<RunRecord>> infraOnly = new LinkedHashMap<>();
@@ -266,8 +264,7 @@ public class Reports {
         }
         data.put("byProject", byProject);
 
-        // Per-eval outcomes power the dashboard drill-down dots: true = passed,
-        // false = attempted and failed, absent = not run (rendered hollow).
+        // Drill-down dots: true = passed, false = failed, absent = not run (hollow).
         Map<String, Map<String, Boolean>> byEval = new LinkedHashMap<>();
         for (String agent : agents) {
             Map<String, Boolean> perEval = new LinkedHashMap<>();
@@ -279,8 +276,7 @@ public class Reports {
         }
         data.put("byEval", byEval);
 
-        // Insertion-ordered so regenerating with unchanged results is a
-        // byte-stable no-op except the timestamp.
+        // Insertion-ordered so regeneration with unchanged results is byte-stable.
         data.put("evals", catalog.all().stream().map(eval -> {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("id", eval.id());
@@ -299,10 +295,7 @@ public class Reports {
         }
     }
 
-    /**
-     * Attempts made times each agent's configured per-attempt estimate; the
-     * API-price stand-in when subscription-billed CLIs report no dollars.
-     */
+    /** API-price stand-in (attempts x configured estimate) when CLIs report no dollars. */
     private double estimatedSpend(List<RunRecord> records) {
         Map<String, Double> estimates = new LinkedHashMap<>();
         try {
@@ -321,10 +314,7 @@ public class Reports {
                 .sum();
     }
 
-    /**
-     * One dashboard entry per run invocation, newest first. Unlike the
-     * leaderboard, history keeps records from older content identities.
-     */
+    /** Unlike the leaderboard, history keeps records from older content identities. */
     private List<Map<String, Object>> runsHistory(List<RunRecord> allRecords) {
         Map<String, List<RunRecord>> byCampaign = new LinkedHashMap<>();
         for (RunRecord record : allRecords) {

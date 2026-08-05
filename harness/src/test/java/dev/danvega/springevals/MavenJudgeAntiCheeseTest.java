@@ -12,10 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pom configuration that can hide test failures is rejected before Maven
- * starts, and exit 0 is not trusted without surefire proof the hidden tests ran.
- */
+/** Exit 0 is never trusted without surefire proof that the hidden tests ran. */
 class MavenJudgeAntiCheeseTest {
 
     private static final String CLEAN_POM = """
@@ -37,8 +34,6 @@ class MavenJudgeAntiCheeseTest {
 
     @TempDir
     Path temp;
-
-    // --- Forbidden build configuration ---
 
     @Test
     void rejectsFailureIgnorePropertySpellingBeforeMavenRuns() throws Exception {
@@ -98,8 +93,6 @@ class MavenJudgeAntiCheeseTest {
                 "an ordinary pom with a plain surefire plugin must not trip the policy");
     }
 
-    // --- Surefire report verification after a "successful" build ---
-
     @Test
     void missingSurefireReportsDirectoryFailsDespiteBuildSuccess() throws Exception {
         Path workspace = workspaceWithStubMaven();
@@ -153,8 +146,6 @@ class MavenJudgeAntiCheeseTest {
         assertTrue(judgment.pass());
     }
 
-    // --- Fixture helpers ---
-
     /** Eval whose hidden suite is a single test class, com.example.HiddenFlowTest. */
     private EvalDefinition eval() throws IOException {
         Path evalDir = temp.resolve("eval");
@@ -173,10 +164,7 @@ class MavenJudgeAntiCheeseTest {
         return workspace;
     }
 
-    /**
-     * Stub mvnw exits 0 without running anything (a rigged build) and drops a
-     * marker so tests can prove whether Maven was launched.
-     */
+    /** Rigged build: exits 0 without running anything, drops a marker proving launch. */
     private Path workspaceWithStubMaven() throws IOException {
         Path workspace = workspace();
         Files.writeString(workspace.resolve("pom.xml"), CLEAN_POM);

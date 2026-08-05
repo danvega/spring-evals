@@ -8,10 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-/**
- * Overrides must reach System.getenv and child processes, and restore must
- * put the host environment back; otherwise no paid run can be trusted.
- */
+/** Restore must put the host environment back, or no paid run can be trusted. */
 class EnvSandboxTest {
 
     @Test

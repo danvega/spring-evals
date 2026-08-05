@@ -25,14 +25,8 @@ import org.springaicommunity.agents.qwencode.QwenCodeAgentModel;
 import org.springaicommunity.agents.qwencode.QwenCodeAgentOptions;
 
 /**
- * Loads agent definitions from agents/&lt;name&gt;.json and builds the matching
- * Agent Client model. Adding a provider means adding a case here; adding a
- * model variant is just another JSON file.
- *
- * The optional "env" map is passed to the agent CLI process. Values may
- * reference host environment variables with ${VAR}. This is how open and
- * local models plug in: point a CLI at an OpenAI- or Anthropic-compatible
- * endpoint (Ollama, Docker Model Runner, Moonshot, ...) via env vars.
+ * Loads agents/&lt;name&gt;.json and builds the matching Agent Client model;
+ * the "env" map (with ${VAR} host references) is how local endpoints plug in.
  */
 public class Agents {
 
@@ -41,11 +35,8 @@ public class Agents {
     }
 
     /**
-     * Environment changes to apply to the harness process around one
-     * attempt: removals first, then overrides. Agent CLIs inherit the
-     * process environment, so this is what the agent actually sees. The
-     * SDK options env is a dead store in agent-claude 0.16.0 and cannot
-     * be relied on for any provider.
+     * Process-env changes around one attempt (removals, then overrides); the
+     * SDK options env is a dead store in agent-claude 0.16.0, this is what runs.
      */
     public record EnvPlan(Map<String, String> overrides, Set<String> removals) {
     }
@@ -118,14 +109,13 @@ public class Agents {
         }
     }
 
-    /** Expand ${VAR} in all env values. Called at model creation, not load, so estimate works without keys. */
+    /** Expanded at model creation, not load, so estimate works without keys set. */
     static Map<String, String> expandAll(Map<String, String> env) {
         Map<String, String> expanded = new java.util.HashMap<>();
         env.forEach((key, value) -> expanded.put(key, expandHostEnv(value)));
         return Map.copyOf(expanded);
     }
 
-    /** Expand ${VAR} references against the host environment. */
     static String expandHostEnv(String value) {
         var matcher = java.util.regex.Pattern.compile("\\$\\{([A-Z0-9_]+)}").matcher(value);
         return matcher.replaceAll(match -> {
@@ -146,42 +136,23 @@ public class Agents {
     }
 
     /**
-     * HOST-MODE context isolation is ENFORCED here, at the process-
-     * environment level via EnvSandbox (docker mode replaces this barrier
-     * with a container). CLAUDE_CONFIG_DIR points the CLI at a FRESH
-     * empty config directory per attempt, so no host CLAUDE.md, user
-     * skills, plugins, or MCP servers can load, and no state leaks between
-     * attempts. It cannot go through the SDK options: agent-claude 0.16.0
-     * drops environmentVariables (a dead store). Host credentials the
-     * agent config does not explicitly re-declare are removed for the
-     * attempt. Consequence: claude runs need a credential in the agent
-     * config env, either CLAUDE_CODE_OAUTH_TOKEN (subscription token from
-     * `claude setup-token`) or ANTHROPIC_API_KEY (metered API); the
-     * interactive host login never reaches the sterile config dir.
-     * Never weaken this; it is the host-mode contamination barrier.
+     * Host-mode contamination barrier; never weaken. Claude auth must come from
+     * the agent config env (host login never reaches the sterile config dir).
      */
     public EnvPlan envPlan(AgentSpec spec) {
         Map<String, String> overrides = new java.util.HashMap<>(expandAll(spec.env()));
-        // Any Spring app an agent starts binds an ephemeral port instead of
-        // 8080, so agent verification can never collide with (or kill) apps
-        // the host user has running. Uniform across agents, so it is fair.
+        // SERVER_PORT=0: agent-started apps must never collide with host apps on 8080.
         overrides.putIfAbsent("SERVER_PORT", "0");
         Set<String> removals = new java.util.HashSet<>();
-        // Agent-spawned builds must not inherit the harness JVM flags the
-        // wrapper exports for EnvSandbox.
+        // Agent-spawned builds must not inherit the JVM flags the wrapper exports for EnvSandbox.
         removals.add("MAVEN_OPTS");
         switch (spec.provider()) {
-            // Prefix-based, not a fixed list: host auth and routing vars in
-            // these families (CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CODE_USE_BEDROCK,
-            // ANTHROPIC_CUSTOM_HEADERS, ...) can silently redirect billing or
-            // the API endpoint. Anything the agent config re-declares
-            // survives via the override map.
+            // Prefix-based: ANTHROPIC*/CLAUDE* host vars can silently redirect
+            // billing or the endpoint; config-declared values survive via overrides.
             case "claude" -> System.getenv().keySet().stream()
                     .filter(key -> key.startsWith("ANTHROPIC") || key.startsWith("CLAUDE"))
                     .forEach(removals::add);
-            // GOOGLE_CLOUD_PROJECT stays: OAuth-based setups need it, and the
-            // CLI's auth choice itself lives in ~/.gemini/settings.json where
-            // doctor reports it. Credential material is still stripped.
+            // GOOGLE_CLOUD_PROJECT stays (OAuth setups need it); credential material is stripped.
             case "gemini" -> removals.addAll(Set.of("GOOGLE_API_KEY", "GEMINI_API_KEY",
                     "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_GENAI_USE_VERTEXAI"));
             default -> {
@@ -195,11 +166,8 @@ public class Agents {
     }
 
     /**
-     * The env plan's overrides must already be applied to the process
-     * environment (EnvSandbox) when the returned model runs; the
-     * environmentVariables passed to the SDK below are a dead store in
-     * 0.16.0 and are kept only so a future SDK fix agrees with the
-     * process-level values.
+     * Plan overrides must already be applied via EnvSandbox when the model runs;
+     * the SDK environmentVariables below are a dead store in 0.16.0.
      */
     public AgentModel createModel(AgentSpec spec, Duration timeout, EnvPlan plan) {
         return switch (spec.provider()) {
@@ -213,9 +181,7 @@ public class Agents {
                             .settingSources(List.of())
                             .build())
                     .build();
-            // skipGitCheck: candidate workspaces are plain directories, and
-            // modern Codex refuses non-git dirs without it. workspace-write
-            // replaces the deprecated --full-auto.
+            // skipGitCheck: workspaces are not git repos and Codex refuses them without it.
             case "codex" -> new CodexAgentModel(CodexClient.create(),
                     CodexAgentOptions.builder()
                             .model(spec.model())

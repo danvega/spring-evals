@@ -41,9 +41,7 @@ final class ContentHashes {
                 java.resolve("DockerSandbox.java"),
                 repoRoot.resolve("harness/docker/Dockerfile"),
                 repoRoot.resolve("harness/pom.xml"), repoRoot.resolve("spring-evals")));
-        // 0.4.0: docker sandbox mode (agent CLI and judge in one container
-        // per attempt, Maven overlay reset before judging) and XML comment
-        // stripping before pom policy patterns. History: docs/VERSIONS.md.
+        // Bump the prefix only in a batch that changes measurement behavior; see docs/VERSIONS.md.
         return "0.4.0+" + hash.substring(0, 12);
     }
 

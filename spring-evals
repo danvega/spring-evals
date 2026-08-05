@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-# Spring Evals CLI. Usage: ./spring-evals <list|validate|doctor|run|report|estimate> [args]
 # Thin wrapper around the Java harness in harness/.
 set -euo pipefail
 cd "$(dirname "$0")/harness"
-# The harness controls what environment each agent CLI sees (isolation and
-# per-agent credentials) by mutating its own process environment, which
-# needs reflective access to java.lang.ProcessEnvironment.
+# EnvSandbox (agent isolation) needs reflective access to java.lang.ProcessEnvironment.
 export MAVEN_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED ${MAVEN_OPTS:-}"
 exec ./mvnw -q compile exec:java \
   -Dorg.slf4j.simpleLogger.defaultLogLevel=warn \

@@ -18,12 +18,8 @@ import org.springaicommunity.judge.exec.CommandJudge;
 import org.springaicommunity.judge.result.Judgment;
 
 /**
- * The deterministic verdict tier: hidden tests must pass under
- * "./mvnw clean test". Host mode executes through the community
- * CommandJudge on the host. Docker mode supplies a BuildRunner that
- * executes the same command inside the attempt's container, so the
- * judge toolchain is identical to the agent's. Both modes must run
- * the exact same Maven command; JUDGE_COMMAND is the single source.
+ * Deterministic verdict tier; host and docker mode must run the exact same
+ * Maven command, and JUDGE_COMMAND is the single source of it.
  */
 public class MavenJudge {
 
@@ -126,9 +122,7 @@ public class MavenJudge {
     private Judgment validateCandidatePolicy(EvalDefinition eval, Path workspace, boolean applyMechanismChecks) {
         Path pom = workspace.resolve("pom.xml");
         try {
-            // Comments are inert to Maven, so pom patterns must not see
-            // them: a commented-out artifactId must not satisfy a required
-            // pattern, and commented-out config must not trip a forbidden one.
+            // Comments are inert to Maven, so pom patterns must never see them.
             String pomText = pomPolicyText(Files.exists(pom) ? Files.readString(pom) : "");
             for (Pattern pattern : FORBIDDEN_BUILD_CONFIG) {
                 if (pattern.matcher(pomText).find()) {
@@ -173,14 +167,8 @@ public class MavenJudge {
     }
 
     /**
-     * Policy text for pom pattern checks. The pom is parsed as XML with
-     * comments dropped as nodes and CDATA coalesced into plain text, then
-     * serialized back. A regex over the raw text is not enough: fake
-     * comment markers spliced through CDATA sections would delete ACTIVE
-     * configuration from the checked text and let forbidden content hide.
-     * Fallback for a pom that is not well-formed XML is plain comment
-     * stripping; such a pom fails the Maven build anyway, so no verdict
-     * can be gained through the fallback.
+     * XML-parsed (comments dropped as nodes, CDATA coalesced) so CDATA-spliced
+     * fake comment markers cannot hide active configuration from the patterns.
      */
     static String pomPolicyText(String xml) {
         try {
@@ -208,10 +196,7 @@ public class MavenJudge {
         }
     }
 
-    /**
-     * Fallback only, for text that is not well-formed XML. Removes XML
-     * comments, including an unterminated trailing one.
-     */
+    /** Fallback for malformed XML only; such a pom fails the Maven build anyway. */
     static String stripXmlComments(String xml) {
         return xml.replaceAll("(?s)<!--.*?(?:-->|\\z)", "");
     }
