@@ -1,0 +1,18 @@
+{
+  "forbiddenSourcePatterns": [
+    "new\\s+Flyway\\b",
+    "Flyway\\.configure",
+    "FluentConfiguration",
+    "\\.migrate\\s*\\(",
+    "\"[\\w.-]*hbm2ddl",
+    "\"[\\w.-]*ddl-auto",
+    "flyway_schema_history"
+  ],
+  "requiredPomPatterns": [
+    "<artifactId>spring-boot-(starter-)?flyway</artifactId>"
+  ],
+  "forbiddenPomPatterns": [
+    "spring-boot-autoconfigure-classic",
+    "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*[123]\\."
+  ]
+}

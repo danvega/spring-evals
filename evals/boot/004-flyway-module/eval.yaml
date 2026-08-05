@@ -1,0 +1,23 @@
+name: 004-flyway-module
+project: boot
+title: Restore Flyway migrations that silently stopped running on Boot 4
+category: data
+type: fix
+difficulty: medium
+baseline_failure: test_failure
+boot_version: 4.1.0
+timeout_seconds: 900
+description: >
+  Spring Boot 4 moved Flyway support into its own auto-configuration
+  module, so a raw org.flywaydb:flyway-core dependency no longer runs
+  migrations at startup. With JPA on the classpath the failure is
+  silent: Hibernate falls back to create-drop for the embedded database
+  and creates empty tables, so the app starts fine but every seeded row
+  is gone. The agent must diagnose an absence rather than an error and
+  add the Boot 4 Flyway starter instead of reaching for schema.sql,
+  ddl-auto, or the autoconfigure-classic escape hatch. Deliberately
+  pairs with 001-modular-autoconfig: that eval covers the loud variant
+  of the same module split (a 500 and a missing console), this one
+  covers the silent variant where JPA hides the failure. Unlike 001,
+  the prompt never names the classic bridge, so the diagnosis signal
+  here is only the absence of migration logs.
