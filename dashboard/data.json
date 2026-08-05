@@ -1,5 +1,5 @@
 {
-  "generated" : "2026-08-05T20:19:50.188061Z",
+  "generated" : "2026-08-05T20:49:39.601682Z",
   "sample" : false,
   "spendUsd" : 3.7432034,
   "spendPartial" : true,
@@ -406,10 +406,10 @@
     "agent" : "claude-fable-5",
     "model" : "claude-fable-5",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 1.0,
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
@@ -423,10 +423,10 @@
     "agent" : "claude-opus-5",
     "model" : "claude-opus-5",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 1.0,
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
@@ -440,10 +440,10 @@
     "agent" : "codex-gpt-5-6-luna",
     "model" : "gpt-5.6-luna",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 1.0,
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
@@ -457,10 +457,10 @@
     "agent" : "codex-gpt-5-6-sol",
     "model" : "gpt-5.6-sol",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 1.0,
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
@@ -474,10 +474,10 @@
     "agent" : "codex-gpt-5-6-terra",
     "model" : "gpt-5.6-terra",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 1.0,
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
@@ -491,10 +491,10 @@
     "agent" : "gemini-3-6-flash",
     "model" : "gemini-3.6-flash",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 1.0,
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
@@ -508,10 +508,10 @@
     "agent" : "grok-4-5",
     "model" : "grok-4.5",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 1.0,
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
@@ -525,10 +525,10 @@
     "agent" : "claude-haiku-4-5",
     "model" : "claude-haiku-4-5-20251001",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 0.0,
     "firstTryRate" : 0.0,
     "ciLower" : 0.0,
@@ -542,10 +542,10 @@
     "agent" : "claude-sonnet-5",
     "model" : "claude-sonnet-5",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 0.0,
     "firstTryRate" : 0.0,
     "ciLower" : 0.0,
@@ -559,10 +559,10 @@
     "agent" : "kimi-k3",
     "model" : "kimi-k3",
     "evals" : 1,
-    "totalEvals" : 10,
+    "totalEvals" : 4,
     "attempts" : 1,
     "eligible" : false,
-    "coverage" : 0.1,
+    "coverage" : 0.25,
     "successRate" : 0.0,
     "firstTryRate" : 0.0,
     "ciLower" : 0.0,
@@ -573,67 +573,37 @@
     "costPerPassUsd" : null,
     "totalCostUsd" : 0.48291699999999993
   } ],
-  "projects" : [ "boot", "data", "framework", "security" ],
+  "projects" : [ "boot" ],
   "byProject" : {
     "codex-gpt-5-6-luna" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 1, 1, 4 ]
     },
     "codex-gpt-5-6-sol" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 1, 1, 4 ]
     },
     "codex-gpt-5-6-terra" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 1, 1, 4 ]
     },
     "gemini-3-6-flash" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 1, 1, 4 ]
     },
     "grok-4-5" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 1, 1, 4 ]
     },
     "kimi-k3" : {
-      "boot" : [ 0, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 0, 1, 4 ]
     },
     "claude-fable-5" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 1, 1, 4 ]
     },
     "claude-haiku-4-5" : {
-      "boot" : [ 0, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 0, 1, 4 ]
     },
     "claude-opus-5" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 1, 1, 4 ]
     },
     "claude-sonnet-5" : {
-      "boot" : [ 0, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
+      "boot" : [ 0, 1, 4 ]
     }
   },
   "byEval" : {
@@ -669,74 +639,32 @@
     }
   },
   "evals" : [ {
-    "type" : "build",
     "id" : "boot/000-initializr-parity",
     "project" : "boot",
     "difficulty" : "medium",
     "title" : "Generate a new Boot 4 project from scratch to the Initializr bar",
-    "pilot" : false
+    "pilot" : false,
+    "type" : "build"
   }, {
-    "type" : "fix",
     "id" : "boot/001-modular-autoconfig",
     "project" : "boot",
     "difficulty" : "medium",
     "title" : "Restore features lost to Boot 4 modular auto-configuration",
-    "pilot" : true
+    "pilot" : true,
+    "type" : "fix"
   }, {
-    "type" : "fix",
     "id" : "boot/002-restclient-migration",
     "project" : "boot",
     "difficulty" : "easy",
     "title" : "Migrate RestTemplate code to the auto-configured RestClient",
-    "pilot" : false
+    "pilot" : false,
+    "type" : "fix"
   }, {
-    "type" : "fix",
     "id" : "boot/003-jackson3-migration",
     "project" : "boot",
     "difficulty" : "medium",
     "title" : "Jackson 2 to Jackson 3 migration after a Spring Boot 4 upgrade",
-    "pilot" : false
-  }, {
-    "type" : "fix",
-    "id" : "data/000-n-plus-one",
-    "project" : "data",
-    "difficulty" : "hard",
-    "title" : "Eliminate an N+1 query problem without changing the response",
-    "pilot" : true
-  }, {
-    "type" : "build",
-    "id" : "framework/000-resilience-annotations",
-    "project" : "framework",
-    "difficulty" : "medium",
-    "title" : "Add retries and concurrency limits without new dependencies",
-    "pilot" : false
-  }, {
-    "type" : "build",
-    "id" : "framework/001-api-versioning",
-    "project" : "framework",
-    "difficulty" : "medium",
-    "title" : "Version an endpoint with Framework 7 native API versioning",
-    "pilot" : true
-  }, {
-    "type" : "build",
-    "id" : "framework/002-problem-details",
-    "project" : "framework",
-    "difficulty" : "easy",
-    "title" : "RFC 9457 problem details for error responses",
-    "pilot" : false
-  }, {
-    "type" : "fix",
-    "id" : "framework/003-transactional-self-invocation",
-    "project" : "framework",
-    "difficulty" : "hard",
-    "title" : "Fix a partial-write bug caused by transactional self-invocation",
-    "pilot" : false
-  }, {
-    "type" : "build",
-    "id" : "security/000-lockdown",
-    "project" : "security",
-    "difficulty" : "medium",
-    "title" : "Secure an API with a stateless SecurityFilterChain",
-    "pilot" : false
+    "pilot" : false,
+    "type" : "fix"
   } ]
 }

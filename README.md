@@ -94,12 +94,6 @@ Results accumulate in `results/results.json`. Cache identity includes the eval c
 | [boot/001-modular-autoconfig](evals/boot/001-modular-autoconfig) | spring-boot | fix | medium | Diagnosing features that silently vanished under Boot 4 modular auto-configuration (Flyway, H2 console) |
 | [boot/002-restclient-migration](evals/boot/002-restclient-migration) | spring-boot | fix | easy | Migrating RestTemplate code to the auto-configured RestClient with the right starter |
 | [boot/003-jackson3-migration](evals/boot/003-jackson3-migration) | spring-boot | fix | medium | Migrating Jackson 2 code to the Jackson 3 / `tools.jackson` stack while preserving the API's JSON contract |
-| [security/000-lockdown](evals/security/000-lockdown) | spring-security | build | medium | A stateless SecurityFilterChain with public reads, authenticated writes, and an ADMIN area |
-| [framework/000-resilience-annotations](evals/framework/000-resilience-annotations) | spring-framework | build | medium | Core @Retryable and @ConcurrencyLimit instead of adding Spring Retry or Resilience4j |
-| [framework/001-api-versioning](evals/framework/001-api-versioning) | spring-framework | build | medium | Framework 7 native API versioning: two shapes, one path, header-selected |
-| [framework/002-problem-details](evals/framework/002-problem-details) | spring-framework | build | easy | RFC 9457 problem details with ProblemDetail and a controller advice |
-| [framework/003-transactional-self-invocation](evals/framework/003-transactional-self-invocation) | spring-framework | fix | hard | The @Transactional self-invocation proxy trap, diagnosed from a money-goes-missing symptom |
-| [data/000-n-plus-one](evals/data/000-n-plus-one) | spring-data | fix | hard | Recognizing and fixing an N+1 query pattern from a symptom description, verified by statement counts |
 
 ## Agents and models
 

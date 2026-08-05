@@ -1,9 +1,0 @@
-{
-  "requiredSourcePatterns": [
-    "SecurityFilterChain",
-    "SessionCreationPolicy\\.STATELESS"
-  ],
-  "forbiddenSourcePatterns": [
-    "WebSecurityConfigurerAdapter"
-  ]
-}
