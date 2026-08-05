@@ -99,6 +99,7 @@ Results accumulate in `results/results.json`. Cache identity includes the eval c
 | [framework/001-api-versioning](evals/framework/001-api-versioning) | spring-framework | build | medium | Framework 7 native API versioning: two shapes, one path, header-selected |
 | [framework/002-problem-details](evals/framework/002-problem-details) | spring-framework | build | easy | RFC 9457 problem details with ProblemDetail and a controller advice |
 | [framework/003-transactional-self-invocation](evals/framework/003-transactional-self-invocation) | spring-framework | fix | hard | The @Transactional self-invocation proxy trap, diagnosed from a money-goes-missing symptom |
+| [framework/004-jms-client](evals/framework/004-jms-client) | spring-framework | fix | medium | Migrating JmsTemplate to the fluent JmsClient, exposing silently dropped QoS settings |
 | [data/000-n-plus-one](evals/data/000-n-plus-one) | spring-data | fix | hard | Recognizing and fixing an N+1 query pattern from a symptom description, verified by statement counts |
 
 ## Agents and models
