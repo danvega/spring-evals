@@ -6,12 +6,7 @@ import java.util.Map;
 
 import com.sun.net.httpserver.SimpleFileServer;
 
-/**
- * Serves the dashboard with the JDK's built-in file server. Lives outside
- * Main on purpose: Main is part of the benchmark identity hash, and a static
- * file server has nothing to do with judging. UI conveniences must never
- * rotate the benchmark version.
- */
+/** Kept out of Main so UI conveniences never rotate the benchmark identity hash. */
 final class DashboardServer {
 
     private DashboardServer() {

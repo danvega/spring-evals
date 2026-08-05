@@ -136,17 +136,13 @@ final class AgentDoctor {
     }
 
     /**
-     * Host-level agent context (global instruction files, user skills, MCP
-     * config) can leak knowledge into benchmark runs and invalidate results.
-     * Claude isolation is enforced by the harness: every attempt runs with a
-     * fresh empty CLAUDE_CONFIG_DIR. Other CLIs read global context files the
-     * harness cannot disable, so their presence is a warning.
+     * Host-level agent context can leak into runs. Claude is isolated by the
+     * harness; other CLIs read global files it cannot disable, hence warnings.
      */
     private void checkContextContamination(AgentSpec spec, List<Finding> findings) {
         Path home = Path.of(System.getProperty("user.home"));
         switch (spec.provider()) {
-            // The Claude isolation assumption is a per-CLI-version advisory, not a
-            // per-agent problem, so it prints once in the summary instead of here.
+            // Claude isolation is a per-CLI advisory printed once in the summary.
             case "codex" -> {
                 if (system.fileExists(home.resolve(".codex/AGENTS.md"))) {
                     findings.add(new Finding(Level.WARNING,
@@ -224,13 +220,8 @@ final class AgentDoctor {
         }
         switch (spec.provider()) {
             case "claude" -> {
-                // Benchmark runs use an isolated CLAUDE_CONFIG_DIR where the
-                // interactive subscription login does not apply. Two working
-                // credentials: a long-lived subscription token from
-                // `claude setup-token` (CLAUDE_CODE_OAUTH_TOKEN, draws on the
-                // plan) or ANTHROPIC_API_KEY (metered API billing). Either may
-                // come from the agent config's env (the recommended
-                // benchmark-scoped pattern) or the host environment.
+                // Interactive login does not carry into the isolated
+                // CLAUDE_CONFIG_DIR; only setup-token OAuth or an API key works.
                 boolean oauthToken = present(env.get("CLAUDE_CODE_OAUTH_TOKEN"))
                         || present(system.environment("CLAUDE_CODE_OAUTH_TOKEN"));
                 boolean apiKey = present(env.get("ANTHROPIC_API_KEY"))
@@ -240,9 +231,8 @@ final class AgentDoctor {
                             "billing: subscription token from `claude setup-token` (draws on the Claude plan; "
                                     + "works inside the isolated config dir)"));
                     if (present(env.get("ANTHROPIC_API_KEY"))) {
-                        // Only the agent config's own env survives the run's
-                        // host-var stripping, so a host-level API key is not a
-                        // billing hazard; both credentials in the config are.
+                        // Host vars are stripped at run time; only both
+                        // credentials in the config itself is a billing hazard.
                         findings.add(new Finding(Level.WARNING,
                                 "the agent config declares both CLAUDE_CODE_OAUTH_TOKEN and ANTHROPIC_API_KEY; "
                                         + "the CLI prefers the API key, so billing would be metered API"));

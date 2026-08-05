@@ -13,9 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
- * Persists append-only run records to results/results.json. New provenance
- * fields are nullable so legacy records remain readable but never satisfy the
- * content-versioned cache identity.
+ * Append-only run records in results/results.json. New provenance fields stay
+ * nullable so legacy records load but never match the content-versioned cache.
  */
 public class ResultStore {
 

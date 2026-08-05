@@ -39,8 +39,8 @@ final class ContentHashes {
                 java.resolve("Workspaces.java"), java.resolve("MavenJudge.java"),
                 java.resolve("EvalDefinition.java"), java.resolve("EnvSandbox.java"),
                 repoRoot.resolve("harness/pom.xml"), repoRoot.resolve("spring-evals")));
-        // 0.3.0: process-level environment isolation (EnvSandbox). Results
-        // recorded before 0.3 ran Claude CLIs against the host config.
+        // The version prefix must bump whenever judging semantics change, so
+        // records from older semantics fall out of the cohort.
         return "0.3.0+" + hash.substring(0, 12);
     }
 
