@@ -1,10 +1,57 @@
 {
-  "generated" : "2026-08-05T17:51:24.855191Z",
+  "generated" : "2026-08-05T20:19:50.188061Z",
   "sample" : false,
-  "spendUsd" : 3.71558975,
+  "spendUsd" : 3.7432034,
   "spendPartial" : true,
-  "estSpendUsd" : 6.82,
+  "estSpendUsd" : 6.819999999999999,
   "runs" : [ {
+    "id" : "sturdy-mono-00",
+    "started" : "2026-08-05T20:02:31.866067Z",
+    "agents" : [ "claude-fable-5", "claude-haiku-4-5", "claude-opus-5", "claude-sonnet-5" ],
+    "evals" : 1,
+    "attempts" : 4,
+    "passed" : 2,
+    "recordedCostUsd" : 3.2602864,
+    "benchmarkVersion" : "0.3.0+11b0497585a6",
+    "findings" : "Purpose of this run: prove Claude subscription billing works inside the isolation barrier, after switching the four Claude agent configs from the API key to a `claude setup-token` credential. It does, end to end. No API dollars were spent; the four attempts drew on the Max plan. The dollar figures recorded per attempt are the CLI's own cost accounting and represent plan quota at API-equivalent prices, not money billed.\n\nEvidence the setup is right: the CLI authenticated through CLAUDE_CODE_OAUTH_TOKEN alone inside a fresh empty config dir, and the \"connectors disabled because ANTHROPIC_API_KEY is set\" warning appeared zero times (it shows whenever an API key is in play).\n\nThe verdicts replicate eager-boot-85 exactly, which is the first cross-run consistency signal this benchmark has produced:\n\n- claude-fable-5: PASSED again (161s, $1.07 plan-equivalent).\n- claude-opus-5: PASSED again (242s, $1.35).\n- claude-haiku-4-5: FAILED again, policy_failure, the same missing `spring-boot-starter-webmvc`.\n- claude-sonnet-5: FAILED again, policy_failure, same mechanism. Two isolated runs agreeing makes this look like a real capability boundary, not noise: sonnet ships Boot 4 projects with pre-Boot-4 conventions unless something intervenes.\n\nWhy only Claude appears in this run: the billing switch changed the four Claude agent configs, which rotates their result identity on purpose. This run rebuilt their leaderboard rows under the new identity. The other agents' eager-boot-85 results are untouched and still current.\n\nNothing to fix. This closes the subscription-billing item: Claude runs are now effectively free (plan quota), codex already bills the ChatGPT subscription, so a full-matrix run's cash cost is down to the API-billed stragglers (gemini, grok, kimi), roughly a dollar per eval across all twelve agents.",
+    "detail" : [ {
+      "agent" : "claude-fable-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 161380,
+      "costUsd" : 1.074725,
+      "totalTokens" : null
+    }, {
+      "agent" : "claude-haiku-4-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 106741,
+      "costUsd" : 0.1307798,
+      "totalTokens" : null
+    }, {
+      "agent" : "claude-opus-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 242557,
+      "costUsd" : 1.3520145000000001,
+      "totalTokens" : null
+    }, {
+      "agent" : "claude-sonnet-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 186906,
+      "costUsd" : 0.7027671,
+      "totalTokens" : null
+    } ]
+  }, {
     "id" : "eager-boot-85",
     "started" : "2026-08-05T17:14:41.342823Z",
     "agents" : [ "claude-fable-5", "claude-haiku-4-5", "claude-opus-5", "claude-sonnet-5", "codex-gpt-5-6-luna", "codex-gpt-5-6-sol", "codex-gpt-5-6-terra", "gemini-3-1-pro", "gemini-3-5-flash-lite", "gemini-3-6-flash", "grok-4-5", "kimi-k3" ],
@@ -367,11 +414,11 @@
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
     "ciUpper" : 1.0,
-    "avgTokens" : 8162,
-    "avgDurationS" : 194.543,
-    "avgCostUsd" : 0.9491755,
-    "costPerPassUsd" : 0.9491755,
-    "totalCostUsd" : 0.9491755
+    "avgTokens" : 7949,
+    "avgDurationS" : 161.38,
+    "avgCostUsd" : 1.074725,
+    "costPerPassUsd" : 1.074725,
+    "totalCostUsd" : 1.074725
   }, {
     "agent" : "claude-opus-5",
     "model" : "claude-opus-5",
@@ -384,11 +431,11 @@
     "firstTryRate" : 1.0,
     "ciLower" : 0.20654931437723745,
     "ciUpper" : 1.0,
-    "avgTokens" : 24257,
-    "avgDurationS" : 338.365,
-    "avgCostUsd" : 1.69475,
-    "costPerPassUsd" : 1.69475,
-    "totalCostUsd" : 1.69475
+    "avgTokens" : 16007,
+    "avgDurationS" : 242.557,
+    "avgCostUsd" : 1.3520145000000001,
+    "costPerPassUsd" : 1.3520145000000001,
+    "totalCostUsd" : 1.3520145000000001
   }, {
     "agent" : "codex-gpt-5-6-luna",
     "model" : "gpt-5.6-luna",
@@ -486,11 +533,11 @@
     "firstTryRate" : 0.0,
     "ciLower" : 0.0,
     "ciUpper" : 0.7934506856227626,
-    "avgTokens" : 6406,
-    "avgDurationS" : 83.126,
-    "avgCostUsd" : 0.12250174999999999,
+    "avgTokens" : 5324,
+    "avgDurationS" : 106.741,
+    "avgCostUsd" : 0.1307798,
     "costPerPassUsd" : null,
-    "totalCostUsd" : 0.12250174999999999
+    "totalCostUsd" : 0.1307798
   }, {
     "agent" : "claude-sonnet-5",
     "model" : "claude-sonnet-5",
@@ -503,11 +550,11 @@
     "firstTryRate" : 0.0,
     "ciLower" : 0.0,
     "ciUpper" : 0.7934506856227626,
-    "avgTokens" : 8166,
-    "avgDurationS" : 122.739,
-    "avgCostUsd" : 0.4662454999999999,
+    "avgTokens" : 8124,
+    "avgDurationS" : 186.906,
+    "avgCostUsd" : 0.7027671,
     "costPerPassUsd" : null,
-    "totalCostUsd" : 0.4662454999999999
+    "totalCostUsd" : 0.7027671
   }, {
     "agent" : "kimi-k3",
     "model" : "kimi-k3",
@@ -528,30 +575,6 @@
   } ],
   "projects" : [ "boot", "data", "framework", "security" ],
   "byProject" : {
-    "claude-fable-5" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
-    },
-    "claude-haiku-4-5" : {
-      "boot" : [ 0, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
-    },
-    "claude-opus-5" : {
-      "boot" : [ 1, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
-    },
-    "claude-sonnet-5" : {
-      "boot" : [ 0, 1, 4 ],
-      "data" : [ 0, 0, 1 ],
-      "framework" : [ 0, 0, 4 ],
-      "security" : [ 0, 0, 1 ]
-    },
     "codex-gpt-5-6-luna" : {
       "boot" : [ 1, 1, 4 ],
       "data" : [ 0, 0, 1 ],
@@ -583,6 +606,30 @@
       "security" : [ 0, 0, 1 ]
     },
     "kimi-k3" : {
+      "boot" : [ 0, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "claude-fable-5" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "claude-haiku-4-5" : {
+      "boot" : [ 0, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "claude-opus-5" : {
+      "boot" : [ 1, 1, 4 ],
+      "data" : [ 0, 0, 1 ],
+      "framework" : [ 0, 0, 4 ],
+      "security" : [ 0, 0, 1 ]
+    },
+    "claude-sonnet-5" : {
       "boot" : [ 0, 1, 4 ],
       "data" : [ 0, 0, 1 ],
       "framework" : [ 0, 0, 4 ],
@@ -590,18 +637,6 @@
     }
   },
   "byEval" : {
-    "claude-fable-5" : {
-      "boot/000-initializr-parity" : true
-    },
-    "claude-haiku-4-5" : {
-      "boot/000-initializr-parity" : false
-    },
-    "claude-opus-5" : {
-      "boot/000-initializr-parity" : true
-    },
-    "claude-sonnet-5" : {
-      "boot/000-initializr-parity" : false
-    },
     "codex-gpt-5-6-luna" : {
       "boot/000-initializr-parity" : true
     },
@@ -618,6 +653,18 @@
       "boot/000-initializr-parity" : true
     },
     "kimi-k3" : {
+      "boot/000-initializr-parity" : false
+    },
+    "claude-fable-5" : {
+      "boot/000-initializr-parity" : true
+    },
+    "claude-haiku-4-5" : {
+      "boot/000-initializr-parity" : false
+    },
+    "claude-opus-5" : {
+      "boot/000-initializr-parity" : true
+    },
+    "claude-sonnet-5" : {
       "boot/000-initializr-parity" : false
     }
   },

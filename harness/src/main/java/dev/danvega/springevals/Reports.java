@@ -103,7 +103,8 @@ public class Reports {
                     usd(row.totalCostUsd())));
         }
         double estSpend = estimatedSpend(cohort);
-        table.append("\nRecorded benchmark spend: %s%s%n".formatted(usd(knownSpend),
+        table.append(("\nRecorded benchmark spend: %s%s. Subscription-billed agents report plan-equivalent "
+                + "accounting, not billed dollars.%n").formatted(usd(knownSpend),
                 spendPartial ? " (partial: some adapters did not report cost)" : ""));
         if (spendPartial && estSpend > 0) {
             table.append(("Estimated spend at API prices: %s (attempts made x configured per-attempt estimates; "

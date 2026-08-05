@@ -13,10 +13,12 @@ Two rules before you start:
 Runs `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, and `claude-haiku-4-5` through [Claude Code](https://claude.com/claude-code).
 
 1. Install the CLI: `npm install -g @anthropic-ai/claude-code`
-2. Create an API key at [console.anthropic.com](https://console.anthropic.com) and set `ANTHROPIC_BENCH_API_KEY` in your shell. The Claude agent configs reference that name and the harness injects it only into benchmark runs, so your everyday interactive Claude Code keeps billing your subscription. Do not export a global `ANTHROPIC_API_KEY` unless you want interactive use billed to the API too.
-3. Verify: `./spring-evals doctor --family claude`
+2. Pick a billing source (subscription is the default the configs ship with):
+   - **Subscription (recommended if you have a Claude plan)**: run `claude setup-token`, complete the browser approval, and set the printed token as `CLAUDE_BENCH_OAUTH_TOKEN` in your shell. Runs draw on your plan's usage limits instead of costing API dollars. Heavy runs can hit the plan's rate windows and slow down rather than spend more.
+   - **API key (exact metered costs)**: create a key at [console.anthropic.com](https://console.anthropic.com), set it as `ANTHROPIC_BENCH_API_KEY`, and change the four Claude configs' env to `"ANTHROPIC_API_KEY": "${ANTHROPIC_BENCH_API_KEY}"`. Do not export a global `ANTHROPIC_API_KEY` unless you want interactive use billed to the API too.
+3. Verify: `./spring-evals doctor --family claude`. Doctor prints which billing source is active.
 
-**Benchmark runs require `ANTHROPIC_API_KEY`.** The harness runs Claude Code inside an isolated, empty config directory so your CLAUDE.md, skills, plugins, and MCP servers cannot leak into a benchmark (the first real run proved they otherwise do). Subscription login does not carry into that isolated config, so scored runs bill the API key, which also gives you exact per-attempt costs. Your subscription still covers normal interactive Claude Code use outside the benchmark.
+**Why a token or key at all:** the harness runs Claude Code inside an isolated, empty config directory so your CLAUDE.md, skills, plugins, and MCP servers cannot leak into a benchmark (a real run proved they otherwise do). Interactive login does not carry into that isolated config, so runs need a credential the harness can inject: the setup-token (subscription) or an API key (metered, with exact per-attempt costs). Your normal interactive Claude Code is unaffected either way.
 
 Benchmark runs give the CLI full autonomy in the workspace, so use an account whose spend you are comfortable with. The Claude configs carry a per-attempt `budgetUsd` cap the CLI enforces itself.
 

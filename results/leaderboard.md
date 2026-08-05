@@ -1,21 +1,21 @@
 # Spring Evals Leaderboard
 
-Generated 2026-08-05T17:51:24.854206Z
+Generated 2026-08-05T20:19:50.187276Z
 
 | Agent | Model | Coverage | Pass@1 | Pass@k | 95% CI | Attempts | Avg Task Tokens | Avg Task Time | Avg Task Cost | Cost / Pass | Total Cost |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| claude-fable-5 (partial) | claude-fable-5 | 1/10 | 100% | 100% | 21%–100% | 1 | 8162 | 195s | $0.95 | $0.95 | $0.95 |
-| claude-opus-5 (partial) | claude-opus-5 | 1/10 | 100% | 100% | 21%–100% | 1 | 24257 | 338s | $1.69 | $1.69 | $1.69 |
+| claude-fable-5 (partial) | claude-fable-5 | 1/10 | 100% | 100% | 21%–100% | 1 | 7949 | 161s | $1.07 | $1.07 | $1.07 |
+| claude-opus-5 (partial) | claude-opus-5 | 1/10 | 100% | 100% | 21%–100% | 1 | 16007 | 243s | $1.35 | $1.35 | $1.35 |
 | codex-gpt-5-6-luna (partial) | gpt-5.6-luna | 1/10 | 100% | 100% | 21%–100% | 1 | n/a | 224s | n/a | n/a | n/a |
 | codex-gpt-5-6-sol (partial) | gpt-5.6-sol | 1/10 | 100% | 100% | 21%–100% | 1 | n/a | 243s | n/a | n/a | n/a |
 | codex-gpt-5-6-terra (partial) | gpt-5.6-terra | 1/10 | 100% | 100% | 21%–100% | 1 | n/a | 251s | n/a | n/a | n/a |
 | gemini-3-6-flash (partial) | gemini-3.6-flash | 1/10 | 100% | 100% | 21%–100% | 1 | n/a | 175s | n/a | n/a | n/a |
 | grok-4-5 (partial) | grok-4.5 | 1/10 | 100% | 100% | 21%–100% | 1 | n/a | 77s | n/a | n/a | n/a |
-| claude-haiku-4-5 (partial) | claude-haiku-4-5-20251001 | 1/10 | 0% | 0% | 0%–79% | 1 | 6406 | 83s | $0.12 | n/a | $0.12 |
-| claude-sonnet-5 (partial) | claude-sonnet-5 | 1/10 | 0% | 0% | 0%–79% | 1 | 8166 | 123s | $0.47 | n/a | $0.47 |
+| claude-haiku-4-5 (partial) | claude-haiku-4-5-20251001 | 1/10 | 0% | 0% | 0%–79% | 1 | 5324 | 107s | $0.13 | n/a | $0.13 |
+| claude-sonnet-5 (partial) | claude-sonnet-5 | 1/10 | 0% | 0% | 0%–79% | 1 | 8124 | 187s | $0.70 | n/a | $0.70 |
 | kimi-k3 (partial) | kimi-k3 | 1/10 | 0% | 0% | 0%–79% | 1 | 31430 | 265s | $0.48 | n/a | $0.48 |
 
-Recorded benchmark spend: $3.72 (partial: some adapters did not report cost)
+Recorded benchmark spend: $3.74 (partial: some adapters did not report cost). Subscription-billed agents report plan-equivalent accounting, not billed dollars.
 Estimated spend at API prices: $7.47 (attempts made x configured per-attempt estimates; subscription-billed agents draw on plans instead)
 Only full-coverage rows are leaderboard-eligible; partial rows are shown for diagnostics.
 

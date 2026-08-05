@@ -32,7 +32,7 @@ class AgentDoctorTest {
     }
 
     @Test
-    void claudeIsBlockedWithoutApiKeyBecauseIsolationDisablesSubscription() {
+    void claudeIsBlockedWithoutAnyCredentialBecauseIsolationDisablesLogin() {
         FakeSystem system = new FakeSystem();
         system.executables.put("claude", true);
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
@@ -42,7 +42,53 @@ class AgentDoctorTest {
 
         assertEquals(Level.BLOCKED, report.level());
         assertTrue(report.findings().stream()
-                .anyMatch(f -> f.message().contains("ANTHROPIC_API_KEY must be set")));
+                .anyMatch(f -> f.message().contains("CLAUDE_CODE_OAUTH_TOKEN")
+                        && f.message().contains("ANTHROPIC_API_KEY")));
+    }
+
+    @Test
+    void claudeIsReadyWithSubscriptionTokenFromSetupToken() {
+        FakeSystem system = new FakeSystem();
+        system.executables.put("claude", true);
+        system.environment.put("CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat-test");
+        system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5, true);
+
+        var report = new AgentDoctor(system).inspect(spec);
+
+        assertEquals(Level.READY, report.level());
+        assertTrue(report.findings().stream()
+                .anyMatch(f -> f.message().contains("subscription token")));
+    }
+
+    @Test
+    void claudeWarnsWhenConfigDeclaresBothSubscriptionTokenAndApiKey() {
+        FakeSystem system = new FakeSystem();
+        system.executables.put("claude", true);
+        system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(
+                "CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat-test",
+                "ANTHROPIC_API_KEY", "sk-test"), 2.0, 0.5, true);
+
+        var report = new AgentDoctor(system).inspect(spec);
+
+        assertEquals(Level.WARNING, report.level());
+        assertTrue(report.findings().stream()
+                .anyMatch(f -> f.message().contains("prefers the API key")));
+    }
+
+    @Test
+    void claudeDoesNotWarnForHostApiKeyBecauseTheRunStripsIt() {
+        FakeSystem system = new FakeSystem();
+        system.executables.put("claude", true);
+        system.environment.put("ANTHROPIC_API_KEY", "sk-host");
+        system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model",
+                Map.of("CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat-test"), 2.0, 0.5, true);
+
+        var report = new AgentDoctor(system).inspect(spec);
+
+        assertEquals(Level.READY, report.level());
     }
 
 

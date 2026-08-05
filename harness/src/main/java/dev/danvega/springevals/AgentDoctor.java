@@ -90,8 +90,9 @@ final class AgentDoctor {
         System.out.println("Credential presence is checked without printing values. Remote key validity is not tested.");
         if (specs.stream().anyMatch(spec -> spec.provider().equals("claude"))) {
             System.out.println("Claude-family note: runs are isolated via CLAUDE_CONFIG_DIR (an empty config dir), "
-                    + "so host CLAUDE.md, skills, and MCP servers cannot load. This requires ANTHROPIC_API_KEY; "
-                    + "subscription login does not apply inside the sterile config.");
+                    + "so host CLAUDE.md, skills, and MCP servers cannot load. Authenticate with "
+                    + "CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (subscription) or ANTHROPIC_API_KEY "
+                    + "(metered API); interactive login does not apply inside the sterile config.");
         }
         return blocked == 0 ? 0 : 1;
     }
@@ -224,18 +225,37 @@ final class AgentDoctor {
         switch (spec.provider()) {
             case "claude" -> {
                 // Benchmark runs use an isolated CLAUDE_CONFIG_DIR where the
-                // subscription login does not apply, so an API key is the only
-                // working credential for claude-provider runs. It may come from
-                // the agent config's env (the recommended benchmark-scoped
-                // pattern) or the host environment.
-                if (present(env.get("ANTHROPIC_API_KEY")) || present(system.environment("ANTHROPIC_API_KEY"))) {
+                // interactive subscription login does not apply. Two working
+                // credentials: a long-lived subscription token from
+                // `claude setup-token` (CLAUDE_CODE_OAUTH_TOKEN, draws on the
+                // plan) or ANTHROPIC_API_KEY (metered API billing). Either may
+                // come from the agent config's env (the recommended
+                // benchmark-scoped pattern) or the host environment.
+                boolean oauthToken = present(env.get("CLAUDE_CODE_OAUTH_TOKEN"))
+                        || present(system.environment("CLAUDE_CODE_OAUTH_TOKEN"));
+                boolean apiKey = present(env.get("ANTHROPIC_API_KEY"))
+                        || present(system.environment("ANTHROPIC_API_KEY"));
+                if (oauthToken) {
                     findings.add(new Finding(Level.READY,
-                            "billing: ANTHROPIC_API_KEY (required; runs use an isolated Claude config dir "
-                                    + "where subscription login does not apply)"));
+                            "billing: subscription token from `claude setup-token` (draws on the Claude plan; "
+                                    + "works inside the isolated config dir)"));
+                    if (present(env.get("ANTHROPIC_API_KEY"))) {
+                        // Only the agent config's own env survives the run's
+                        // host-var stripping, so a host-level API key is not a
+                        // billing hazard; both credentials in the config are.
+                        findings.add(new Finding(Level.WARNING,
+                                "the agent config declares both CLAUDE_CODE_OAUTH_TOKEN and ANTHROPIC_API_KEY; "
+                                        + "the CLI prefers the API key, so billing would be metered API"));
+                    }
+                } else if (apiKey) {
+                    findings.add(new Finding(Level.READY,
+                            "billing: ANTHROPIC_API_KEY (metered API; runs use an isolated Claude config dir "
+                                    + "where interactive subscription login does not apply)"));
                 } else {
                     findings.add(new Finding(Level.BLOCKED,
-                            "benchmark runs use an isolated Claude config dir; subscription login does not carry "
-                                    + "into it, so ANTHROPIC_API_KEY must be set"));
+                            "benchmark runs use an isolated Claude config dir; interactive login does not carry "
+                                    + "into it. Set CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`, subscription) "
+                                    + "or ANTHROPIC_API_KEY (metered API)"));
                 }
             }
             case "codex" -> {

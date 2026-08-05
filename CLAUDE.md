@@ -45,4 +45,4 @@ Work is done only when the matching verification passes AND an independent revie
 
 ## Host context isolation
 
-Benchmark validity depends on agents not seeing host context. The Claude adapter forces an isolated CLAUDE_CONFIG_DIR (never relax this; it requires ANTHROPIC_API_KEY because subscription login does not carry into the sterile config), fresh workspaces are stripped of agent context files, and `doctor` warns about global context files for the other CLIs. Details in docs/METHODOLOGY.md under Host context isolation.
+Benchmark validity depends on agents not seeing host context. The harness enforces per-attempt environment isolation (EnvSandbox) with a self-test before any spend: Claude runs get a fresh empty CLAUDE_CONFIG_DIR and stripped host ANTHROPIC*/CLAUDE* vars (never relax this; authenticate via CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` for subscription billing, or ANTHROPIC_API_KEY for metered API). Fresh workspaces are stripped of agent context files, and `doctor` warns about global context files for the other CLIs. Details in docs/METHODOLOGY.md under Host context isolation.
