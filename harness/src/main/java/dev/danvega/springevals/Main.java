@@ -65,10 +65,11 @@ public class Main {
     void estimate(Map<String, String> opts) {
         int attempts = Integer.parseInt(opts.getOrDefault("attempts", "1"));
         List<EvalDefinition> evals = selectTargets(opts);
-        // No selector mirrors run --all-agents (enabled only), so the projection matches a run.
+        // No selector mirrors run --all-agents (local selection applied), so the projection matches a run.
+        SelectionConfig selection = SelectionConfig.load(root, agents.names());
         List<AgentSpec> specs = opts.containsKey("agent") || opts.containsKey("family") || opts.containsKey("all-agents")
                 ? resolveAgents(opts)
-                : agents.loadAll().stream().filter(AgentSpec::enabled).toList();
+                : agents.loadAll().stream().filter(spec -> selection.enabled(spec.name())).toList();
 
         double expectedAttempts = attempts == 1 ? 1.0 : 1.7;
         double totalExpected = 0;
@@ -137,7 +138,11 @@ public class Main {
                 System.out.println();
             }
         }
-        int result = specs.isEmpty() ? 0 : new AgentDoctor().print(specs);
+        SelectionConfig selection = SelectionConfig.load(root, agents.names());
+        java.util.Set<String> excluded = specs.stream().map(AgentSpec::name)
+                .filter(name -> !selection.enabled(name))
+                .collect(java.util.stream.Collectors.toSet());
+        int result = specs.isEmpty() ? 0 : new AgentDoctor().print(specs, excluded);
         if (invalid > 0) {
             System.out.println("Additionally, " + invalid + " agent config file(s) could not be parsed.");
         }
@@ -223,18 +228,19 @@ public class Main {
         }
     }
 
-    /** --family matches the agent-name prefix; explicit --agent picks override the enabled flag. */
+    /** --family matches the agent-name prefix; explicit --agent picks bypass local selection. */
     private List<AgentSpec> resolveAgents(Map<String, String> opts) {
+        SelectionConfig selection = SelectionConfig.load(root, agents.names());
         if (opts.containsKey("agent")) {
             List<AgentSpec> picked = List.of(opts.get("agent").split(",")).stream().map(agents::load).toList();
-            picked.stream().filter(spec -> !spec.enabled()).forEach(spec -> System.out.printf(
-                    "note: %s has \"enabled\": false in agents/%s.json; running it anyway because you named it%n",
-                    spec.name(), spec.name()));
+            picked.stream().filter(spec -> !selection.enabled(spec.name())).forEach(spec -> System.out.printf(
+                    "note: %s is not in enabledAgents in %s; running it anyway because you named it%n",
+                    spec.name(), SelectionConfig.FILE_NAME));
             return picked;
         }
         if (opts.containsKey("family")) {
             List<AgentSpec> family = agents.loadAll().stream()
-                    .filter(AgentSpec::enabled)
+                    .filter(spec -> selection.enabled(spec.name()))
                     .filter(spec -> spec.name().startsWith(opts.get("family")))
                     .toList();
             if (family.isEmpty()) {
@@ -243,11 +249,12 @@ public class Main {
             return family;
         }
         if (opts.containsKey("all-agents")) {
-            List<AgentSpec> enabled = agents.loadAll().stream().filter(AgentSpec::enabled).toList();
-            long disabled = agents.loadAll().size() - enabled.size();
-            if (disabled > 0) {
-                System.out.printf("skipping %d disabled agent(s); set \"enabled\": true in agents/<name>.json to include them%n",
-                        disabled);
+            List<AgentSpec> all = agents.loadAll();
+            List<AgentSpec> enabled = all.stream().filter(spec -> selection.enabled(spec.name())).toList();
+            long excluded = all.size() - enabled.size();
+            if (excluded > 0) {
+                System.out.printf("skipping %d agent(s) not in enabledAgents in %s%n",
+                        excluded, SelectionConfig.FILE_NAME);
             }
             return enabled;
         }
@@ -257,6 +264,7 @@ public class Main {
 
     void run(Map<String, String> opts) throws Exception {
         String sandbox = DockerSandbox.resolveMode(opts.get("sandbox"));
+        int parallel = resolveParallel(opts.get("parallel"), sandbox);
         List<AgentSpec> specs = resolveAgents(opts);
         int attempts = Integer.parseInt(opts.getOrDefault("attempts", "1"));
         if (attempts < 1 || attempts > 10) {
@@ -311,126 +319,180 @@ public class Main {
                 ? System.getProperty("java.version")
                 : DockerSandbox.javaVersion(image);
 
-        List<RunRecord> results = resultStore.load();
-        double reservedCost = 0;
-        String campaignId = resolveRunName(opts.get("run-name"), results);
+        List<RunRecord> loaded = resultStore.load();
+        String campaignId = resolveRunName(opts.get("run-name"), loaded);
         System.out.println("Run name: " + campaignId);
-        String benchmarkVersion = benchmarkVersion();
-        Map<String, String> cliVersions = new HashMap<>();
 
-        String benchmarkImage = image;
-        for (AgentSpec spec : specs) {
+        RunContext ctx = new RunContext(image, targets, attempts, force, paid, benchmarkVersion(),
+                recordedJavaVersion, campaignId, new RunScheduler.CostReserver(costCap),
+                new RunScheduler.ResultsLedger(loaded, resultStore::save),
+                new java.util.concurrent.ConcurrentHashMap<>(),
+                new java.util.concurrent.atomic.AtomicBoolean(false));
+
+        var lanes = RunScheduler.partitionByProvider(specs);
+        if (image != null && parallel > 1 && lanes.size() > 1) {
+            System.out.println("Provider lanes in parallel: " + String.join(", ", lanes.keySet())
+                    + " (attempts within a lane stay serial; max " + parallel + " concurrent containers)");
+            RunScheduler.runLanes(lanes, parallel,
+                    (provider, laneSpecs) -> runLane(ctx, laneSpecs, prefixedLog(provider)));
+        } else {
+            runLane(ctx, specs, System.out::println);
+        }
+        reports.print(ctx.ledger().snapshot());
+    }
+
+    /** Docker-only: host mode mutates the one shared process environment per attempt (EnvSandbox). */
+    static int resolveParallel(String requested, String sandbox) {
+        if (requested == null) {
+            return "docker".equals(sandbox) ? 4 : 1;
+        }
+        if (!"docker".equals(sandbox)) {
+            throw new IllegalArgumentException("--parallel requires docker sandbox mode; host mode mutates the "
+                    + "shared process environment per attempt (EnvSandbox), so it always runs serial");
+        }
+        int value;
+        try {
+            value = Integer.parseInt(requested);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("--parallel takes an integer between 1 and 8");
+        }
+        if (value < 1 || value > 8) {
+            throw new IllegalArgumentException("--parallel must be between 1 and 8");
+        }
+        return value;
+    }
+
+    /** Whole messages print as one contiguous block so lane output never interleaves mid-message. */
+    private static java.util.function.Consumer<String> prefixedLog(String lane) {
+        return text -> {
+            StringBuilder block = new StringBuilder();
+            for (String line : text.split("\n", -1)) {
+                block.append('[').append(lane).append("] ").append(line).append(System.lineSeparator());
+            }
+            System.out.print(block);
+        };
+    }
+
+    private record RunContext(String image, List<EvalDefinition> targets, int attempts, boolean force,
+            boolean paid, String benchmarkVersion, String recordedJavaVersion, String campaignId,
+            RunScheduler.CostReserver reserver, RunScheduler.ResultsLedger ledger,
+            Map<String, String> cliVersions, java.util.concurrent.atomic.AtomicBoolean stopped) {
+    }
+
+    /** One lane never runs more than one container at a time (per-account rate limits). */
+    private void runLane(RunContext ctx, List<AgentSpec> laneSpecs, java.util.function.Consumer<String> log) {
+        for (AgentSpec spec : laneSpecs) {
             // "docker:"-prefixed versions keep host- and docker-mode records
             // from ever satisfying each other's cache.
-            String cliVersion = cliVersions.computeIfAbsent(spec.provider(),
-                    provider -> benchmarkImage != null
-                            ? DockerSandbox.cliVersion(provider, benchmarkImage)
+            String cliVersion = ctx.cliVersions().computeIfAbsent(spec.provider(),
+                    provider -> ctx.image() != null
+                            ? DockerSandbox.cliVersion(provider, ctx.image())
                             : detectCliVersion(provider));
-            for (EvalDefinition eval : targets) {
-                String evalHash = ContentHashes.eval(eval);
-                String agentHash = ContentHashes.agent(root, spec.name());
-                List<RunRecord> existing = results.stream()
-                        .filter(r -> r.agent().equals(spec.name()) && r.eval().equals(eval.id()))
-                        .filter(r -> evalHash.equals(r.evalHash()) && agentHash.equals(r.agentConfigHash()))
-                        .filter(r -> benchmarkVersion.equals(r.benchmarkVersion()))
-                        .filter(r -> cliVersion.equals(r.cliVersion()))
-                        .filter(r -> recordedJavaVersion.equals(r.javaVersion()))
-                        .filter(r -> System.getProperty("os.name").equals(r.osName()))
-                        .filter(r -> System.getProperty("os.arch").equals(r.osArch()))
-                        .toList();
-
-                if (force) {
-                    results = new ArrayList<>(results.stream()
-                            .filter(r -> !(r.agent().equals(spec.name()) && r.eval().equals(eval.id())
-                                    && evalHash.equals(r.evalHash()) && agentHash.equals(r.agentConfigHash())
-                                    && benchmarkVersion.equals(r.benchmarkVersion())
-                                    && cliVersion.equals(r.cliVersion())
-                                    && recordedJavaVersion.equals(r.javaVersion())
-                                    && System.getProperty("os.name").equals(r.osName())
-                                    && System.getProperty("os.arch").equals(r.osArch())))
-                            .toList());
-                } else if (existing.stream().anyMatch(RunRecord::passed) || existing.size() >= attempts) {
-                    System.out.printf("skip %s (%s): already %s — use --force to rerun%n", eval.id(), spec.name(),
-                            existing.stream().anyMatch(RunRecord::passed) ? "passed" : "exhausted");
-                    continue;
+            for (EvalDefinition eval : ctx.targets()) {
+                if (ctx.stopped().get()) {
+                    return;
                 }
-
-                int done = force ? 0 : existing.size();
-                for (int attempt = done + 1; attempt <= attempts; attempt++) {
-                    double reservation = spec.estCostPerAttemptUsd() == null
-                            ? Double.POSITIVE_INFINITY : spec.estCostPerAttemptUsd();
-                    if (paid && reservedCost + reservation > costCap) {
-                        System.out.printf("Cost cap reached before %s / %s attempt %d. Reserved $%.2f of $%.2f.%n",
-                                eval.id(), spec.name(), attempt, reservedCost, costCap);
-                        reports.print(results);
-                        return;
-                    }
-                    reservedCost += reservation;
-                    System.out.printf("%n=== %s / %s / attempt %d/%d ===%n", eval.id(), spec.name(), attempt,
-                            attempts);
-                    Path ws = workspaces.freshCopy(eval, spec.name() + "-a" + attempt);
-                    String baselineHash = ContentHashes.candidate(ws);
-
-                    AgentRun agentRun;
-                    Judgment verdict;
-                    String candidateHash;
-                    boolean untouched;
-                    if (benchmarkImage != null) {
-                        // The agent container is destroyed before hidden tests are injected, so
-                        // nothing it left running or wrote outside the workspace touches judging.
-                        try (DockerSandbox.Container agentContainer = DockerSandbox.start(ws,
-                                Agents.expandAll(spec.env()), benchmarkImage)) {
-                            if ("codex".equals(spec.provider())) {
-                                agentContainer.seedCodexAuth(Path.of(System.getProperty("user.home"),
-                                        ".codex", "auth.json"));
-                            }
-                            System.out.println("running agent CLI in container " + agentContainer.name() + "...");
-                            agentRun = runAgentInContainer(agentContainer, spec, eval);
-                        }
-                        candidateHash = ContentHashes.candidate(ws);
-                        untouched = baselineHash.equals(candidateHash);
-                        System.out.println("injecting hidden tests, judging with ./mvnw clean test in a fresh container...");
-                        workspaces.injectEvalTests(eval, ws);
-                        try (DockerSandbox.Container judgeContainer = DockerSandbox.start(ws,
-                                Map.of(), benchmarkImage)) {
-                            verdict = mavenJudge.judge(eval, ws, judgeContainer.buildRunner());
-                        }
-                    } else {
-                        System.out.println("running agent through AgentClient...");
-                        agentRun = runAgent(spec, eval, ws);
-                        candidateHash = ContentHashes.candidate(ws);
-                        untouched = baselineHash.equals(candidateHash);
-                        System.out.println("injecting hidden tests, judging with ./mvnw clean test...");
-                        workspaces.injectEvalTests(eval, ws);
-                        verdict = mavenJudge.judge(eval, ws);
-                    }
-                    if (agentRun.costUsd() != null && agentRun.costUsd() > reservation) {
-                        reservedCost += agentRun.costUsd() - reservation;
-                    }
-
-                    String failureKind = verdict.pass() ? null : failureKind(agentRun, verdict, ws, untouched);
-                    String failureReason = verdict.pass() ? null
-                            : agentRun.error() != null ? agentRun.error()
-                            : untouched && "agent_error".equals(failureKind) ? untouchedReason(agentRun)
-                            : untouched ? "workspace unchanged after the agent ran; " + verdict.reasoning()
-                            : verdict.reasoning();
-                    results.add(new RunRecord(spec.name(), spec.model(), eval.id(), eval.project(), attempt,
-                            verdict.pass(), agentRun.durationMs(), agentRun.costUsd(), ws.toString(),
-                            Instant.now().toString(), UUID.randomUUID().toString(), spec.provider(), "agent",
-                            evalHash, agentHash, benchmarkVersion, failureKind, failureReason,
-                            recordedJavaVersion, System.getProperty("os.name"),
-                            System.getProperty("os.arch"), cliVersion, "provider-default", attempts,
-                            agentRun.inputTokens(), agentRun.outputTokens(), agentRun.totalTokens(),
-                            candidateHash, agentRun.responseText(), campaignId));
-                    resultStore.save(results);
-                    System.out.println(verdict.pass() ? "✓ PASSED" : "✗ failed");
-                    if (verdict.pass()) {
-                        break;
-                    }
-                }
+                runAgentEval(ctx, spec, eval, cliVersion, log);
             }
         }
-        reports.print(results);
+    }
+
+    private void runAgentEval(RunContext ctx, AgentSpec spec, EvalDefinition eval, String cliVersion,
+            java.util.function.Consumer<String> log) {
+        String evalHash = ContentHashes.eval(eval);
+        String agentHash = ContentHashes.agent(root, spec.name());
+        String osName = System.getProperty("os.name");
+        String osArch = System.getProperty("os.arch");
+        java.util.function.Predicate<RunRecord> identity = r -> r.agent().equals(spec.name())
+                && r.eval().equals(eval.id())
+                && evalHash.equals(r.evalHash()) && agentHash.equals(r.agentConfigHash())
+                && ctx.benchmarkVersion().equals(r.benchmarkVersion())
+                && cliVersion.equals(r.cliVersion())
+                && ctx.recordedJavaVersion().equals(r.javaVersion())
+                && osName.equals(r.osName()) && osArch.equals(r.osArch());
+
+        List<RunRecord> existing = ctx.ledger().matching(identity);
+        if (ctx.force()) {
+            ctx.ledger().removeMatching(identity);
+        } else if (existing.stream().anyMatch(RunRecord::passed) || existing.size() >= ctx.attempts()) {
+            log.accept("skip %s (%s): already %s — use --force to rerun".formatted(eval.id(), spec.name(),
+                    existing.stream().anyMatch(RunRecord::passed) ? "passed" : "exhausted"));
+            return;
+        }
+
+        int done = ctx.force() ? 0 : existing.size();
+        for (int attempt = done + 1; attempt <= ctx.attempts(); attempt++) {
+            if (ctx.stopped().get()) {
+                return;
+            }
+            double reservation = spec.estCostPerAttemptUsd() == null
+                    ? Double.POSITIVE_INFINITY : spec.estCostPerAttemptUsd();
+            if (ctx.paid() && !ctx.reserver().reserve(reservation)) {
+                log.accept("Cost cap reached before %s / %s attempt %d. Reserved $%.2f of $%.2f.".formatted(
+                        eval.id(), spec.name(), attempt, ctx.reserver().reserved(), ctx.reserver().cap()));
+                ctx.stopped().set(true);
+                return;
+            }
+            log.accept("%n=== %s / %s / attempt %d/%d ===".formatted(eval.id(), spec.name(), attempt,
+                    ctx.attempts()));
+            Path ws = workspaces.freshCopy(eval, spec.name() + "-a" + attempt);
+            String baselineHash = ContentHashes.candidate(ws);
+
+            AgentRun agentRun;
+            Judgment verdict;
+            String candidateHash;
+            boolean untouched;
+            if (ctx.image() != null) {
+                // The agent container is destroyed before hidden tests are injected, so
+                // nothing it left running or wrote outside the workspace touches judging.
+                try (DockerSandbox.Container agentContainer = DockerSandbox.start(ws,
+                        Agents.expandAll(spec.env()), ctx.image())) {
+                    if ("codex".equals(spec.provider())) {
+                        agentContainer.seedCodexAuth(Path.of(System.getProperty("user.home"),
+                                ".codex", "auth.json"));
+                    }
+                    log.accept("running agent CLI in container " + agentContainer.name() + "...");
+                    agentRun = runAgentInContainer(agentContainer, spec, eval, log);
+                }
+                candidateHash = ContentHashes.candidate(ws);
+                untouched = baselineHash.equals(candidateHash);
+                log.accept("injecting hidden tests, judging with ./mvnw clean test in a fresh container...");
+                workspaces.injectEvalTests(eval, ws);
+                try (DockerSandbox.Container judgeContainer = DockerSandbox.start(ws,
+                        Map.of(), ctx.image())) {
+                    verdict = mavenJudge.judge(eval, ws, judgeContainer.buildRunner());
+                }
+            } else {
+                log.accept("running agent through AgentClient...");
+                agentRun = runAgent(spec, eval, ws, log);
+                candidateHash = ContentHashes.candidate(ws);
+                untouched = baselineHash.equals(candidateHash);
+                log.accept("injecting hidden tests, judging with ./mvnw clean test...");
+                workspaces.injectEvalTests(eval, ws);
+                verdict = mavenJudge.judge(eval, ws);
+            }
+            if (ctx.paid() && agentRun.costUsd() != null && agentRun.costUsd() > reservation) {
+                ctx.reserver().absorbOverrun(agentRun.costUsd() - reservation);
+            }
+
+            String failureKind = verdict.pass() ? null : failureKind(agentRun, verdict, ws, untouched);
+            String failureReason = verdict.pass() ? null
+                    : agentRun.error() != null ? agentRun.error()
+                    : untouched && "agent_error".equals(failureKind) ? untouchedReason(agentRun)
+                    : untouched ? "workspace unchanged after the agent ran; " + verdict.reasoning()
+                    : verdict.reasoning();
+            ctx.ledger().append(new RunRecord(spec.name(), spec.model(), eval.id(), eval.project(), attempt,
+                    verdict.pass(), agentRun.durationMs(), agentRun.costUsd(), ws.toString(),
+                    Instant.now().toString(), UUID.randomUUID().toString(), spec.provider(), "agent",
+                    evalHash, agentHash, ctx.benchmarkVersion(), failureKind, failureReason,
+                    ctx.recordedJavaVersion(), osName, osArch, cliVersion, "provider-default", ctx.attempts(),
+                    agentRun.inputTokens(), agentRun.outputTokens(), agentRun.totalTokens(),
+                    candidateHash, agentRun.responseText(), ctx.campaignId()));
+            log.accept(verdict.pass() ? "✓ PASSED" : "✗ failed");
+            if (verdict.pass()) {
+                break;
+            }
+        }
     }
 
     private record AgentRun(Long durationMs, Double costUsd, String error,
@@ -441,7 +503,8 @@ public class Main {
      * Runs the CLI headless in the container (the SDK adapters would spawn host
      * processes); only claude reports cost and tokens headlessly, others record null.
      */
-    private AgentRun runAgentInContainer(DockerSandbox.Container container, AgentSpec spec, EvalDefinition eval) {
+    private AgentRun runAgentInContainer(DockerSandbox.Container container, AgentSpec spec, EvalDefinition eval,
+            java.util.function.Consumer<String> log) {
         String prompt;
         try {
             prompt = Files.readString(eval.promptFile());
@@ -466,13 +529,13 @@ public class Main {
                     parsed.outputTokens(), total,
                     truncate(parsed.resultText() != null ? parsed.resultText() : result.output()));
         } catch (RuntimeException e) {
-            System.out.println("agent execution failed: " + e.getMessage());
+            log.accept("agent execution failed: " + e.getMessage());
             return new AgentRun(null, null, e.getClass().getSimpleName() + ": " + e.getMessage(),
                     null, null, null, null);
         }
     }
 
-    private AgentRun runAgent(AgentSpec spec, EvalDefinition eval, Path ws) {
+    private AgentRun runAgent(AgentSpec spec, EvalDefinition eval, Path ws, java.util.function.Consumer<String> log) {
         String prompt;
         try {
             prompt = Files.readString(eval.promptFile());
@@ -501,7 +564,7 @@ public class Main {
                     extractToken(response, "outputTokens", "output_tokens", "completionTokens", "completion_tokens"),
                     extractToken(response, "totalTokens", "total_tokens"), truncate(response.getResult()));
         } catch (Exception e) {
-            System.out.println("agent execution failed: " + e.getMessage());
+            log.accept("agent execution failed: " + e.getMessage());
             return new AgentRun(System.currentTimeMillis() - started, null,
                     e.getClass().getSimpleName() + ": " + e.getMessage(), null, null, null, null);
         } finally {
@@ -638,7 +701,10 @@ public class Main {
         } catch (Exception ignored) {
         }
         if (text.contains("required modern Spring mechanism") || text.contains("forbidden workaround")
-                || text.contains("suppress or redirect hidden tests")) {
+                || text.contains("suppress or redirect hidden tests")
+                || text.contains("pinned fixture file modified")
+                || text.contains("pinned path escapes the workspace")
+                || text.contains("pinned path is not a file in the project fixture")) {
             return "policy_failure";
         }
         if (text.contains("COMPILATION ERROR") || text.contains("Compilation failure")) {

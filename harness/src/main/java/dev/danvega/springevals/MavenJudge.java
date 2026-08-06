@@ -132,10 +132,17 @@ public class MavenJudge {
             }
 
             Path checksFile = eval.evalTestsDir().resolve("checks.json");
-            if (!applyMechanismChecks || !Files.exists(checksFile)) {
+            if (!Files.exists(checksFile)) {
                 return null;
             }
             SourceChecks checks = mapper.readValue(checksFile.toFile(), SourceChecks.class);
+            Judgment pinned = checkPinnedFixtures(eval, workspace, checks.pinned());
+            if (pinned != null) {
+                return pinned;
+            }
+            if (!applyMechanismChecks) {
+                return null;
+            }
             String sources = readMainSources(workspace);
             Judgment sourceResult = checkPatterns("source", sources, checks.requiredSourcePatterns(),
                     checks.forbiddenSourcePatterns());
@@ -146,6 +153,29 @@ public class MavenJudge {
         } catch (IOException e) {
             return Judgment.error("could not apply trusted candidate policy", e);
         }
+    }
+
+    /**
+     * A pinned file must be byte-identical to the eval's project fixture;
+     * deletion counts as modified. Workspace bytes only, so both sandbox
+     * modes enforce it identically.
+     */
+    private static Judgment checkPinnedFixtures(EvalDefinition eval, Path workspace, List<String> pinned)
+            throws IOException {
+        for (String declared : safe(pinned)) {
+            Path fixture = eval.projectDir().resolve(declared).normalize();
+            Path candidate = workspace.resolve(declared).normalize();
+            if (!fixture.startsWith(eval.projectDir().normalize()) || !candidate.startsWith(workspace.normalize())) {
+                return Judgment.fail("pinned path escapes the workspace: " + declared);
+            }
+            if (!Files.isRegularFile(fixture)) {
+                return Judgment.fail("pinned path is not a file in the project fixture: " + declared);
+            }
+            if (!Files.isRegularFile(candidate) || Files.mismatch(fixture, candidate) >= 0) {
+                return Judgment.fail("pinned fixture file modified: " + declared);
+            }
+        }
+        return null;
     }
 
     private static Judgment checkPatterns(String target, String text, List<String> required, List<String> forbidden) {
@@ -253,7 +283,7 @@ public class MavenJudge {
     }
 
     private record SourceChecks(List<String> requiredSourcePatterns, List<String> forbiddenSourcePatterns,
-            List<String> requiredPomPatterns, List<String> forbiddenPomPatterns) {
+            List<String> requiredPomPatterns, List<String> forbiddenPomPatterns, List<String> pinned) {
     }
 
     private void writeLog(Path workspace, Judgment judgment) {

@@ -1,0 +1,7 @@
+{
+  "enabledAgents": [
+    "claude-sonnet-5",
+    "codex-gpt-5-6-luna",
+    "gemini-3-6-flash"
+  ]
+}

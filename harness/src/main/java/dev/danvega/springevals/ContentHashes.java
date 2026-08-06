@@ -38,11 +38,11 @@ final class ContentHashes {
         String hash = tree(List.of(java.resolve("Main.java"), java.resolve("Agents.java"),
                 java.resolve("Workspaces.java"), java.resolve("MavenJudge.java"),
                 java.resolve("EvalDefinition.java"), java.resolve("EnvSandbox.java"),
-                java.resolve("DockerSandbox.java"),
+                java.resolve("DockerSandbox.java"), java.resolve("RunScheduler.java"),
                 repoRoot.resolve("harness/docker/Dockerfile"),
                 repoRoot.resolve("harness/pom.xml"), repoRoot.resolve("spring-evals")));
         // Bump the prefix only in a batch that changes measurement behavior; see docs/VERSIONS.md.
-        return "0.4.0+" + hash.substring(0, 12);
+        return "0.5.0+" + hash.substring(0, 12);
     }
 
     static String tree(List<Path> roots) {

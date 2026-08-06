@@ -99,7 +99,7 @@ class AgentDoctorContaminationTest {
         // Remote endpoint keeps auth READY so the level isolates the warnings.
         AgentSpec spec = new AgentSpec("qwen-test", "qwen-code", "model", Map.of(
                 "OPENAI_BASE_URL", "https://example.test/v1",
-                "OPENAI_API_KEY", "test-key"), 0.5, 0.1, true);
+                "OPENAI_API_KEY", "test-key"), 0.5, 0.1);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -134,7 +134,7 @@ class AgentDoctorContaminationTest {
     }
 
     private static AgentSpec codexSpec() {
-        return new AgentSpec("codex-test", "codex", "model", Map.of(), 0.5, 0.1, true);
+        return new AgentSpec("codex-test", "codex", "model", Map.of(), 0.5, 0.1);
     }
 
     private static FakeSystem geminiSystem() {
@@ -146,7 +146,7 @@ class AgentDoctorContaminationTest {
     }
 
     private static AgentSpec geminiSpec() {
-        return new AgentSpec("gemini-test", "gemini", "model", Map.of(), 0.5, 0.1, true);
+        return new AgentSpec("gemini-test", "gemini", "model", Map.of(), 0.5, 0.1);
     }
 
     private static final class FakeSystem implements AgentDoctor.SystemAccess {

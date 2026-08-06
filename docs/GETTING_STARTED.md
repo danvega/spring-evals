@@ -32,7 +32,7 @@ Do not set up all twelve agents. Pick the one CLI you already use, set it up fro
 ./spring-evals doctor --agent claude-sonnet-5
 ```
 
-Doctor checks the CLI, credentials, and billing source without sending a prompt or spending anything. Fix what it flags; ignore agents you did not set up. If you want `--all-agents` to skip the ones you have no keys for, set `"enabled": false` in their `agents/<name>.json`.
+Doctor checks the CLI, credentials, and billing source without sending a prompt or spending anything. Fix what it flags; ignore agents you did not set up. If you want `--all-agents` to skip the ones you have no keys for, copy `spring-evals.local.json.example` to `spring-evals.local.json` in the repo root and list the agents you use under `enabledAgents`.
 
 ## 4. See the price before you spend
 

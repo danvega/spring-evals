@@ -15,10 +15,19 @@ How to run evals without spending more than you intend, and how to keep results 
 --difficulty easy,medium
 --pilot                  # the designated three-eval pilot subset
 --attempts 1             # default is 1; retries are explicit
+--parallel 4             # run only, docker mode only: max concurrent containers (default 4, max 8)
 --run-name my-baseline   # names the run; omit for a generated name like eager-bean-42
 ```
 
-To keep an agent defined but out of `--all-agents` and `--family` selections, set `"enabled": false` in its `agents/<name>.json`. Naming it explicitly with `--agent` still runs it. This is the easy way to keep the full matrix on disk while only paying for the agents you have keys for.
+To keep agents defined but out of `--all-agents`, `--family`, and selector-less `estimate`, copy `spring-evals.local.json.example` to a gitignored `spring-evals.local.json` at the repo root and list the agents you actually run:
+
+```json
+{
+  "enabledAgents": ["claude-sonnet-5", "codex-gpt-5-6-luna"]
+}
+```
+
+An absent file or an absent `enabledAgents` key enables every agent. Naming an agent explicitly with `--agent` still runs it (with a printed note), and `doctor` still inspects every agent while annotating the excluded ones. This keeps the full matrix on disk while only paying for the agents you have keys for. Selection changes which agents commands pick up, never how an attempt is measured, so it is not part of result identity.
 
 ## Estimate first, always
 
@@ -42,6 +51,19 @@ Estimates come from `estCostPerAttemptUsd` in each agent config. Treat them as p
 ```
 
 Before each attempt the harness reserves that agent's configured estimate and stops before the campaign cap would be exceeded. This is an estimated reservation cap, not a provider billing guarantee. Agents without a configured estimate are refused entirely. Keep provider-side spend limits in place as the real backstop, and keep `--max-total-cost` below them.
+
+## Parallel execution
+
+In docker sandbox mode, `run` executes provider lanes (claude, codex, gemini, qwen-code) concurrently while attempts inside each lane stay strictly serial. The lane split follows the rate limits: provider limits apply per account, so two claude attempts at once fight over one account's quota, while a claude and a codex attempt do not. `--parallel <n>` caps concurrent containers; the default is 4 and the maximum is 8.
+
+```bash
+./spring-evals run --all-agents --pilot --attempts 1 --parallel 4 \
+  --allow-paid-run --max-total-cost 10
+```
+
+Host mode always runs serial, and passing `--parallel` with `--sandbox host` is refused: host isolation (EnvSandbox) mutates the one shared process environment per attempt, which concurrent attempts cannot share. Reservations against the campaign cap are atomic across lanes, and skip/`--force` semantics are identical to a serial run. One caveat: an actual cost above its estimate counts against the cap only when that attempt finishes, so concurrent in-flight overruns can edge past `--max-total-cost`. It remains an estimated reservation cap, not a billing guarantee; keep provider-side limits in place.
+
+Superseded content-addressed `spring-evals-bench` images accumulate as the Dockerfile changes; `docker image prune` or a manual `docker rmi` reclaims the space.
 
 ## A cost-control playbook
 

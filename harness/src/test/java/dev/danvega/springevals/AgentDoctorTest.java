@@ -23,7 +23,7 @@ class AgentDoctorTest {
         system.executables.put("claude", true);
         system.environment.put("ANTHROPIC_API_KEY", "sk-test");
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
-        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5, true);
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -36,7 +36,7 @@ class AgentDoctorTest {
         FakeSystem system = new FakeSystem();
         system.executables.put("claude", true);
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
-        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5, true);
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -52,7 +52,7 @@ class AgentDoctorTest {
         system.executables.put("claude", true);
         system.environment.put("CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat-test");
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
-        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5, true);
+        AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(), 2.0, 0.5);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -68,7 +68,7 @@ class AgentDoctorTest {
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
         AgentSpec spec = new AgentSpec("claude-test", "claude", "model", Map.of(
                 "CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat-test",
-                "ANTHROPIC_API_KEY", "sk-test"), 2.0, 0.5, true);
+                "ANTHROPIC_API_KEY", "sk-test"), 2.0, 0.5);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -84,7 +84,7 @@ class AgentDoctorTest {
         system.environment.put("ANTHROPIC_API_KEY", "sk-host");
         system.commands.put("claude --version", new CommandResult(0, "2.1.221 (Claude Code)", false));
         AgentSpec spec = new AgentSpec("claude-test", "claude", "model",
-                Map.of("CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat-test"), 2.0, 0.5, true);
+                Map.of("CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat-test"), 2.0, 0.5);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -101,7 +101,7 @@ class AgentDoctorTest {
         system.files.put(authPath, true);
         system.fileContents.put(authPath,
                 "{\"OPENAI_API_KEY\": null, \"auth_mode\": \"chatgpt\", \"tokens\": {\"access_token\": \"x\"}}");
-        AgentSpec spec = new AgentSpec("codex-test", "codex", "model", Map.of(), null, 0.5, true);
+        AgentSpec spec = new AgentSpec("codex-test", "codex", "model", Map.of(), null, 0.5);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -119,7 +119,7 @@ class AgentDoctorTest {
         system.files.put(authPath, true);
         system.fileContents.put(authPath,
                 "{\"OPENAI_API_KEY\": null, \"auth_mode\": \"chatgpt\", \"tokens\": {\"access_token\": \"x\"}}");
-        AgentSpec spec = new AgentSpec("codex-test", "codex", "model", Map.of(), null, 0.5, true);
+        AgentSpec spec = new AgentSpec("codex-test", "codex", "model", Map.of(), null, 0.5);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -134,7 +134,7 @@ class AgentDoctorTest {
         system.commands.put("claude --version", new CommandResult(0, "version", false));
         AgentSpec spec = new AgentSpec("kimi", "claude", "model", Map.of(
                 "ANTHROPIC_BASE_URL", "https://example.test/anthropic",
-                "ANTHROPIC_API_KEY", "${MISSING_KEY}"), 1.0, 0.3, true);
+                "ANTHROPIC_API_KEY", "${MISSING_KEY}"), 1.0, 0.3);
 
         var report = new AgentDoctor(system).inspect(spec);
 
@@ -151,7 +151,7 @@ class AgentDoctorTest {
         AgentSpec spec = new AgentSpec("local", "qwen-code", "local-model", Map.of(
                 "OPENAI_BASE_URL", "http://localhost:11434/v1",
                 "OPENAI_API_KEY", "local-placeholder",
-                "OPENAI_MODEL", "local-model"), null, 0.0, true);
+                "OPENAI_MODEL", "local-model"), null, 0.0);
 
         var report = new AgentDoctor(system).inspect(spec);
 

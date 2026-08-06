@@ -8,3 +8,4 @@ target/
 !.claude/agents/
 dashboard/*.png
 BACKLOG.md
+spring-evals.local.json

@@ -59,6 +59,7 @@ These rules keep the benchmark honest. PRs that break them will be asked to chan
 6. **Pin versions.** Use a released Spring Boot version in the pom, never snapshots. Note it in `eval.yaml`.
 7. **Keep it small.** Agents pay per token. A handful of source files is enough to make the task real.
 8. **Check required mechanisms deterministically.** If the prompt requires a specific modern Spring API, add `EVAL/checks.json` with required or forbidden regex patterns. Behavioral tests alone may accept a hand-written workaround.
+9. **Pin fixture files the agent must not touch.** If the prompt declares a test double or stub off-limits (for example a fake gateway the task must be solved around, not edited), list its workspace-relative path in a `pinned` array in `EVAL/checks.json`. The judge byte-compares every pinned file against `project/` before running tests and fails any modification or deletion as a `policy_failure`. Warning: never pin a file the task legitimately needs to edit; the reference solution would fail the same check and `validate` would reject the eval.
 
 Example mechanism policy:
 
@@ -67,7 +68,8 @@ Example mechanism policy:
   "requiredSourcePatterns": ["ProblemDetail"],
   "forbiddenSourcePatterns": ["@RequestHeader"],
   "requiredPomPatterns": ["spring-boot-starter-restclient"],
-  "forbiddenPomPatterns": ["resilience4j"]
+  "forbiddenPomPatterns": ["resilience4j"],
+  "pinned": ["src/main/java/com/example/FakePaymentGateway.java"]
 }
 ```
 
@@ -105,10 +107,10 @@ The benchmark version string (for example `0.3.0+11b0497585a6`) is part of resul
 - **Results with the same full version string are comparable.** That is what the version means. Nothing else.
 - **Bumps happen only in harness batches that change measurement behavior.** Isolation, judging, scoring, workspace handling. Exactly one bump per batch.
 - **Never bump for docs, dashboard, or eval-content changes.** Eval edits already rotate that eval's own content hash. Docs and dashboard are not part of measurement.
-- **Do not touch the hashed harness files outside a declared bump batch.** The hash suffix covers `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `EnvSandbox.java`, `DockerSandbox.java`, `harness/docker/Dockerfile`, `harness/pom.xml`, and `spring-evals`. A changed suffix under the same prefix means undeclared measurement drift, and the 0.2.0 era shows why that hurts.
+- **Do not touch the hashed harness files outside a declared bump batch.** The hash suffix covers `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `EnvSandbox.java`, `DockerSandbox.java`, `RunScheduler.java`, `harness/docker/Dockerfile`, `harness/pom.xml`, and `spring-evals`. A changed suffix under the same prefix means undeclared measurement drift, and the 0.2.0 era shows why that hurts.
 - **Every bump adds its row to [docs/VERSIONS.md](docs/VERSIONS.md) in the same commit** that changes the constant in `ContentHashes.java`.
 
-Current: 0.4.0 (container isolation). Planned: a deliberate 1.0.0 freeze after it stabilizes.
+Current: 0.5.0 (parallel lanes, selection config, pinned fixtures). Planned: a deliberate 1.0.0 freeze after container isolation stabilizes.
 
 ## Questions
 

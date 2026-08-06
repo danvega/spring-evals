@@ -31,7 +31,7 @@ import org.springaicommunity.agents.qwencode.QwenCodeAgentOptions;
 public class Agents {
 
     public record AgentSpec(String name, String provider, String model, Map<String, String> env,
-            Double budgetUsd, Double estCostPerAttemptUsd, boolean enabled) {
+            Double budgetUsd, Double estCostPerAttemptUsd) {
     }
 
     /**
@@ -66,8 +66,7 @@ public class Agents {
             AgentSpec spec = new AgentSpec(node.get("name").asText(), node.get("provider").asText(),
                     node.get("model").asText(), Map.copyOf(env),
                     node.has("budgetUsd") ? node.get("budgetUsd").asDouble() : null,
-                    node.has("estCostPerAttemptUsd") ? node.get("estCostPerAttemptUsd").asDouble() : null,
-                    !node.has("enabled") || node.get("enabled").asBoolean());
+                    node.has("estCostPerAttemptUsd") ? node.get("estCostPerAttemptUsd").asDouble() : null);
             validate(file, spec);
             return spec;
         } catch (IOException e) {
