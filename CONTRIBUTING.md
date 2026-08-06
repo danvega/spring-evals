@@ -110,7 +110,7 @@ The benchmark version string (for example `0.3.0+11b0497585a6`) is part of resul
 - **Do not touch the hashed harness files outside a declared bump batch.** The hash suffix covers `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `EnvSandbox.java`, `DockerSandbox.java`, `RunScheduler.java`, `harness/docker/Dockerfile`, `harness/pom.xml`, and `spring-evals`. A changed suffix under the same prefix means undeclared measurement drift, and the 0.2.0 era shows why that hurts.
 - **Every bump adds its row to [docs/VERSIONS.md](docs/VERSIONS.md) in the same commit** that changes the constant in `ContentHashes.java`.
 
-Current: 0.5.0 (parallel lanes, selection config, pinned fixtures). Planned: a deliberate 1.0.0 freeze after container isolation stabilizes.
+Current: 0.5.0 (parallel lanes, selection config, pinned fixtures). The measurement core is now frozen: a version bump requires a measurement-correctness reason, and 1.0.0 is declared only after the full matrix has run at least twice under one unchanged version (minor versions are unbounded, so there is no pressure to ever reach it).
 
 ## Questions
 

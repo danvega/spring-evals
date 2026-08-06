@@ -30,6 +30,8 @@ The policy in [CONTRIBUTING.md](../CONTRIBUTING.md#3-versioning-harness-changes)
 
 ## Planned
 
-- 1.0.0: a deliberate freeze after container isolation stabilizes. From 1.0.0 on, the leaderboard cohort is expected to stay stable for long stretches.
+- 1.0.0: a deliberate declaration, never an increment. Minor versions are unbounded (0.9.0 is followed by 0.10.0), so no number of fixes "reaches" 1.0.0 on its own. It is declared only after demonstrated stability: the full agent matrix has run at least twice under one unchanged version, with zero hashed-file changes in between. Until then the project stays at 0.x however long that takes.
+
+A note on the early pace, so it is never cited as precedent: three bumps landed within days of each other because each fixed a measurement-invalidating defect. The 0.3.0 bump rotated cohorts already voided as contaminated, and the 0.5.0 bump rotated an empty one, but the 0.4.0 bump knowingly sacrificed a small healthy cohort (one eval's worth of trusted 0.3.0 results) to get container isolation in before results accumulated. That trade gets worse every week the catalog grows. Once real results accumulate, the default answer to "should this bump the version" is no: a bump requires a measurement-correctness reason, and convenience never qualifies.
 
 Each future bump adds a row to this table in the same commit that changes the version constant.
