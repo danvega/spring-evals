@@ -1,10 +1,237 @@
 {
-  "generated" : "2026-08-06T00:21:01.703959Z",
+  "generated" : "2026-08-06T03:21:44.502986Z",
   "sample" : false,
-  "spendUsd" : 0.0,
-  "spendPartial" : true,
-  "estSpendUsd" : null,
+  "spendUsd" : 17.4990931,
+  "spendPartial" : false,
+  "estSpendUsd" : 24.419999999999998,
   "runs" : [ {
+    "id" : "lazy-cache-39",
+    "started" : "2026-08-06T02:19:24.145144Z",
+    "agents" : [ "claude-fable-5", "claude-haiku-4-5", "claude-opus-5", "claude-sonnet-5" ],
+    "evals" : 6,
+    "attempts" : 24,
+    "passed" : 17,
+    "recordedCostUsd" : 17.4990931,
+    "benchmarkVersion" : "0.5.0+d447e969230a",
+    "findings" : "The first paid run under the frozen 0.5.0 harness, and the first ever through containers: Claude family, all six boot evals, one attempt each, 24 attempts. Every record carries the `docker:` prefix, proving the whole run executed in per-attempt containers.\n\n**Infrastructure: perfect.** Zero agent errors, zero judge errors, zero no-verdict rows. The container agent path, the container judge, the selection config, and subscription billing all worked on their first live outing. The docker agent path is no longer unproven; this run is its proof.\n\n**The first leaderboard-eligible rows in project history.** Full 6/6 coverage means no \"partial\" tags:\n\n- claude-fable-5: 6/6, 100% Pass@1, fastest and cheapest of the top tier (93s, $0.89 plan-equivalent per task).\n- claude-opus-5: 6/6, 100%, twice fable's tokens and time for the same verdicts.\n- claude-sonnet-5: 5/6, 83%. Its one miss is Jackson 3: it migrated the code without adopting `tools.jackson.databind.json.JsonMapper`, the exact new-API knowledge the eval measures.\n- claude-haiku-4-5: 0/6. Every failure is a policy_failure, and they tell one coherent story: haiku ships pre-Boot-4 idioms. Missing `spring-boot-starter-restclient`, missing the webmvc starter, hand-rolled `Flyway.configure` instead of the Boot 4 module, and so on. It often produces code that runs; the mechanism checks catch that it is last year's Spring.\n\n**What this says about the benchmark itself:** the six evals now separate a model family into four distinct tiers (100 / 100 / 83 / 0) with tightening confidence intervals (fable and opus at 61 to 100 percent, haiku at 0 to 39). One suite and one family is still a narrow lens, but this is the first result set with no asterisks: honest isolation, identical toolchains, hidden judges, and every verdict a real one.\n\n**Cost:** $17.50 plan-equivalent accounting, $0.00 billed; the whole run drew on the Max subscription. Wall clock about two hours, serial within the single provider lane. The parallel scheduler remains free-verified only; it needs a multi-provider run to earn its proof.\n\n**Nothing to fix.** First run in project history where the findings contain no infrastructure section and no follow-up list.",
+    "detail" : [ {
+      "agent" : "claude-fable-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 104846,
+      "costUsd" : 1.065259,
+      "totalTokens" : 7624
+    }, {
+      "agent" : "claude-fable-5",
+      "eval" : "boot/001-modular-autoconfig",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 104807,
+      "costUsd" : 0.9595459999999998,
+      "totalTokens" : 6087
+    }, {
+      "agent" : "claude-fable-5",
+      "eval" : "boot/002-restclient-migration",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 100421,
+      "costUsd" : 0.8975409999999999,
+      "totalTokens" : 5134
+    }, {
+      "agent" : "claude-fable-5",
+      "eval" : "boot/003-jackson3-migration",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 133599,
+      "costUsd" : 1.1683379999999999,
+      "totalTokens" : 7260
+    }, {
+      "agent" : "claude-fable-5",
+      "eval" : "boot/004-flyway-module",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 69814,
+      "costUsd" : 0.750631,
+      "totalTokens" : 4722
+    }, {
+      "agent" : "claude-fable-5",
+      "eval" : "boot/005-h2-console",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 43415,
+      "costUsd" : 0.49355099999999996,
+      "totalTokens" : 2860
+    }, {
+      "agent" : "claude-haiku-4-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 72474,
+      "costUsd" : 0.09736259999999998,
+      "totalTokens" : 4171
+    }, {
+      "agent" : "claude-haiku-4-5",
+      "eval" : "boot/001-modular-autoconfig",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 301973,
+      "costUsd" : 0.4146133999999999,
+      "totalTokens" : 17845
+    }, {
+      "agent" : "claude-haiku-4-5",
+      "eval" : "boot/002-restclient-migration",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 114184,
+      "costUsd" : 0.11259170000000002,
+      "totalTokens" : 5146
+    }, {
+      "agent" : "claude-haiku-4-5",
+      "eval" : "boot/003-jackson3-migration",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 164015,
+      "costUsd" : 0.2137322,
+      "totalTokens" : 12614
+    }, {
+      "agent" : "claude-haiku-4-5",
+      "eval" : "boot/004-flyway-module",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 247224,
+      "costUsd" : 0.25719289999999995,
+      "totalTokens" : 12931
+    }, {
+      "agent" : "claude-haiku-4-5",
+      "eval" : "boot/005-h2-console",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 212399,
+      "costUsd" : 0.26599209999999995,
+      "totalTokens" : 12310
+    }, {
+      "agent" : "claude-opus-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 193432,
+      "costUsd" : 1.0254474999999998,
+      "totalTokens" : 13115
+    }, {
+      "agent" : "claude-opus-5",
+      "eval" : "boot/001-modular-autoconfig",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 199374,
+      "costUsd" : 1.0094744999999998,
+      "totalTokens" : 12240
+    }, {
+      "agent" : "claude-opus-5",
+      "eval" : "boot/002-restclient-migration",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 226917,
+      "costUsd" : 1.2088155,
+      "totalTokens" : 10832
+    }, {
+      "agent" : "claude-opus-5",
+      "eval" : "boot/003-jackson3-migration",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 226162,
+      "costUsd" : 1.4922475,
+      "totalTokens" : 15947
+    }, {
+      "agent" : "claude-opus-5",
+      "eval" : "boot/004-flyway-module",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 155218,
+      "costUsd" : 1.0560100000000001,
+      "totalTokens" : 10581
+    }, {
+      "agent" : "claude-opus-5",
+      "eval" : "boot/005-h2-console",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 126949,
+      "costUsd" : 0.7346030000000001,
+      "totalTokens" : 7688
+    }, {
+      "agent" : "claude-sonnet-5",
+      "eval" : "boot/000-initializr-parity",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 155356,
+      "costUsd" : 0.7112624999999999,
+      "totalTokens" : 9452
+    }, {
+      "agent" : "claude-sonnet-5",
+      "eval" : "boot/001-modular-autoconfig",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 138479,
+      "costUsd" : 0.5766045,
+      "totalTokens" : 7327
+    }, {
+      "agent" : "claude-sonnet-5",
+      "eval" : "boot/002-restclient-migration",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 78933,
+      "costUsd" : 0.49511450000000007,
+      "totalTokens" : 5903
+    }, {
+      "agent" : "claude-sonnet-5",
+      "eval" : "boot/003-jackson3-migration",
+      "attempt" : 1,
+      "passed" : false,
+      "failureKind" : "policy_failure",
+      "durationMs" : 196850,
+      "costUsd" : 1.3329021,
+      "totalTokens" : 14241
+    }, {
+      "agent" : "claude-sonnet-5",
+      "eval" : "boot/004-flyway-module",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 151112,
+      "costUsd" : 0.6122524999999999,
+      "totalTokens" : 6970
+    }, {
+      "agent" : "claude-sonnet-5",
+      "eval" : "boot/005-h2-console",
+      "attempt" : 1,
+      "passed" : true,
+      "failureKind" : null,
+      "durationMs" : 94017,
+      "costUsd" : 0.5480081,
+      "totalTokens" : 5588
+    } ]
+  }, {
     "id" : "sturdy-mono-00",
     "started" : "2026-08-05T20:02:31.866067Z",
     "agents" : [ "claude-fable-5", "claude-haiku-4-5", "claude-opus-5", "claude-sonnet-5" ],
@@ -392,10 +619,124 @@
     } ]
   } ],
   "noVerdict" : [ ],
-  "agents" : [ ],
+  "agents" : [ {
+    "agent" : "claude-fable-5",
+    "model" : "claude-fable-5",
+    "evals" : 6,
+    "totalEvals" : 6,
+    "attempts" : 6,
+    "eligible" : true,
+    "coverage" : 1.0,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.6096657120978346,
+    "ciUpper" : 1.0,
+    "avgTokens" : 5615,
+    "avgDurationS" : 92.81700000000001,
+    "avgCostUsd" : 0.8891443333333333,
+    "costPerPassUsd" : 0.8891443333333333,
+    "totalCostUsd" : 5.334866
+  }, {
+    "agent" : "claude-opus-5",
+    "model" : "claude-opus-5",
+    "evals" : 6,
+    "totalEvals" : 6,
+    "attempts" : 6,
+    "eligible" : true,
+    "coverage" : 1.0,
+    "successRate" : 1.0,
+    "firstTryRate" : 1.0,
+    "ciLower" : 0.6096657120978346,
+    "ciUpper" : 1.0,
+    "avgTokens" : 11734,
+    "avgDurationS" : 188.00866666666664,
+    "avgCostUsd" : 1.0877663333333334,
+    "costPerPassUsd" : 1.0877663333333334,
+    "totalCostUsd" : 6.526598
+  }, {
+    "agent" : "claude-sonnet-5",
+    "model" : "claude-sonnet-5",
+    "evals" : 6,
+    "totalEvals" : 6,
+    "attempts" : 6,
+    "eligible" : true,
+    "coverage" : 1.0,
+    "successRate" : 0.8333333333333334,
+    "firstTryRate" : 0.8333333333333334,
+    "ciLower" : 0.43649717781352987,
+    "ciUpper" : 0.9699466302516935,
+    "avgTokens" : 8247,
+    "avgDurationS" : 135.79116666666667,
+    "avgCostUsd" : 0.7126907,
+    "costPerPassUsd" : 0.85522884,
+    "totalCostUsd" : 4.2761442
+  }, {
+    "agent" : "claude-haiku-4-5",
+    "model" : "claude-haiku-4-5-20251001",
+    "evals" : 6,
+    "totalEvals" : 6,
+    "attempts" : 6,
+    "eligible" : true,
+    "coverage" : 1.0,
+    "successRate" : 0.0,
+    "firstTryRate" : 0.0,
+    "ciLower" : 2.7755575615628914E-17,
+    "ciUpper" : 0.3903342879021653,
+    "avgTokens" : 10836,
+    "avgDurationS" : 185.37816666666666,
+    "avgCostUsd" : 0.22691414999999995,
+    "costPerPassUsd" : null,
+    "totalCostUsd" : 1.3614848999999998
+  } ],
   "projects" : [ "boot" ],
-  "byProject" : { },
-  "byEval" : { },
+  "byProject" : {
+    "claude-fable-5" : {
+      "boot" : [ 6, 6, 6 ]
+    },
+    "claude-haiku-4-5" : {
+      "boot" : [ 0, 6, 6 ]
+    },
+    "claude-opus-5" : {
+      "boot" : [ 6, 6, 6 ]
+    },
+    "claude-sonnet-5" : {
+      "boot" : [ 5, 6, 6 ]
+    }
+  },
+  "byEval" : {
+    "claude-fable-5" : {
+      "boot/000-initializr-parity" : true,
+      "boot/001-modular-autoconfig" : true,
+      "boot/002-restclient-migration" : true,
+      "boot/003-jackson3-migration" : true,
+      "boot/004-flyway-module" : true,
+      "boot/005-h2-console" : true
+    },
+    "claude-haiku-4-5" : {
+      "boot/000-initializr-parity" : false,
+      "boot/001-modular-autoconfig" : false,
+      "boot/002-restclient-migration" : false,
+      "boot/003-jackson3-migration" : false,
+      "boot/004-flyway-module" : false,
+      "boot/005-h2-console" : false
+    },
+    "claude-opus-5" : {
+      "boot/000-initializr-parity" : true,
+      "boot/001-modular-autoconfig" : true,
+      "boot/002-restclient-migration" : true,
+      "boot/003-jackson3-migration" : true,
+      "boot/004-flyway-module" : true,
+      "boot/005-h2-console" : true
+    },
+    "claude-sonnet-5" : {
+      "boot/000-initializr-parity" : true,
+      "boot/001-modular-autoconfig" : true,
+      "boot/002-restclient-migration" : true,
+      "boot/003-jackson3-migration" : false,
+      "boot/004-flyway-module" : true,
+      "boot/005-h2-console" : true
+    }
+  },
   "evals" : [ {
     "id" : "boot/000-initializr-parity",
     "project" : "boot",
