@@ -14,6 +14,7 @@ Our API has a published JSON contract that clients depend on. It must not change
 Constraints:
 
 - Do not add, remove, downgrade, or pin any dependencies in `pom.xml`
+- Keep Spring Boot's auto-configured JSON mapper in charge of JSON. Configure it; do not replace it with a mapper you build yourself.
 - Keep all four endpoints working: list, get by id, create, export
 
 You are done when `./mvnw clean compile` passes and the running app still honors the contract above.
