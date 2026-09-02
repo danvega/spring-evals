@@ -4,7 +4,7 @@ We upgraded this quotes service from Spring Boot 3.5 to Spring Boot 4.0 and the 
 
 While you are in there, the team wants this done properly rather than patched:
 
-- Use the current Spring Boot HTTP client stack with its auto-configured builder, so platform-level customizations (timeouts, observability) keep applying to our outbound calls
+- Use the current Spring Boot HTTP client stack with its auto-configured builder. The platform team's client customizations (timeouts, headers, observability) must keep applying to our outbound calls
 - Do not construct clients by hand with `new`
 - You may add Spring Boot starters to the pom if something is missing; no third-party libraries
 - `GET /api/quotes` must keep returning the quotes from the partner API
