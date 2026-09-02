@@ -103,7 +103,7 @@ public class Main {
 
     int doctor(Map<String, String> opts) {
         // The full probe is opt-in: a first-use image build takes minutes a plain doctor call must not trigger.
-        boolean probe = opts.containsKey("docker") || "docker".equals(opts.get("sandbox"));
+        boolean probe = opts.containsKey("docker");
         boolean dockerCheckFailed = false;
         if (probe) {
             List<EvalDefinition> all = catalog.all();

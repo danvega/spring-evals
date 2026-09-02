@@ -35,7 +35,7 @@ final class ContentHashes {
 
     static String benchmark(Path repoRoot) {
         Path java = repoRoot.resolve("harness/src/main/java/dev/danvega/springevals");
-        String hash = tree(List.of(java.resolve("Main.java"), java.resolve("Workspaces.java"),
+        String hash = tree(List.of(java.resolve("Main.java"), java.resolve("Agents.java"), java.resolve("Workspaces.java"),
                 java.resolve("MavenJudge.java"), java.resolve("EvalDefinition.java"),
                 java.resolve("DockerSandbox.java"), java.resolve("RunScheduler.java"),
                 java.resolve("cli"),

@@ -4,9 +4,9 @@ A benchmark that measures how well AI models and coding agents write real Spring
 
 ## Layout
 
-- `evals/<project>/<nnn>-<name>/` — one eval per directory, suites mirror spring.io/projects. Each eval: `PROMPT.md` (symptom-based task), `project/` (workspace the agent gets), `EVAL/` (hidden tests + optional `checks.json`), `SOLUTION/` (reference fix, CI-only), `eval.yaml` (metadata).
-- `harness/` — plain Java 25 Maven app with no framework dependencies. Each agent CLI is one `AgentCli` implementation under `harness/src/main/java/dev/danvega/springevals/cli/`. Entry point is the `./spring-evals` wrapper at repo root.
-- `agents/*.json` — one (CLI, model) pair per file. `dashboard/` — static results page. `docs/` — GETTING_STARTED.md (newcomer path), METHODOLOGY.md (what a row means), AGENT_SETUP.md (platform signup, keys, CLIs), RUNNING.md (cost control and run workflows).
+- `evals/<project>/<nnn>-<name>/`: one eval per directory, suites mirror spring.io/projects. Each eval: `PROMPT.md` (symptom-based task), `project/` (workspace the agent gets), `EVAL/` (hidden tests + optional `checks.json`), `SOLUTION/` (reference fix, CI-only), `eval.yaml` (metadata).
+- `harness/`: plain Java 25 Maven app with no framework dependencies. Each agent CLI is one `AgentCli` implementation under `harness/src/main/java/dev/danvega/springevals/cli/`. Entry point is the `./spring-evals` wrapper at repo root.
+- `agents/*.json`: one (CLI, model) pair per file. `dashboard/` — static results page. `docs/` — GETTING_STARTED.md (newcomer path), METHODOLOGY.md (what a row means), AGENT_SETUP.md (platform signup, keys, CLIs), RUNNING.md (cost control and run workflows).
 
 ## Commands
 
