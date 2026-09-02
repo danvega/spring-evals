@@ -1,12 +1,13 @@
 {
   "requiredSourcePatterns": [
-    "RestClient\\.Builder"
+    "RestClient\\.Builder|RestClientBuilderConfigurer|\\bImportHttpServices\\b"
   ],
   "requiredPomPatterns": [
     "spring-boot-starter-restclient"
   ],
   "forbiddenSourcePatterns": [
-    "new\\s+RestClient",
+    "RestClient\\s*\\.\\s*create\\s*\\(",
+    "\\A(?!.*RestClientBuilderConfigurer).*RestClient\\s*\\.\\s*builder\\s*\\(",
     "import\\s+[\\w.]*\\bRestTemplate",
     "org\\.springframework\\.web\\.client\\.RestTemplate\\b"
   ]
