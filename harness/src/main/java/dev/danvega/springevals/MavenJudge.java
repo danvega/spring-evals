@@ -5,7 +5,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -13,23 +12,16 @@ import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.springaicommunity.judge.context.JudgmentContext;
-import org.springaicommunity.judge.exec.CommandJudge;
-import org.springaicommunity.judge.result.Judgment;
-
-/**
- * Deterministic verdict tier; host and docker mode must run the exact same
- * Maven command, and JUDGE_COMMAND is the single source of it.
- */
+/** Deterministic verdict tier; JUDGE_COMMAND is the single source of the judged build command. */
 public class MavenJudge {
 
     private static final Duration MAVEN_TIMEOUT = Duration.ofMinutes(15);
 
-    /** The one judged build command. Host and docker mode must not diverge. */
+    /** The one judged build command. Validate and run must not diverge. */
     static final List<String> JUDGE_COMMAND = List.of("./mvnw", "-B", "-ntp",
             "-Dmaven.test.skip=false", "-DskipTests=false", "clean", "test");
 
-    /** Executes the judged build in a specific environment (e.g. the attempt's container). */
+    /** Executes the judged build in a specific environment (the attempt's fresh judge container). */
     interface BuildRunner {
         BuildResult run(Path workspace, List<String> command, Duration timeout);
     }
@@ -47,23 +39,13 @@ public class MavenJudge {
             Pattern.compile("maven\\.test\\.failure\\.ignore", Pattern.CASE_INSENSITIVE),
             Pattern.compile("testFailureIgnore", Pattern.CASE_INSENSITIVE));
 
-    private final CommandJudge delegate = new CommandJudge(
-            String.join(" ", JUDGE_COMMAND), 0, MAVEN_TIMEOUT);
     private final ObjectMapper mapper = new ObjectMapper();
-
-    public Judgment judge(EvalDefinition eval, Path workspace) {
-        return judge(eval, workspace, true, null);
-    }
-
-    /** Used for the intentionally broken baseline, before mechanism requirements are expected to hold. */
-    public Judgment judgeBehaviorOnly(EvalDefinition eval, Path workspace) {
-        return judge(eval, workspace, false, null);
-    }
 
     public Judgment judge(EvalDefinition eval, Path workspace, BuildRunner runner) {
         return judge(eval, workspace, true, runner);
     }
 
+    /** Used for the intentionally broken baseline, before mechanism requirements are expected to hold. */
     public Judgment judgeBehaviorOnly(EvalDefinition eval, Path workspace, BuildRunner runner) {
         return judge(eval, workspace, false, runner);
     }
@@ -78,7 +60,7 @@ public class MavenJudge {
             writeLog(workspace, policy);
             return policy;
         }
-        Judgment judgment = runner == null ? judgeOnHost(eval, workspace) : judgeWithRunner(workspace, runner);
+        Judgment judgment = judgeWithRunner(workspace, runner);
         if (judgment.pass()) {
             Judgment reports = verifyHiddenTestsExecuted(eval, workspace);
             if (reports != null) {
@@ -90,33 +72,15 @@ public class MavenJudge {
         return judgment;
     }
 
-    private Judgment judgeOnHost(EvalDefinition eval, Path workspace) {
-        return delegate.judge(JudgmentContext.builder()
-                .goal("Hidden eval tests for " + eval.id())
-                .workspace(workspace)
-                .executionTime(Duration.ZERO)
-                .startedAt(Instant.now())
-                .build());
-    }
-
     private static Judgment judgeWithRunner(Path workspace, BuildRunner runner) {
         BuildResult result = runner.run(workspace, JUDGE_COMMAND, MAVEN_TIMEOUT);
+        String output = result.output() == null ? "" : result.output();
         if (result.timedOut()) {
-            return Judgment.builder()
-                    .status(org.springaicommunity.judge.result.JudgmentStatus.FAIL)
-                    .reasoning("judged build timed out after " + MAVEN_TIMEOUT.toMinutes() + " minutes")
-                    .metadata("output", result.output() == null ? "" : result.output())
-                    .build();
+            return Judgment.fail("judged build timed out after " + MAVEN_TIMEOUT.toMinutes() + " minutes", output);
         }
-        return Judgment.builder()
-                .status(result.exitCode() == 0
-                        ? org.springaicommunity.judge.result.JudgmentStatus.PASS
-                        : org.springaicommunity.judge.result.JudgmentStatus.FAIL)
-                .reasoning(result.exitCode() == 0
-                        ? "Command completed successfully with exit code 0"
-                        : "Command failed with exit code " + result.exitCode())
-                .metadata("output", result.output() == null ? "" : result.output())
-                .build();
+        return result.exitCode() == 0
+                ? Judgment.pass("Command completed successfully with exit code 0", output)
+                : Judgment.fail("Command failed with exit code " + result.exitCode(), output);
     }
 
     private Judgment validateCandidatePolicy(EvalDefinition eval, Path workspace, boolean applyMechanismChecks) {
@@ -157,8 +121,7 @@ public class MavenJudge {
 
     /**
      * A pinned file must be byte-identical to the eval's project fixture;
-     * deletion counts as modified. Workspace bytes only, so both sandbox
-     * modes enforce it identically.
+     * deletion counts as modified. Workspace bytes only.
      */
     private static Judgment checkPinnedFixtures(EvalDefinition eval, Path workspace, List<String> pinned)
             throws IOException {
@@ -287,10 +250,9 @@ public class MavenJudge {
     }
 
     private void writeLog(Path workspace, Judgment judgment) {
-        Object output = judgment.metadata() != null ? judgment.metadata().get("output") : null;
-        if (output != null) {
+        if (judgment.output() != null) {
             try {
-                Files.writeString(workspace.resolve("maven-output.log"), output.toString());
+                Files.writeString(workspace.resolve("maven-output.log"), judgment.output());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

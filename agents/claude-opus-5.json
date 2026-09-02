@@ -5,6 +5,5 @@
   "env": {
     "CLAUDE_CODE_OAUTH_TOKEN": "${CLAUDE_BENCH_OAUTH_TOKEN}"
   },
-  "budgetUsd": 3.0,
   "estCostPerAttemptUsd": 1.45
 }

@@ -1,0 +1,4 @@
+dev.danvega.springevals.cli.ClaudeCli
+dev.danvega.springevals.cli.CodexCli
+dev.danvega.springevals.cli.GeminiCli
+dev.danvega.springevals.cli.QwenCodeCli

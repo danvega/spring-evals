@@ -7,53 +7,14 @@
 	<artifactId>spring-evals-harness</artifactId>
 	<version>0.1.0</version>
 	<name>Spring Evals Harness</name>
-	<description>Runs Spring Evals through the Spring AI Community Agent Client</description>
+	<description>Runs Spring Evals: agent CLIs and the judge in containers</description>
 
 	<properties>
 		<maven.compiler.release>25</maven.compiler.release>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<agent-client.version>0.16.0</agent-client.version>
-		<agent-judge.version>0.9.1</agent-judge.version>
 	</properties>
 
 	<dependencies>
-		<dependency>
-			<groupId>org.springaicommunity.agents</groupId>
-			<artifactId>agent-client-core</artifactId>
-			<version>${agent-client.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springaicommunity.agents</groupId>
-			<artifactId>agent-claude</artifactId>
-			<version>${agent-client.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springaicommunity.agents</groupId>
-			<artifactId>agent-codex</artifactId>
-			<version>${agent-client.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springaicommunity.agents</groupId>
-			<artifactId>agent-gemini</artifactId>
-			<version>${agent-client.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springaicommunity.agents</groupId>
-			<artifactId>agent-qwen-code</artifactId>
-			<version>${agent-client.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springaicommunity</groupId>
-			<artifactId>agent-judge-core</artifactId>
-			<version>${agent-judge.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springaicommunity</groupId>
-			<artifactId>agent-judge-exec</artifactId>
-			<version>${agent-judge.version}</version>
-		</dependency>
-
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
@@ -73,10 +34,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.5.2</version>
-				<configuration>
-					<!-- EnvSandbox mutates the process environment for agent isolation -->
-					<argLine>--add-opens java.base/java.lang=ALL-UNNAMED --enable-native-access=ALL-UNNAMED</argLine>
-				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>

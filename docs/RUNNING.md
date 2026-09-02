@@ -15,7 +15,7 @@ How to run evals without spending more than you intend, and how to keep results 
 --difficulty easy,medium
 --pilot                  # the designated three-eval pilot subset
 --attempts 1             # default is 1; retries are explicit
---parallel 4             # run only, docker mode only: max concurrent containers (default 4, max 8)
+--parallel 4             # run only: max concurrent containers, one lane per agent CLI (default 4, max 8)
 --run-name my-baseline   # names the run; omit for a generated name like eager-bean-42
 ```
 
@@ -54,14 +54,14 @@ Before each attempt the harness reserves that agent's configured estimate and st
 
 ## Parallel execution
 
-In docker sandbox mode, `run` executes provider lanes (claude, codex, gemini, qwen-code) concurrently while attempts inside each lane stay strictly serial. The lane split follows the rate limits: provider limits apply per account, so two claude attempts at once fight over one account's quota, while a claude and a codex attempt do not. `--parallel <n>` caps concurrent containers; the default is 4 and the maximum is 8.
+`run` executes one lane per agent CLI (claude, codex, gemini, qwen-code) concurrently while attempts inside each lane stay strictly serial. The lane split follows the rate limits: provider limits apply per account, so two claude attempts at once fight over one account's quota, while a claude and a codex attempt do not. `--parallel <n>` caps concurrent containers; the default is 4 and the maximum is 8.
 
 ```bash
 ./spring-evals run --all-agents --pilot --attempts 1 --parallel 4 \
   --allow-paid-run --max-total-cost 10
 ```
 
-Host mode always runs serial, and passing `--parallel` with `--sandbox host` is refused: host isolation (EnvSandbox) mutates the one shared process environment per attempt, which concurrent attempts cannot share. Reservations against the campaign cap are atomic across lanes, and skip/`--force` semantics are identical to a serial run. One caveat: an actual cost above its estimate counts against the cap only when that attempt finishes, so concurrent in-flight overruns can edge past `--max-total-cost`. It remains an estimated reservation cap, not a billing guarantee; keep provider-side limits in place.
+Reservations against the campaign cap are atomic across lanes, and skip/`--force` semantics are identical to a serial run. One caveat: an actual cost above its estimate counts against the cap only when that attempt finishes, so concurrent in-flight overruns can edge past `--max-total-cost`. It remains an estimated reservation cap, not a billing guarantee; keep provider-side limits in place.
 
 Superseded content-addressed `spring-evals-bench` images accumulate as the Dockerfile changes; `docker image prune` or a manual `docker rmi` reclaims the space.
 
@@ -71,7 +71,7 @@ Superseded content-addressed `spring-evals-bench` images accumulate as the Docke
 - Smoke-test a new agent with `--difficulty easy` before a full run.
 - Scope with `--eval` or `--project` while iterating on anything.
 - Single attempts keep expected cost equal to worst case. Retries are where spend concentrates.
-- Claude-family configs carry a per-attempt `budgetUsd` cap that host mode passes to the CLI. Docker mode cannot pass it (the CLI runs headless in a container); there the campaign cap works from per-attempt estimates plus claude-reported actual costs, and the run prints a note saying so. Set per-model limits in provider dashboards either way.
+- Per-attempt budget caps cannot be passed to a headless CLI inside a container. The campaign cap works from per-attempt estimates plus claude-reported actual costs. Set per-model limits in provider dashboards as the real backstop.
 - Every eval project builds with `-ntp`, so agents do not burn tokens reading Maven download logs.
 
 ## Memoization and when you pay again
@@ -100,7 +100,7 @@ cat > agents/new-hotness.json <<'JSON'
   "name": "new-hotness",
   "provider": "claude",
   "model": "the-new-model-id",
-  "budgetUsd": 3.00,
+  "env": { "CLAUDE_CODE_OAUTH_TOKEN": "${CLAUDE_BENCH_OAUTH_TOKEN}" },
   "estCostPerAttemptUsd": 1.00
 }
 JSON
@@ -119,10 +119,10 @@ JSON
 
 Every existing row stays comparable because the evals did not change under it.
 
-Supported providers today: `claude`, `codex`, `gemini`, and `qwen-code`. A new model on an existing provider is just another JSON file. A new provider is one more case in the harness's `Agents.java`, or a custom `AgentModel` for CLIs the Agent Client does not cover yet. The optional `env` map in a config is passed to the agent CLI process, and values can reference host environment variables with `${VAR}`.
+Supported providers today: `claude`, `codex`, `gemini`, and `qwen-code`. A new model on an existing provider is just another JSON file. A new agent CLI is one `AgentCli` implementation under `harness/src/main/java/dev/danvega/springevals/cli/` (headless command, seeded files, output parsing, doctor checks), one line in `META-INF/services`, and its pinned install line in `harness/docker/Dockerfile`. The `env` map in a config is the only host state passed into the attempt's container, and values can reference host environment variables with `${VAR}`.
 
 ## Open and local models
 
-Frontier models are only half the story. The same harness runs open-weight models by pointing an agent CLI at a compatible endpoint: Kimi K3 through Moonshot's Anthropic-compatible endpoint, Grok 4.5 through xAI's OpenAI-compatible endpoint, and anything Ollama serves locally through the Qwen Code CLI. Setup for each is in [AGENT_SETUP.md](AGENT_SETUP.md).
+Frontier models are only half the story. The same harness runs open-weight models by pointing an agent CLI at a compatible endpoint: Kimi K3 through Moonshot's Anthropic-compatible endpoint, Grok 4.5 through xAI's OpenAI-compatible endpoint, and anything Ollama serves on the host through the Qwen Code CLI. Local servers are addressed as `host.docker.internal`, never `localhost`, because inside the container localhost is the container. Setup for each is in [AGENT_SETUP.md](AGENT_SETUP.md).
 
 Cost for local models reports as n/a. Duration still comes through, which is half the story for local models anyway.
