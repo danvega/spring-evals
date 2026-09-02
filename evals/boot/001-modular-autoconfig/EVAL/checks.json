@@ -5,7 +5,7 @@
   ],
   "forbiddenPomPatterns": [
     "spring-boot-(starter|autoconfigure)-classic",
-    "spring-boot-(starter-)?flyway\\s*</artifactId>(?:(?!</dependency>).)*<scope>\\s*test\\s*</scope>",
-    "spring-boot-h2console\\s*</artifactId>(?:(?!</dependency>).)*<scope>\\s*test\\s*</scope>"
+    "<dependency>(?=(?:(?!</dependency>).)*<artifactId>\\s*spring-boot-(?:starter-)?flyway\\s*</artifactId>)(?:(?!</dependency>).)*<scope>\\s*test\\s*</scope>",
+    "<dependency>(?=(?:(?!</dependency>).)*<artifactId>\\s*spring-boot-h2console\\s*</artifactId>)(?:(?!</dependency>).)*<scope>\\s*test\\s*</scope>"
   ]
 }
