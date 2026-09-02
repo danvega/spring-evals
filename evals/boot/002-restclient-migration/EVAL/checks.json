@@ -5,5 +5,8 @@
   "forbiddenSourcePatterns": [
     "import\\s+[\\w.]*\\bRestTemplate",
     "org\\.springframework\\.web\\.client\\.RestTemplate\\b"
+  ],
+  "pinned": [
+    "src/main/java/com/example/quotes/PartnerQuotesController.java"
   ]
 }
