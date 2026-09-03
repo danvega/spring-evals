@@ -1,0 +1,28 @@
+name: 000-chatclient-basics
+project: ai
+title: Rebuild a brittle ticket-triage flow with structured output and prompt discipline
+category: json
+type: fix
+difficulty: medium
+baseline_failure: test_failure
+boot_version: 4.1.0
+timeout_seconds: 900
+description: >
+  A support-ticket triage service calls ChatModel directly with a hand-concatenated
+  prompt string and parses the reply with String.split, which breaks on real ticket
+  text. The agent must rebuild the flow on the framework's structured output support:
+  the team's rules file as the system prompt, the ticket in a user template with a
+  variable, and the reply mapped to the TicketTriage record. ChatClient entity() is
+  the idiomatic route, but any framework-native converter route is accepted. Fully
+  offline and deterministic: a stub ChatModel in the fixture returns rule-based,
+  schema-matching JSON only when structured-output format instructions are present
+  in the request, and a canned free-form acknowledgement otherwise, so no parser of
+  the prose path can recover correct triage data. Hidden tests assert typed results,
+  delimiter safety, and that the system rules and ticket text reach the model through
+  a captured Prompt, which also blocks computing triage locally. checks.json requires
+  a structured-output mechanism (entity or a converter class) and pins the stub's two
+  gating literals so the stub cannot be quietly rewired; it forbids Boot parent
+  downgrades. No forbidden pattern targets manual JSON parsing because that could
+  false-fail legitimate code; the schema-gated stub is the behavioral backstop.
+  Models fail this by patching the parser or hand-rolling JSON prompts instead of
+  using the framework's structured output support. Spring AI 2.0.0 on Boot 4.1.0.

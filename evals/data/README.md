@@ -2,8 +2,9 @@
 
 Evals for [Spring Data](https://spring.io/projects/spring-data): repositories and consistent data access across relational and non-relational stores.
 
-No evals here yet.
+| Eval | Type | Difficulty | What it tests |
+|---|---|---|---|
+| [000-n-plus-one](000-n-plus-one) | fix | hard | Recognizing and fixing an N+1 query pattern from a symptom description, verified by statement counts |
+| [001-repository-aot](001-repository-aot) | fix | hard | Enabling build-time Spring Data AOT query generation and fixing the broken finder it exposes |
 
 Have an idea for one? Open a [benchmark proposal](../../../../issues/new?template=benchmark-proposal.yml) or see [CONTRIBUTING.md](../../CONTRIBUTING.md) to build it.
-
-Six evals for this and other suites are parked on the [full-catalog branch](https://github.com/danvega/spring-evals/tree/full-catalog) while the project starts light with the boot suite. They return as coverage grows.

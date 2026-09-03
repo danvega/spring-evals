@@ -1,0 +1,13 @@
+{
+  "requiredSourcePatterns": [
+    "@EnableMethodSecurity\\b"
+  ],
+  "forbiddenSourcePatterns": [
+    "SecurityContextHolder",
+    "new\\s+(?:AccessDeniedException|AuthorizationDeniedException)\\b"
+  ],
+  "forbiddenPomPatterns": [
+    "spring-boot-autoconfigure-classic",
+    "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*[123]\\."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "requiredSourcePatterns": [
+    "\\bJmsClient\\b"
+  ],
+  "forbiddenSourcePatterns": [
+    "import\\s+[\\w.]*\\bJms(Messaging)?Template",
+    "org\\.springframework\\.jms\\.core\\.Jms(Messaging)?Template\\b",
+    "jakarta\\.jms\\.MessageProducer",
+    "\\.createProducer\\(",
+    "@SendTo\\s*\\("
+  ],
+  "forbiddenPomPatterns": [
+    "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*[123]\\."
+  ]
+}

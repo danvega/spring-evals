@@ -96,6 +96,16 @@ Results accumulate in `results/results.json`. Cache identity includes the eval c
 | [boot/003-jackson3-migration](evals/boot/003-jackson3-migration) | spring-boot | fix | medium | Migrating Jackson 2 code to the Jackson 3 / `tools.jackson` stack while preserving the API's JSON contract |
 | [boot/004-flyway-module](evals/boot/004-flyway-module) | spring-boot | fix | medium | Diagnosing Flyway migrations that silently stopped running on Boot 4, masked by Hibernate recreating empty tables |
 | [boot/005-h2-console](evals/boot/005-h2-console) | spring-boot | fix | easy | Restoring the H2 console after Boot 4 moved it into a dedicated auto-configuration module |
+| [security/000-lockdown](evals/security/000-lockdown) | spring-security | build | medium | A stateless SecurityFilterChain with public reads, authenticated writes, and an ADMIN area |
+| [security/001-method-security](evals/security/001-method-security) | spring-security | fix | medium | An authorization bypass through a second code path, fixed with method-level security instead of another web-layer patch |
+| [framework/000-resilience-annotations](evals/framework/000-resilience-annotations) | spring-framework | build | medium | Core @Retryable and @ConcurrencyLimit instead of adding Spring Retry or Resilience4j |
+| [framework/001-api-versioning](evals/framework/001-api-versioning) | spring-framework | build | medium | Framework 7 native API versioning: two shapes, one path, header-selected |
+| [framework/002-problem-details](evals/framework/002-problem-details) | spring-framework | build | easy | RFC 9457 problem details with ProblemDetail and a controller advice |
+| [framework/003-transactional-self-invocation](evals/framework/003-transactional-self-invocation) | spring-framework | fix | hard | The @Transactional self-invocation proxy trap, diagnosed from a money-goes-missing symptom |
+| [framework/004-jms-client](evals/framework/004-jms-client) | spring-framework | fix | medium | Migrating JmsTemplate to the fluent JmsClient, exposing silently dropped QoS settings |
+| [data/000-n-plus-one](evals/data/000-n-plus-one) | spring-data | fix | hard | Recognizing and fixing an N+1 query pattern from a symptom description, verified by statement counts |
+| [data/001-repository-aot](evals/data/001-repository-aot) | spring-data | fix | hard | Enabling build-time Spring Data AOT query generation and fixing the broken finder it exposes |
+| [ai/000-chatclient-basics](evals/ai/000-chatclient-basics) | spring-ai | fix | medium | Structured LLM output through the framework's converters against a deterministic stub model |
 
 ## Agents and models
 
