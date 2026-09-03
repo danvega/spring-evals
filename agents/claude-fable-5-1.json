@@ -1,7 +1,7 @@
 {
-  "name": "claude-fable-5",
+  "name": "claude-fable-5-1",
   "provider": "claude",
-  "model": "claude-fable-5",
+  "model": "claude-fable-5-1",
   "env": {
     "CLAUDE_CODE_OAUTH_TOKEN": "${CLAUDE_BENCH_OAUTH_TOKEN}"
   },

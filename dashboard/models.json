@@ -169,5 +169,50 @@
     "billing": "api",
     "cli": "Claude Code",
     "description": "Moonshot AI's frontier model, served over an Anthropic-compatible API."
+  },
+  "claude-fable-5-1": {
+    "lab": "Anthropic",
+    "model": "Claude Fable 5.1",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 10.0,
+      "output": 50.0,
+      "asOf": "2026-09-03",
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "note": "Cache hits bill at 0.025x base input, against 0.1x on other models."
+    },
+    "billing": "subscription",
+    "cli": "Claude Code",
+    "description": "Anthropic's frontier flagship, built for the hardest reasoning and coding work."
+  },
+  "grok-4-6": {
+    "lab": "xAI",
+    "model": "Grok 4.6",
+    "contextWindow": "500K tokens",
+    "pricingPerMTok": {
+      "input": 2.0,
+      "output": 6.0,
+      "asOf": "2026-09-03",
+      "source": "https://docs.x.ai/developers/models/grok-4.6",
+      "note": "A prompt reaching 200K tokens bills the whole request at 4.00 in / 12.00 out."
+    },
+    "billing": "api",
+    "cli": "Qwen Code",
+    "description": "xAI's cost-efficient model for high-volume coding and agent workloads."
+  },
+  "gemini-3-8-flash": {
+    "lab": "Google",
+    "model": "Gemini 3.8 Flash",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 0.75,
+      "output": 3.75,
+      "asOf": "2026-09-03",
+      "source": "https://ai.google.dev/gemini-api/docs/pricing",
+      "note": "Promotional through 2026-12-31; rises to 1.50 in / 7.50 out on 2027-01-01."
+    },
+    "billing": "api",
+    "cli": "Gemini CLI",
+    "description": "Google's fast, low-cost Flash tier for high-volume work."
   }
 }

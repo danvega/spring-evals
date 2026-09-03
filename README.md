@@ -75,10 +75,10 @@ An agent config is one (CLI, model) pair in a JSON file, so comparing models wit
 
 | CLI | Models |
 |---|---|
-| Claude Code | Claude Fable 5, Opus 5, Sonnet 5, Haiku 4.5, and Kimi K3 through Moonshot |
+| Claude Code | Claude Fable 5.1, Opus 5, Sonnet 5, Haiku 4.5, and Kimi K3 through Moonshot |
 | Codex | GPT-5.6 Sol, Terra, and Luna |
-| Gemini CLI | Gemini 3.1 Pro, 3.6 Flash, and 3.5 Flash Lite |
-| Qwen Code | Grok 4.5 through xAI, and anything else OpenAI-compatible including Ollama |
+| Gemini CLI | Gemini 3.1 Pro, 3.8 Flash, and 3.5 Flash Lite |
+| Qwen Code | Grok 4.6 through xAI, and anything else OpenAI-compatible including Ollama |
 
 The CLIs live in the benchmark image, so nothing is installed on your machine. [Agent setup](docs/AGENT_SETUP.md) covers credentials per platform, and `./spring-evals doctor` verifies them without sending a prompt.
 

@@ -21,7 +21,7 @@ Three rules before you start:
 
 ## Anthropic (Claude family)
 
-Runs `claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, and `claude-haiku-4-5` through [Claude Code](https://claude.com/claude-code).
+Runs `claude-fable-5-1`, `claude-opus-5`, `claude-sonnet-5`, and `claude-haiku-4-5` through [Claude Code](https://claude.com/claude-code).
 
 1. Install the CLI on the host only to mint a token: `npm install -g @anthropic-ai/claude-code`
 2. Pick a billing source (subscription is the default the configs ship with):
@@ -47,7 +47,7 @@ Doctor will also note that Codex has no non-generative way to confirm the creden
 
 ## Google (Gemini)
 
-Runs `gemini-3-1-pro`, `gemini-3-6-flash`, and `gemini-3-5-flash-lite` through the Gemini CLI.
+Runs `gemini-3-1-pro`, `gemini-3-8-flash`, and `gemini-3-5-flash-lite` through the Gemini CLI.
 
 1. Get a key at [Google AI Studio](https://aistudio.google.com/apikey) and set `GEMINI_API_KEY`.
 2. Verify: `./spring-evals doctor --family gemini`
@@ -58,12 +58,12 @@ The container receives only the config env, which declares `GEMINI_API_KEY`; a h
 
 ## xAI (Grok)
 
-Runs `grok-4-5` through the Qwen Code CLI against xAI's OpenAI-compatible endpoint.
+Runs `grok-4-6` through the Qwen Code CLI against xAI's OpenAI-compatible endpoint.
 
 1. Create an account and API key at [console.x.ai](https://console.x.ai), add billing, and set `XAI_API_KEY`.
-2. Verify: `./spring-evals doctor --agent grok-4-5`
+2. Verify: `./spring-evals doctor --agent grok-4-6`
 
-The OpenAI-compatible path does not report spend back to the harness, so Grok's cost column shows n/a. Check the xAI console after runs and tune `estCostPerAttemptUsd` in [agents/grok-4-5.json](../agents/grok-4-5.json) as real numbers come in.
+The OpenAI-compatible path does not report spend back to the harness, so Grok's cost column shows n/a. Check the xAI console after runs and tune `estCostPerAttemptUsd` in [agents/grok-4-6.json](../agents/grok-4-6.json) as real numbers come in.
 
 ## Moonshot (Kimi)
 

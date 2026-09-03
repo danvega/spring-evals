@@ -151,6 +151,6 @@ Supported providers today: `claude`, `codex`, `gemini`, and `qwen-code`. A new m
 
 ## Open and local models
 
-Frontier models are only half the story. The same harness runs open-weight models by pointing an agent CLI at a compatible endpoint: Kimi K3 through Moonshot's Anthropic-compatible endpoint, Grok 4.5 through xAI's OpenAI-compatible endpoint, and anything Ollama serves on the host through the Qwen Code CLI. Local servers are addressed as `host.docker.internal`, never `localhost`, because inside the container localhost is the container. Setup for each is in [AGENT_SETUP.md](AGENT_SETUP.md).
+Frontier models are only half the story. The same harness runs open-weight models by pointing an agent CLI at a compatible endpoint: Kimi K3 through Moonshot's Anthropic-compatible endpoint, Grok 4.6 through xAI's OpenAI-compatible endpoint, and anything Ollama serves on the host through the Qwen Code CLI. Local servers are addressed as `host.docker.internal`, never `localhost`, because inside the container localhost is the container. Setup for each is in [AGENT_SETUP.md](AGENT_SETUP.md).
 
 Cost for local models reports as n/a. Duration still comes through, which is half the story for local models anyway.
