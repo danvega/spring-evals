@@ -6,12 +6,28 @@ type: build
 difficulty: medium
 baseline_failure: test_failure
 pilot: true
-boot_version: 4.0.7
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   Spring Framework 7 added a version attribute to request mappings plus
-  ApiVersionConfigurer. Models trained on older content hand-roll /v1 and
-  /v2 paths or parse headers manually, which the prompt forbids. The agent
-  must configure header-based versioning with a default version and serve
-  two response shapes from the same path. Post-cutoff API knowledge with
-  black-box HTTP verification.
+  ApiVersionConfigurer, and Spring Boot 4 exposes the same setup as
+  spring.mvc.apiversion.* properties. Models trained on older content
+  hand-roll /v1 and /v2 paths or parse headers manually, which the prompt
+  forbids. The agent must configure header-based versioning with a default
+  version and serve two response shapes from the same path. The hidden
+  tests are black-box HTTP checks. The idiom check looks for a version
+  attribute on a request mapping (or a version request predicate in a
+  router function) and rejects @RequestHeader; header parsing by hand
+  passes the tests but records functional_only.
+  Known limitation: the forbidden patterns ban the spellings that read the
+  version header by hand, because a required pattern over the whole source
+  tree cannot express that the endpoint under test is the one served by a
+  versioned mapping. A leftover versioned mapping elsewhere otherwise lets
+  hand-parsed header code pass, which the prompt forbids. The cost is that a
+  custom ApiVersionResolver is rejected, since its interface method takes an
+  HttpServletRequest and a regex cannot tell a registered resolver from
+  branching in a controller. Accepted deliberately: for a plain request
+  header the built-in configurer is the documented one-line route, so the
+  resolver is an unlikely answer here, and a false pass on an explicitly
+  forbidden solution is worse than a false miss on an exotic one.
+
