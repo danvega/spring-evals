@@ -9,7 +9,8 @@ To reproduce: `POST /api/transfers` with `{"from": "alice", "to": "carol", "amou
 Constraints:
 
 - Do not add dependencies
+- Let the framework manage transactions. Do not open, commit, or roll back database connections yourself
 - `deposit` owns the rules about which accounts can receive money. Do not duplicate those checks elsewhere or pre-validate the target before withdrawing; the fix reviewers will accept is making the whole transfer atomic
-- Do not modify `AccountSeeder`, and keep the endpoints and response shapes unchanged
+- Do not modify `Account` or `AccountSeeder`; other services read that table and its seed data. Keep the endpoints and response shapes unchanged
 
 You are done when a failed transfer leaves all balances untouched and successful transfers still move money.

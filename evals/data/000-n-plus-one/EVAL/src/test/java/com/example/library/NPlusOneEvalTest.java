@@ -25,6 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
         properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 class NPlusOneEvalTest {
 
+    private static final int AUTHORS = 30;
+    private static final int BOOKS_PER_AUTHOR = 10;
+
     @Autowired
     Environment environment;
 
@@ -33,31 +36,69 @@ class NPlusOneEvalTest {
 
     private final HttpClient http = HttpClient.newHttpClient();
 
+    private String get(String path) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(
+                URI.create("http://localhost:" + environment.getProperty("local.server.port") + path))
+                .GET().build();
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200);
+        return response.body();
+    }
+
+    private static int occurrences(String haystack, String needle) {
+        return haystack.split(java.util.regex.Pattern.quote(needle), -1).length - 1;
+    }
+
     @Test
     void fullResponseWithAHandfulOfQueries() throws Exception {
         Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
         statistics.setStatisticsEnabled(true);
         statistics.clear();
 
-        HttpRequest request = HttpRequest.newBuilder(
-                URI.create("http://localhost:" + environment.getProperty("local.server.port") + "/api/authors"))
-                .GET().build();
-        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+        String body = get("/api/authors");
 
-        assertThat(response.statusCode()).isEqualTo(200);
-        for (int author = 1; author <= 30; author++) {
-            assertThat(response.body())
+        for (int author = 1; author <= AUTHORS; author++) {
+            assertThat(body)
                     .as("every author must still be in the response")
                     .contains("\"Author " + author + "\"");
+            for (int book = 1; book <= BOOKS_PER_AUTHOR; book++) {
+                assertThat(body)
+                        .as("every book title must still be in the response")
+                        .contains("Book " + book + " by Author " + author);
+            }
         }
-        assertThat(response.body())
-                .as("book titles must still be in the response")
-                .contains("Book 7 by Author 13")
-                .contains("Book 10 by Author 30");
+        assertThat(occurrences(body, "\"Author 13\""))
+                .as("each author must appear once; the response shape must not change")
+                .isEqualTo(1);
 
         long statements = statistics.getPrepareStatementCount();
         assertThat(statements)
                 .as("one request issued %d SQL statements; the N+1 pattern is still there", statements)
                 .isLessThanOrEqualTo(5);
+        assertThat(statements)
+                .as("no JPA statement ran for this request; the endpoint must still read through the entity "
+                        + "mapping every time, not from a cache, a canned response, or a read path around JPA")
+                .isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void repeatRequestsStayConstant() throws Exception {
+        Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        statistics.setStatisticsEnabled(true);
+
+        get("/api/authors");
+        statistics.clear();
+        String body = get("/api/authors");
+        long statements = statistics.getPrepareStatementCount();
+
+        assertThat(body)
+                .as("a repeated request must return the same full data")
+                .contains("\"Author " + AUTHORS + "\"")
+                .contains("Book " + BOOKS_PER_AUTHOR + " by Author " + AUTHORS);
+        assertThat(statements)
+                .as("a warm request issued %d JPA statements; every request must read through the entity "
+                        + "mapping, and the count must stay constant and independent of the number of authors",
+                        statements)
+                .isBetween(1L, 5L);
     }
 }

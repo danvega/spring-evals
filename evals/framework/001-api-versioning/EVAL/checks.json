@@ -1,10 +1,11 @@
 {
   "requiredSourcePatterns": [
-    "configureApiVersioning",
-    "version\\s*=\\s*\"1\\.0\"",
-    "version\\s*=\\s*\"2\\.0\""
+    "Mapping\\s*\\(\\s*(?:(?:[^()]|\\((?:[^()]|\\([^()]*\\))*\\))*?,\\s*)?version\\s*=|\\bversion\\s*\\(\\s*(?:\"|[A-Z_][A-Z0-9_]*\\s*\\))|RequestPredicates\\.version\\b"
   ],
   "forbiddenSourcePatterns": [
-    "@RequestHeader"
+    "@RequestHeader",
+    "HttpServletRequest",
+    "firstHeader\\s*\\(",
+    "\\bWebRequest\\b"
   ]
 }

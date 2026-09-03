@@ -5,7 +5,7 @@ category: web
 type: fix
 difficulty: easy
 baseline_failure: compile_failure
-boot_version: 4.0.7
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   Boot 4 moved RestTemplate and RestClient support into the separate

@@ -1,6 +1,6 @@
 # Fix the build after our Spring Boot 4 upgrade
 
-We just upgraded this order service from Spring Boot 3.5 to Spring Boot 4.0. The `pom.xml` was already updated by the platform team and they do not want it touched again.
+We just upgraded this order service from Spring Boot 3.5 to Spring Boot 4.1. The `pom.xml` was already updated by the platform team and they do not want it touched again.
 
 The project no longer compiles. Run `./mvnw clean compile` to see the errors.
 

@@ -5,32 +5,52 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import jakarta.jms.Connection;
 import jakarta.jms.ConnectionFactory;
 import jakarta.jms.DeliveryMode;
+import jakarta.jms.Destination;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.MessageConsumer;
+import jakarta.jms.MessageProducer;
 import jakarta.jms.Session;
+import jakarta.jms.TemporaryQueue;
 import jakarta.jms.TextMessage;
 
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
+import org.springframework.jms.config.JmsListenerEndpointRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Hidden eval assertions. Orders are placed through the public REST API and
- * the resulting event is read back with a raw JMS consumer, so the QoS
- * headers observed here are exactly what the broker delivered.
+ * the resulting messages are read back with raw JMS consumers, so the headers
+ * observed here are exactly what the broker delivered.
+ *
+ * The first test stands in for the confirmation processor so it can inspect
+ * the request the service sends, so it stops the application's listeners and
+ * waits for them to drop their consumers first. A candidate may declare its
+ * own listener container factory, which opts out of the auto-startup
+ * property, so stopping is what makes this deterministic. Every later test
+ * starts the listeners again before placing an order.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "spring.jms.listener.auto-startup=false")
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class OrderMessagingEvalTest {
 
     private static final String EVENTS_QUEUE = "orders.events";
+    private static final String CONFIRMATIONS_QUEUE = "orders.confirmations";
     private static final long FIVE_MINUTES_MILLIS = 5 * 60 * 1000L;
 
     @Autowired
@@ -39,18 +59,29 @@ class OrderMessagingEvalTest {
     @Autowired
     ConnectionFactory connectionFactory;
 
+    @Autowired
+    JmsListenerEndpointRegistry listenerRegistry;
+
     private final HttpClient http = HttpClient.newHttpClient();
 
-    private HttpResponse<String> placeOrder(String id, String item, int quantity, boolean urgent) throws Exception {
+    private HttpRequest orderRequest(String id, String item, int quantity, boolean urgent) {
         String body = """
                 {"id":"%s","item":"%s","quantity":%d,"urgent":%s}""".formatted(id, item, quantity, urgent);
-        HttpRequest request = HttpRequest.newBuilder(
+        return HttpRequest.newBuilder(
                 URI.create("http://localhost:" + environment.getProperty("local.server.port") + "/api/orders"))
                 .timeout(Duration.ofSeconds(30))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
-        return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> placeOrder(String id, String item, int quantity, boolean urgent) throws Exception {
+        return http.send(orderRequest(id, item, quantity, urgent), HttpResponse.BodyHandlers.ofString());
+    }
+
+    /** Starting an already running registry is a no-op, so every test that needs the listeners calls this. */
+    private void startConfirmationListeners() {
+        listenerRegistry.start();
     }
 
     /** Drains the events queue until the event for the given order id shows up. */
@@ -73,7 +104,55 @@ class OrderMessagingEvalTest {
     }
 
     @Test
+    @Order(1)
+    void confirmationRequestCarriesItsOwnReplyDestination() throws Exception {
+        CountDownLatch stopped = new CountDownLatch(1);
+        listenerRegistry.stop(stopped::countDown);
+        assertThat(stopped.await(10, TimeUnit.SECONDS)).as("listeners must be fully stopped").isTrue();
+
+        CompletableFuture<HttpResponse<String>> pending;
+
+        try (Connection connection = connectionFactory.createConnection()) {
+            connection.start();
+            try (Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                    MessageConsumer consumer = session.createConsumer(session.createQueue(CONFIRMATIONS_QUEUE))) {
+                pending = http.sendAsync(orderRequest("EVT-REPLY-5", "warp core", 2, false),
+                        HttpResponse.BodyHandlers.ofString());
+                Message request = consumer.receive(10_000);
+                assertThat(request)
+                        .as("placing an order must put a confirmation request on %s", CONFIRMATIONS_QUEUE)
+                        .isNotNull();
+
+                Destination replyTo = request.getJMSReplyTo();
+                assertThat(replyTo)
+                        .as("the confirmation request must carry its own reply destination; "
+                                + "a reply can otherwise only travel over a shared fixed queue")
+                        .isNotNull();
+                assertThat(replyTo)
+                        .as("the reply destination must belong to this request alone, not be a shared queue")
+                        .isInstanceOf(TemporaryQueue.class);
+
+                TextMessage reply = session.createTextMessage("CONFIRMED-EVT-REPLY-5");
+                if (request.getJMSCorrelationID() != null) {
+                    reply.setJMSCorrelationID(request.getJMSCorrelationID());
+                }
+                try (MessageProducer producer = session.createProducer(replyTo)) {
+                    producer.send(reply);
+                }
+            }
+        }
+
+        HttpResponse<String> response = pending.get(20, TimeUnit.SECONDS);
+        assertThat(response.statusCode()).as("POST /api/orders must keep working").isEqualTo(200);
+        assertThat(response.body())
+                .as("the reply sent to the request's own reply destination must answer the waiting request")
+                .contains("EVT-REPLY-5")
+                .contains("CONFIRMED-EVT-REPLY-5");
+    }
+
+    @Test
     void urgentOrderEventCarriesQosOnTheBroker() throws Exception {
+        startConfirmationListeners();
         HttpResponse<String> response = placeOrder("EVT-URGENT-77", "flux capacitor", 1, true);
         assertThat(response.statusCode()).as("POST /api/orders must keep working").isEqualTo(200);
 
@@ -98,6 +177,7 @@ class OrderMessagingEvalTest {
 
     @Test
     void normalOrderEventKeepsBrokerDefaults() throws Exception {
+        startConfirmationListeners();
         HttpResponse<String> response = placeOrder("EVT-NORMAL-42", "paper clips", 500, false);
         assertThat(response.statusCode()).as("POST /api/orders must keep working").isEqualTo(200);
 
@@ -116,6 +196,7 @@ class OrderMessagingEvalTest {
 
     @Test
     void confirmationRoundTripAnswersSynchronously() throws Exception {
+        startConfirmationListeners();
         HttpResponse<String> response = placeOrder("EVT-CONFIRM-11", "rubber duck", 3, false);
 
         assertThat(response.statusCode()).as("POST /api/orders must keep working").isEqualTo(200);

@@ -1,0 +1,9 @@
+{
+  "requiredSourcePatterns": [
+    "\\b(?:org\\.springframework\\.transaction|jakarta\\.transaction)\\b"
+  ],
+  "pinned": [
+    "src/main/java/com/example/transfers/Account.java",
+    "src/main/java/com/example/transfers/AccountSeeder.java"
+  ]
+}

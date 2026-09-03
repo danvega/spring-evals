@@ -5,7 +5,7 @@ category: data
 type: fix
 difficulty: hard
 baseline_failure: test_failure
-boot_version: 4.0.7
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   The classic proxy trap: @Transactional methods invoked through `this`
@@ -13,4 +13,26 @@ description: >
   loses money. The symptom reads like a database problem; the fix
   requires understanding Spring's proxy model and moving the transaction
   boundary to the entry point. Verified over HTTP by checking balances
-  after a failed and a successful transfer.
+  after failed and successful transfers. Two of the failures are injected
+  at the database through a temporary H2 row trigger that refuses every
+  credit, or every debit, during one transfer. That makes the non-atomic
+  shortcuts visible from outside: pre-validating the target, depositing
+  before withdrawing, and refunding after a failed deposit all fail the
+  hidden tests, so none of them ships as a workaround. The prompt asks for
+  framework-managed transactions and bans hand-opened connections, and the
+  idiom check enforces exactly that stated constraint by package presence
+  only, org.springframework.transaction or jakarta.transaction. Every
+  Spring route satisfies it: @Transactional on the entry point, a separate
+  collaborator bean, a self reference, or TransactionTemplate. The
+  workaround commits a hand-managed JDBC connection. It is atomic and it
+  keeps the deposit rules in deposit, after the withdrawal, so the only
+  rule it breaks is the one the check enforces. Account and AccountSeeder
+  are pinned because the trigger relies on the account table's balance
+  column and on the seed balances, and both carry a do-not-modify marker.
+  Maintenance constraint: the hidden tests install a temporary H2 row
+  trigger to make a credit or a debit fail inside the database. That ties
+  them to H2 through the org.h2.api.Trigger interface, H2's create-trigger
+  syntax, and row arrays indexed by column position. Changing the fixture's
+  database means rewriting them. The design is fail-safe: a leaked trigger
+  can only make a transfer fail, so it surfaces as a false failure, never
+  as a false pass.

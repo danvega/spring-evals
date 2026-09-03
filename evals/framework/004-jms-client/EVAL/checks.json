@@ -6,10 +6,13 @@
     "import\\s+[\\w.]*\\bJms(Messaging)?Template",
     "org\\.springframework\\.jms\\.core\\.Jms(Messaging)?Template\\b",
     "jakarta\\.jms\\.MessageProducer",
-    "\\.createProducer\\(",
-    "@SendTo\\s*\\("
+    "\\.createProducer\\("
   ],
   "forbiddenPomPatterns": [
-    "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*[123]\\."
+    "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*(?:[123]\\.|4\\.0\\.)"
+  ],
+  "requiredRuntimeArtifacts": [
+    "org.springframework:spring-jms",
+    "org.apache.artemis:artemis-jakarta-client"
   ]
 }

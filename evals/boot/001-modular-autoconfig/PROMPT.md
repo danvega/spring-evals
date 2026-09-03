@@ -1,6 +1,6 @@
 # Two features disappeared after our Spring Boot 4 upgrade
 
-We upgraded this task tracker from Spring Boot 3.5 to Spring Boot 4.0. The build is green and the app starts, but two things we rely on every day are broken:
+We upgraded this task tracker from Spring Boot 3.5 to Spring Boot 4.1. The build is green and the app starts, but two things we rely on every day are broken:
 
 1. `GET /api/tasks` now returns a 500. The logs say the `TASK` table does not exist. Our Flyway migration in `src/main/resources/db/migration` used to run at startup and create it.
 2. The H2 console at `/h2-console` returns a 404. It is still enabled in `application.properties` and we use it constantly in development.

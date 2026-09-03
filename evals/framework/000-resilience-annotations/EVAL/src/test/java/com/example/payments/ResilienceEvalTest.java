@@ -29,6 +29,14 @@ class ResilienceEvalTest {
     @Autowired
     Environment environment;
 
+    // Pinned fixtures, so the judge rejects any candidate that edits them.
+    // Their counters are ground truth; the controller that echoes them is not.
+    @Autowired
+    PaymentGateway paymentGateway;
+
+    @Autowired
+    ReportGenerator reportGenerator;
+
     private final HttpClient http = HttpClient.newHttpClient();
 
     private HttpResponse<String> post(String path) throws Exception {
@@ -53,11 +61,10 @@ class ResilienceEvalTest {
         assertThat(response.statusCode())
                 .as("a single API call must succeed even though the gateway drops the first two attempts")
                 .isEqualTo(200);
-        assertThat(response.body())
-                .contains("PAY-EVAL-7001")
-                .as("the gateway must have been called exactly 3 times (2 failures + 1 success), got: %s",
-                        response.body())
-                .contains("\"attempts\":3");
+        assertThat(response.body()).contains("PAY-EVAL-7001");
+        assertThat(paymentGateway.attemptsFor("EVAL-7001"))
+                .as("the gateway itself must record exactly 3 calls (2 failures + 1 success)")
+                .isEqualTo(3);
     }
 
     @Test
@@ -72,18 +79,31 @@ class ResilienceEvalTest {
                 return post("/api/reports/run").statusCode();
             }));
         }
+        long startedAt = System.nanoTime();
         start.countDown();
         for (Future<Integer> status : statuses) {
             assertThat(status.get())
                     .as("queued report requests must eventually succeed, not fail")
                     .isEqualTo(200);
         }
+        long elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000;
         pool.shutdown();
+
+        // Six requests capped at two run in three waves of a 300ms generation,
+        // so a real cap cannot finish sooner. Unthrottled work, or a cached
+        // report generated once, comes back in roughly one wave. Only a lower
+        // bound is safe here: host load pushes elapsed time up, never down.
+        assertThat(elapsedMillis)
+                .as("6 requests capped at 2 must take at least 3 generation waves, took %sms", elapsedMillis)
+                .isGreaterThan(700);
 
         HttpResponse<String> stats = get("/api/reports/stats");
         assertThat(stats.statusCode()).isEqualTo(200);
         assertThat(stats.body())
                 .as("observed concurrency must never exceed 2, got: %s", stats.body())
                 .containsAnyOf("\"maxConcurrent\":1", "\"maxConcurrent\":2");
+        assertThat(reportGenerator.maxObservedConcurrency())
+                .as("the generator itself must never have seen more than 2 at once")
+                .isBetween(1, 2);
     }
 }
