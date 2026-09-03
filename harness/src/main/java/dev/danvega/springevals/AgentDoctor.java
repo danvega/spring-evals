@@ -10,8 +10,10 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import dev.danvega.springevals.Agents.AgentSpec;
@@ -73,6 +75,58 @@ final class AgentDoctor {
         System.out.println("Every attempt runs in a fresh container that sees only the agent config env "
                 + "and the files its CLI seeds; host logins, host context files, and host-installed CLIs never reach it.");
         return blocked == 0 ? 0 : 1;
+    }
+
+    void printJson(List<AgentSpec> specs, Set<String> excluded) {
+        System.out.println(DashboardJson.write(json(specs, excluded)));
+    }
+
+    /** Same content as print, as plain maps: name, provider, model, status, enabled, billing, estimate, findings. */
+    Map<String, Object> json(List<AgentSpec> specs, Set<String> excluded) {
+        List<Map<String, Object>> agents = new ArrayList<>();
+        int ready = 0;
+        int warnings = 0;
+        int blocked = 0;
+        for (AgentSpec spec : specs) {
+            Report report = inspect(spec);
+            switch (report.level()) {
+                case READY -> ready++;
+                case WARNING -> warnings++;
+                case BLOCKED -> blocked++;
+            }
+            agents.add(reportJson(report, !excluded.contains(spec.name())));
+        }
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("ready", ready);
+        summary.put("warning", warnings);
+        summary.put("blocked", blocked);
+        Map<String, Object> root = new LinkedHashMap<>();
+        root.put("agents", agents);
+        root.put("summary", summary);
+        root.put("note", "Credential presence is checked without printing values. Remote key validity is not tested.");
+        return root;
+    }
+
+    static Map<String, Object> reportJson(Report report, boolean enabled) {
+        Map<String, Object> json = new LinkedHashMap<>();
+        json.put("name", report.spec().name());
+        json.put("provider", report.spec().provider());
+        json.put("model", report.spec().model());
+        json.put("status", report.level().name());
+        json.put("enabled", enabled);
+        json.put("billing", report.findings().stream()
+                .map(Finding::message)
+                .filter(message -> message.startsWith("billing: "))
+                .map(message -> message.substring("billing: ".length()))
+                .findFirst().orElse(null));
+        json.put("estimate", report.spec().estCostPerAttemptUsd());
+        json.put("findings", report.findings().stream().map(finding -> {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("level", finding.level().name());
+            entry.put("text", finding.message());
+            return entry;
+        }).toList());
+        return json;
     }
 
     Report inspect(AgentSpec spec) {

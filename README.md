@@ -178,6 +178,7 @@ For the current 10-eval suite, the full 12-agent matrix at one attempt projects 
 
 - `index.html` — the results view: leaderboard, all-22-suite heatmap with drill-down, run history by name with per-attempt detail and each run's findings summary, and spend (recorded plus an API-price estimate when cost reporting is partial). The evals list here shows only evals with results.
 - `evals.html` — the full catalog: every eval in every suite, with empty suites linking to the proposal form.
+- `onboarding.html`: the setup wizard. Served by `./spring-evals serve`, it checks the environment, saves the local agent selection, verifies credentials without storing them, streams a free validate, projects cost, and prints the run command. On static hosting it explains what each step checks and stays read-only.
 
 Serve it with the built-in JDK file server (or any static host, including GitHub Pages):
 

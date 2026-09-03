@@ -61,4 +61,9 @@ final class SelectionConfig {
     boolean enabled(String agentName) {
         return enabledAgents == null || enabledAgents.contains(agentName);
     }
+
+    /** Null when the file does not restrict; callers must not treat that as an empty selection. */
+    Set<String> enabledAgents() {
+        return enabledAgents;
+    }
 }
