@@ -1,0 +1,42 @@
+package com.example.quotes;
+
+import java.util.List;
+
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+@Service
+public class QuoteService {
+
+    private final RestClient restClient;
+    private final Environment environment;
+
+    public QuoteService(RestClient.Builder restClientBuilder, Environment environment) {
+        this.restClient = restClientBuilder.build();
+        this.environment = environment;
+    }
+
+    public List<Quote> fetchQuotes() {
+        List<Quote> quotes = restClient.get()
+                .uri(partnerBaseUrl() + "/partner/quotes")
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<Quote>>() {
+                });
+        return quotes == null ? List.of() : quotes;
+    }
+
+    /**
+     * The partner base URL comes from configuration in real deployments.
+     * Locally it falls back to this app's own port, where the partner
+     * stub is served. Keep this resolution logic as is.
+     */
+    private String partnerBaseUrl() {
+        String configured = environment.getProperty("partner.api.base-url");
+        if (configured != null) {
+            return configured;
+        }
+        return "http://localhost:" + environment.getProperty("local.server.port", "8080");
+    }
+}

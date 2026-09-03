@@ -1,9 +1,14 @@
 package dev.danvega.springevals;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -106,6 +111,16 @@ class DashboardServerTest {
     void unknownAgentNamesAreRefusedAndNothingIsWritten() throws Exception {
         Map<String, Object> body = put("/api/agents/enabled", "{\"enabledAgents\": [\"gamma\"]}", 400);
         assertTrue(String.valueOf(body.get("error")).contains("gamma"));
+        put("/api/agents/enabled", "{\"enabledAgents\": [\"../alpha\"]}", 400);
+        assertFalse(Files.exists(root.resolve(SelectionConfig.FILE_NAME)));
+    }
+
+    @Test
+    void malformedBodiesAreArgumentErrorsNotServerFaults() throws Exception {
+        assertTrue(String.valueOf(put("/api/agents/enabled", "not json", 400).get("error")).contains("JSON"));
+        put("/api/agents/enabled", "[\"alpha\"]", 400);
+        put("/api/agents/enabled", "{\"enabledAgents\": \"alpha\"}", 400);
+        put("/api/agents/enabled", "{\"somethingElse\": 1}", 400);
         assertFalse(Files.exists(root.resolve(SelectionConfig.FILE_NAME)));
     }
 
@@ -120,29 +135,58 @@ class DashboardServerTest {
     }
 
     @Test
+    void foreignHostHeadersAreRefusedSoDnsRebindingCannotReachTheApi() throws Exception {
+        int port = server.getAddress().getPort();
+        assertEquals(403, rawStatus("GET", "/api/environment", "evil.example:" + port));
+        assertEquals(403, rawStatus("GET", "/api/agents", "localhost:" + (port + 1)));
+        assertEquals(403, rawStatus("POST", "/api/validate?eval=x", "127.0.0.1.evil.example:" + port));
+        assertEquals(200, rawStatus("GET", "/api/agents", "localhost:" + port));
+        assertEquals(200, rawStatus("GET", "/api/agents", "127.0.0.1:" + port));
+        assertEquals(200, rawStatus("GET", "/api/agents", "[::1]:" + port));
+    }
+
+    @Test
     void estimateMirrorsTheCliArithmetic() throws Exception {
-        Files.createDirectories(root.resolve("evals/boot/000-a"));
-        Files.createDirectories(root.resolve("evals/boot/001-b"));
-        for (String dir : List.of("evals/boot/000-a", "evals/boot/001-b")) {
-            Files.writeString(root.resolve(dir + "/eval.yaml"),
-                    "name: " + dir.substring(dir.lastIndexOf('/') + 1) + "\nproject: boot\ntitle: t\ntype: fix\n"
-                            + "difficulty: easy\ncategory: web\npilot: " + dir.endsWith("000-a") + "\n");
-        }
+        writeEval("boot/000-a", true);
+        writeEval("boot/001-b", false);
 
-        Map<String, Object> single = get("/api/estimate?agents=alpha&" + DashboardServer.ATTEMPTS_FLAG + "=1");
+        Map<String, Object> single = get("/api/estimate?agents=alpha&" + DashboardServer.SAMPLES_FLAG + "=1");
         assertEquals(2, single.get("evals"));
-        assertEquals(DashboardServer.ATTEMPTS_FLAG, single.get("attemptsFlag"));
-        assertEquals(3.0, single.get("totalWorst"));
-        assertEquals(3.0, single.get("totalExpected"));
+        assertEquals(DashboardServer.SAMPLES_FLAG, single.get("samplesFlag"));
+        assertEquals(3.0, single.get("total"));
 
-        Map<String, Object> retries = get("/api/estimate?agents=alpha,beta&" + DashboardServer.ATTEMPTS_FLAG + "=4");
-        assertEquals(12.0, retries.get("totalWorst"));
-        assertEquals(2 * 1.7 * 1.5, (double) retries.get("totalExpected"), 1e-9);
-        assertEquals(List.of("beta"), retries.get("unknownCost"));
+        Map<String, Object> three = get("/api/estimate?agents=alpha,beta&" + DashboardServer.SAMPLES_FLAG + "=3");
+        assertEquals(9.0, three.get("total"));
+        assertEquals(List.of("beta"), three.get("unknownCost"));
+        Map<?, ?> alphaRow = (Map<?, ?>) ((List<?>) three.get("rows")).get(0);
+        assertEquals(6, alphaRow.get(DashboardServer.SAMPLES_FLAG));
+        assertEquals(9.0, alphaRow.get("projected"));
+
+        Map<String, Object> defaults = get("/api/estimate?agents=alpha");
+        assertEquals(DashboardServer.DEFAULT_SAMPLES, defaults.get(DashboardServer.SAMPLES_FLAG));
 
         Map<String, Object> pilot = get("/api/estimate?agents=alpha&pilot=true");
         assertEquals(List.of("boot/000-a"), pilot.get("evalIds"));
-        assertEquals(400, status("/api/estimate?agents=alpha&" + DashboardServer.ATTEMPTS_FLAG + "=11"));
+        assertEquals(400, status("/api/estimate?agents=alpha&" + DashboardServer.SAMPLES_FLAG + "=11"));
+        assertEquals(400, status("/api/estimate?agents=alpha&attempts=1"));
+    }
+
+    @Test
+    void onlyCatalogEvalIdsAndListedAgentNamesAreAccepted() throws Exception {
+        writeEval("boot/000-a", false);
+        Files.createDirectories(root.resolve("outside/999-x"));
+        Files.writeString(root.resolve("outside/999-x/eval.yaml"), "name: 999-x\nproject: outside\n");
+
+        assertEquals(200, status("/api/estimate?agents=alpha&eval=boot/000-a"));
+        assertEquals(400, status("/api/estimate?agents=alpha&eval=../outside/999-x"));
+        assertEquals(400, status("/api/estimate?agents=alpha&eval=" + root.resolve("outside/999-x")));
+        assertEquals(400, status("/api/estimate?agents=../agents/alpha"));
+        assertEquals(400, status("/api/estimate?agents=gamma"));
+        assertEquals(200, status("/api/doctor?agent=alpha"));
+        assertEquals(400, status("/api/doctor?agent=../agents/alpha"));
+        HttpRequest escape = HttpRequest.newBuilder(uri("/api/validate?eval=../outside/999-x"))
+                .header(DashboardServer.API_HEADER, "1").POST(HttpRequest.BodyPublishers.noBody()).build();
+        assertEquals(400, http.send(escape, HttpResponse.BodyHandlers.ofString()).statusCode());
     }
 
     @Test
@@ -161,6 +205,13 @@ class DashboardServerTest {
         assertEquals(200, status("/index.html"));
     }
 
+    private void writeEval(String id, boolean pilot) throws Exception {
+        Path dir = root.resolve("evals").resolve(id);
+        Files.createDirectories(dir);
+        Files.writeString(dir.resolve("eval.yaml"), "name: " + id.substring(id.indexOf('/') + 1)
+                + "\nproject: boot\ntitle: t\ntype: fix\ndifficulty: easy\ncategory: web\npilot: " + pilot + "\n");
+    }
+
     private URI uri(String path) {
         return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + path);
     }
@@ -168,6 +219,20 @@ class DashboardServerTest {
     private int status(String path) throws Exception {
         return http.send(HttpRequest.newBuilder(uri(path)).GET().build(), HttpResponse.BodyHandlers.ofString())
                 .statusCode();
+    }
+
+    /** The JDK client refuses to spoof Host, so the rebinding check speaks HTTP over a plain socket. */
+    private int rawStatus(String method, String path, String host) throws Exception {
+        try (Socket socket = new Socket("127.0.0.1", server.getAddress().getPort())) {
+            OutputStream out = socket.getOutputStream();
+            out.write((method + " " + path + " HTTP/1.1\r\nHost: " + host + "\r\n" + DashboardServer.API_HEADER
+                    + ": 1\r\nConnection: close\r\nContent-Length: 0\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+            out.flush();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(),
+                    StandardCharsets.UTF_8));
+            String statusLine = reader.readLine();
+            return Integer.parseInt(statusLine.split(" ")[1]);
+        }
     }
 
     private Map<String, Object> get(String path) throws Exception {

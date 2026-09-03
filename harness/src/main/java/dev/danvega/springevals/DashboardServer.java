@@ -26,7 +26,6 @@ import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.SimpleFileServer;
 
 import dev.danvega.springevals.Agents.AgentSpec;
-import dev.danvega.springevals.cli.Finding;
 
 /**
  * Static dashboard plus the local JSON API behind dashboard/onboarding.html.
@@ -35,19 +34,22 @@ import dev.danvega.springevals.cli.Finding;
  */
 final class DashboardServer {
 
-    /** The attempts selector the wizard prints; H2 renames it to samples in one place. */
-    static final String ATTEMPTS_FLAG = "attempts";
+    static final String SAMPLES_FLAG = "samples";
+    static final int DEFAULT_SAMPLES = 3;
 
     /** Mutating endpoints require this header so a cross-site page cannot reach them without a preflight. */
     static final String API_HEADER = "X-Spring-Evals";
 
+    /** Only these Host values reach the API, so a DNS-rebound page cannot address it by another name. */
+    private static final Set<String> LOCAL_HOSTS = Set.of("localhost", "127.0.0.1", "[::1]");
+
     private static final Pattern ENV_REFERENCE = Pattern.compile("\\$\\{([A-Z0-9_]+)}");
-    private static final double EXPECTED_ATTEMPTS_WITH_RETRIES = 1.7;
 
     private final Path root;
     private final EvalCatalog catalog;
     private final Agents agents;
     private final Semaphore validateLock = new Semaphore(1);
+    private volatile int port;
 
     private DashboardServer(Path root) {
         this.root = root;
@@ -85,6 +87,7 @@ final class DashboardServer {
             task.run();
         }));
         server.start();
+        api.port = server.getAddress().getPort();
         return server;
     }
 
@@ -96,6 +99,10 @@ final class DashboardServer {
     /** The exchange is closed only after the error branches have written their response. */
     private void handle(HttpExchange exchange, String method, JsonEndpoint endpoint) throws IOException {
         try {
+            if (!hostAllowed(exchange)) {
+                respond(exchange, 403, error("the API answers only to localhost"));
+                return;
+            }
             if (!exchange.getRequestMethod().equalsIgnoreCase(method)) {
                 respond(exchange, 405, error("use " + method));
                 return;
@@ -112,6 +119,28 @@ final class DashboardServer {
         } finally {
             exchange.close();
         }
+    }
+
+    private boolean hostAllowed(HttpExchange exchange) {
+        String host = exchange.getRequestHeaders().getFirst("Host");
+        if (host == null) {
+            return false;
+        }
+        String name;
+        String portText;
+        if (host.startsWith("[")) {
+            int end = host.indexOf(']');
+            if (end < 0) {
+                return false;
+            }
+            name = host.substring(0, end + 1);
+            portText = host.substring(end + 1);
+        } else {
+            int colon = host.lastIndexOf(':');
+            name = colon < 0 ? host : host.substring(0, colon);
+            portText = colon < 0 ? "" : host.substring(colon);
+        }
+        return LOCAL_HOSTS.contains(name.toLowerCase()) && (portText.isEmpty() || portText.equals(":" + port));
     }
 
     Map<String, Object> environment(HttpExchange exchange) {
@@ -208,12 +237,9 @@ final class DashboardServer {
             if (values == null) {
                 throw new IllegalArgumentException("enabledAgents must be an array of agent names");
             }
-            List<String> known = agents.names();
             List<String> names = new ArrayList<>();
             for (Object value : values) {
-                if (!(value instanceof String name) || !known.contains(name)) {
-                    throw new IllegalArgumentException("unknown agent '" + value + "' (no agents/" + value + ".json)");
-                }
+                String name = knownAgent(value);
                 if (!names.contains(name)) {
                     names.add(name);
                 }
@@ -224,10 +250,24 @@ final class DashboardServer {
         return agents(exchange);
     }
 
+    /** Agent names come from the agents/ listing only, never from a path the client supplies. */
+    private String knownAgent(Object value) {
+        if (value instanceof String name && agents.names().contains(name)) {
+            return name;
+        }
+        throw new IllegalArgumentException("unknown agent '" + value + "' (no agents/" + value + ".json)");
+    }
+
+    /** Eval ids come from the catalog only, never from a path the client supplies. */
+    private EvalDefinition knownEval(String id) {
+        return catalog.all().stream().filter(eval -> eval.id().equals(id)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("unknown eval '" + id + "'"));
+    }
+
     Map<String, Object> doctor(HttpExchange exchange) {
         Map<String, String> query = query(exchange);
         List<String> names = query.containsKey("agent")
-                ? List.of(query.get("agent").split(","))
+                ? List.of(query.get("agent").split(",")).stream().map(this::knownAgent).toList()
                 : agents.names();
         List<AgentSpec> specs = new ArrayList<>();
         List<Map<String, Object>> invalid = new ArrayList<>();
@@ -237,10 +277,10 @@ final class DashboardServer {
             } catch (RuntimeException e) {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("name", name);
-                row.put("status", Finding.Level.BLOCKED.name());
+                row.put("status", "BLOCKED");
                 row.put("enabled", true);
-                row.put("findings", List.of(Map.of("level", Finding.Level.BLOCKED.name(),
-                        "text", "invalid agent config: " + e.getMessage())));
+                row.put("findings", List.of(Map.of("level", "BLOCKED", "text",
+                        "invalid agent config: " + e.getMessage())));
                 invalid.add(row);
             }
         }
@@ -271,55 +311,57 @@ final class DashboardServer {
         return rows;
     }
 
-    /** Same arithmetic as ./spring-evals estimate: expected assumes about 1.7 attempts per eval when retries are allowed. */
+    /** Same arithmetic as ./spring-evals estimate: every sample runs, so projected = evals x samples x cost. */
     Map<String, Object> estimate(HttpExchange exchange) {
         Map<String, String> query = query(exchange);
-        int attempts = Integer.parseInt(query.getOrDefault(ATTEMPTS_FLAG, query.getOrDefault("samples", "1")));
-        if (attempts < 1 || attempts > 10) {
-            throw new IllegalArgumentException(ATTEMPTS_FLAG + " must be between 1 and 10");
+        if (query.containsKey("attempts")) {
+            throw new IllegalArgumentException("attempts was replaced by " + SAMPLES_FLAG);
+        }
+        int samples;
+        try {
+            samples = Integer.parseInt(query.getOrDefault(SAMPLES_FLAG, String.valueOf(DEFAULT_SAMPLES)));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(SAMPLES_FLAG + " takes an integer between 1 and 10");
+        }
+        if (samples < 1 || samples > 10) {
+            throw new IllegalArgumentException(SAMPLES_FLAG + " must be between 1 and 10");
         }
         List<EvalDefinition> targets = selectEvals(query);
         List<AgentSpec> specs = selectAgents(query);
-        double expectedAttempts = attempts == 1 ? 1.0 : EXPECTED_ATTEMPTS_WITH_RETRIES;
         List<Map<String, Object>> rows = new ArrayList<>();
         List<String> unknownCost = new ArrayList<>();
-        double totalExpected = 0;
-        double totalWorst = 0;
+        double total = 0;
         for (AgentSpec spec : specs) {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("agent", spec.name());
+            row.put(SAMPLES_FLAG, targets.size() * samples);
             if (spec.estCostPerAttemptUsd() == null) {
                 unknownCost.add(spec.name());
-                row.put("perAttempt", null);
-                row.put("expected", null);
-                row.put("worst", null);
+                row.put("perSample", null);
+                row.put("projected", null);
             } else {
-                double perAttempt = spec.estCostPerAttemptUsd();
-                double expected = targets.size() * expectedAttempts * perAttempt;
-                double worst = targets.size() * attempts * perAttempt;
-                totalExpected += expected;
-                totalWorst += worst;
-                row.put("perAttempt", perAttempt);
-                row.put("expected", expected);
-                row.put("worst", worst);
+                double perSample = spec.estCostPerAttemptUsd();
+                double projected = targets.size() * samples * perSample;
+                total += projected;
+                row.put("perSample", perSample);
+                row.put("projected", projected);
             }
             rows.add(row);
         }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("evals", targets.size());
         body.put("evalIds", targets.stream().map(EvalDefinition::id).toList());
-        body.put(ATTEMPTS_FLAG, attempts);
-        body.put("attemptsFlag", ATTEMPTS_FLAG);
+        body.put(SAMPLES_FLAG, samples);
+        body.put("samplesFlag", SAMPLES_FLAG);
         body.put("rows", rows);
-        body.put("totalExpected", totalExpected);
-        body.put("totalWorst", totalWorst);
+        body.put("total", total);
         body.put("unknownCost", unknownCost);
         return body;
     }
 
     private List<EvalDefinition> selectEvals(Map<String, String> query) {
         if (query.containsKey("eval")) {
-            return List.of(query.get("eval").split(",")).stream().map(catalog::load).toList();
+            return List.of(query.get("eval").split(",")).stream().map(this::knownEval).toList();
         }
         List<EvalDefinition> all = catalog.all();
         if (query.containsKey("project")) {
@@ -334,7 +376,7 @@ final class DashboardServer {
 
     private List<AgentSpec> selectAgents(Map<String, String> query) {
         if (query.containsKey("agents")) {
-            return List.of(query.get("agents").split(",")).stream().map(agents::load).toList();
+            return List.of(query.get("agents").split(",")).stream().map(this::knownAgent).map(agents::load).toList();
         }
         SelectionConfig selection = SelectionConfig.load(root, agents.names());
         return agents.loadAll().stream().filter(spec -> selection.enabled(spec.name())).toList();
@@ -343,6 +385,10 @@ final class DashboardServer {
     /** Streams ./spring-evals validate for one eval; a second concurrent run is refused. */
     void validate(HttpExchange exchange) throws IOException {
         try {
+            if (!hostAllowed(exchange)) {
+                respond(exchange, 403, error("the API answers only to localhost"));
+                return;
+            }
             if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
                 respond(exchange, 405, error("use POST"));
                 return;
@@ -357,7 +403,7 @@ final class DashboardServer {
                 return;
             }
             try {
-                catalog.load(id);
+                knownEval(id);
             } catch (IllegalArgumentException e) {
                 respond(exchange, 400, error(e.getMessage()));
                 return;

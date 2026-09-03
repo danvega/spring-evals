@@ -8,9 +8,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The dashboard's only Jackson touchpoint. Callers pass and receive plain
@@ -18,7 +19,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  */
 final class DashboardJson {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private static final JsonMapper MAPPER = JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
     private static final TypeReference<LinkedHashMap<String, Object>> OBJECT = new TypeReference<>() {
     };
 
@@ -26,19 +27,16 @@ final class DashboardJson {
     }
 
     static String write(Object value) {
-        try {
-            return MAPPER.writeValueAsString(value);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return MAPPER.writeValueAsString(value);
     }
 
+    /** Malformed input is the caller's fault, so it surfaces as an argument error, not a server fault. */
     static Map<String, Object> readObject(String text) {
         try {
             Map<String, Object> value = MAPPER.readValue(text, OBJECT);
             return value == null ? new LinkedHashMap<>() : value;
-        } catch (IOException e) {
-            throw new IllegalArgumentException("expected a JSON object: " + e.getMessage());
+        } catch (JacksonException e) {
+            throw new IllegalArgumentException("expected a JSON object: " + e.getOriginalMessage());
         }
     }
 

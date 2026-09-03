@@ -4,6 +4,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,14 +68,15 @@ class H2ConsoleEvalTest {
                 .isIn(200, 301, 302, 307, 308);
 
         String consolePage = response.body();
+        URI consoleUri = URI.create(baseUrl() + "/h2-console");
         if (response.statusCode() >= 300) {
             String location = response.headers().firstValue("Location").orElse("");
             assertThat(location)
                     .as("a redirect from /h2-console must lead into the console, not away from it")
                     .contains("h2-console");
 
-            URI target = URI.create(baseUrl() + "/h2-console").resolve(location);
-            HttpResponse<String> followed = get(target.toString());
+            consoleUri = consoleUri.resolve(location);
+            HttpResponse<String> followed = get(consoleUri.toString());
             assertThat(followed.statusCode())
                     .as("the console page behind the redirect must actually render")
                     .isEqualTo(200);
@@ -81,6 +84,19 @@ class H2ConsoleEvalTest {
         }
         assertThat(consolePage)
                 .as("the page served at /h2-console must be the real H2 console, not a stand-in")
-                .containsIgnoringCase("h2 console");
+                .containsIgnoringCase("h2 console")
+                .contains("login.jsp");
+
+        Matcher bounce = Pattern.compile("login\\.jsp\\?jsessionid=[A-Za-z0-9]+").matcher(consolePage);
+        assertThat(bounce.find())
+                .as("the real console sends the browser to login.jsp with a session id it created")
+                .isTrue();
+        HttpResponse<String> login = get(consoleUri.resolve(bounce.group()).toString());
+        assertThat(login.statusCode())
+                .as("the console login page must render for the session the console created")
+                .isEqualTo(200);
+        assertThat(login.body())
+                .as("the login page must be H2's own login form, which posts to login.do")
+                .contains("login.do");
     }
 }

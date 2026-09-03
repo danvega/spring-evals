@@ -56,9 +56,9 @@ public class Main {
         System.exit(0);
     }
 
-    /** Expected assumes ~1.7 attempts per eval; worst case assumes every attempt is used. */
+    /** Every sample runs, so the projection is evals times samples times the per-sample estimate. */
     void estimate(Map<String, String> opts) {
-        int attempts = Integer.parseInt(opts.getOrDefault("attempts", "1"));
+        int samples = resolveSamples(opts);
         List<EvalDefinition> evals = selectTargets(opts);
         // No selector mirrors run --all-agents (local selection applied), so the projection matches a run.
         SelectionConfig selection = SelectionConfig.load(root, agents.names());
@@ -66,28 +66,42 @@ public class Main {
                 ? resolveAgents(opts)
                 : agents.loadAll().stream().filter(spec -> selection.enabled(spec.name())).toList();
 
-        double expectedAttempts = attempts == 1 ? 1.0 : 1.7;
-        double totalExpected = 0;
-        double totalWorst = 0;
-        System.out.printf("%n%-24s %14s %14s %14s%n", "agent", "$/attempt (est)", "expected", "worst case");
+        double total = 0;
+        System.out.printf("%n%-24s %16s %10s %14s%n", "agent", "$/sample (est)", "samples", "projected");
         for (AgentSpec spec : specs) {
             if (spec.estCostPerAttemptUsd() == null) {
-                System.out.printf("%-24s %14s %14s %14s%n", spec.name(), "n/a", "n/a", "n/a");
+                System.out.printf("%-24s %16s %10d %14s%n", spec.name(), "n/a", evals.size() * samples, "n/a");
                 continue;
             }
-            double perAttempt = spec.estCostPerAttemptUsd();
-            double expected = evals.size() * expectedAttempts * perAttempt;
-            double worst = evals.size() * attempts * perAttempt;
-            totalExpected += expected;
-            totalWorst += worst;
-            System.out.printf("%-24s %14s %14s %14s%n", spec.name(),
-                    "$%.2f".formatted(perAttempt), "$%.2f".formatted(expected), "$%.2f".formatted(worst));
+            double perSample = spec.estCostPerAttemptUsd();
+            double projected = evals.size() * samples * perSample;
+            total += projected;
+            System.out.printf("%-24s %16s %10d %14s%n", spec.name(),
+                    "$%.2f".formatted(perSample), evals.size() * samples, "$%.2f".formatted(projected));
         }
-        System.out.printf("%-24s %14s %14s %14s%n", "TOTAL", "",
-                "$%.2f".formatted(totalExpected), "$%.2f".formatted(totalWorst));
-        System.out.printf("%n%d evals, up to %d attempts each. Estimates come from estCostPerAttemptUsd in agents/*.json.%n",
-                evals.size(), attempts);
-        System.out.println("Actual spend is recorded per attempt in results/results.json where the CLI reports it.");
+        System.out.printf("%-24s %16s %10s %14s%n", "TOTAL", "", "", "$%.2f".formatted(total));
+        System.out.printf("%n%d evals x %d samples each. Estimates come from estCostPerAttemptUsd in agents/*.json.%n",
+                evals.size(), samples);
+        System.out.println("Actual spend is recorded per sample in results/results.json where the CLI reports it.");
+    }
+
+    /** Samples per (agent, eval) cell; every sample runs, so this is the multiplier on spend. */
+    static int resolveSamples(Map<String, String> opts) {
+        if (opts.containsKey("attempts")) {
+            throw new IllegalArgumentException("--attempts was replaced by --samples <n>: every sample runs "
+                    + "and the pass rate is passes over samples");
+        }
+        String requested = opts.getOrDefault("samples", "3");
+        int value;
+        try {
+            value = Integer.parseInt(requested);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("--samples takes an integer between 1 and 10");
+        }
+        if (value < 1 || value > 10) {
+            throw new IllegalArgumentException("--samples must be between 1 and 10");
+        }
+        return value;
     }
 
     void list() {
@@ -181,37 +195,44 @@ public class Main {
                 continue;
             }
 
-            System.out.println("1/2 broken project must FAIL the hidden tests...");
+            List<EvalDefinition.Candidate> candidates = eval.candidates();
+            int gates = 1 + candidates.size();
+            System.out.println("1/" + gates + " broken project must FAIL the hidden tests...");
             Path brokenWs = workspaces.freshCopy(eval, "validate-broken");
             workspaces.injectEvalTests(eval, brokenWs);
             Judgment broken = judgeWorkspace(image, eval, brokenWs, true);
-            if (broken.pass()) {
+            if (broken.testsPassed() != null && broken.testsPassed()) {
                 ok = false;
-                System.out.println("   ✗ broken project unexpectedly PASSED (" + brokenWs + ")");
+                System.out.println("   ✗ broken project unexpectedly passed the hidden tests (" + brokenWs + ")");
             } else {
-                String actualFailure = failureKind(new AgentRun(0L, null, null, null, null, null, null), broken,
-                        brokenWs, false);
+                String actualFailure = broken.outcome().recordValue();
                 String expectedFailure = eval.meta().get("baseline_failure");
                 if (!expectedFailure.equals(actualFailure)) {
                     ok = false;
                     System.out.println("   ✗ baseline failed for the wrong reason: expected " + expectedFailure
-                            + ", got " + actualFailure);
+                            + ", got " + actualFailure + ": " + broken.reasoning());
                 } else {
                     System.out.println("   ✓ fails as expected (" + actualFailure + ")");
                 }
             }
 
-            System.out.println("2/2 reference solution must PASS the hidden tests...");
-            Path solutionWs = workspaces.freshCopy(eval, "validate-solution");
-            workspaces.applySolution(eval, solutionWs);
-            workspaces.injectEvalTests(eval, solutionWs);
-            Judgment solution = judgeWorkspace(image, eval, solutionWs, false);
-            if (!solution.pass()) {
-                ok = false;
-                System.out.println("   ✗ solution FAILED: " + solution.reasoning());
-                System.out.println("     see " + solutionWs.resolve("maven-output.log"));
-            } else {
-                System.out.println("   ✓ passes");
+            int gate = 2;
+            for (EvalDefinition.Candidate candidate : candidates) {
+                String expected = candidate.expected().recordValue();
+                System.out.println(gate++ + "/" + gates + " " + candidate.label() + " must reach " + expected + "...");
+                Path candidateWs = workspaces.freshCopy(eval, "validate-" + candidate.label().toLowerCase()
+                        .replaceAll("[^a-z0-9]+", "-"));
+                workspaces.applyCandidate(candidate.dir(), candidateWs);
+                workspaces.injectEvalTests(eval, candidateWs);
+                Judgment verdict = judgeWorkspace(image, eval, candidateWs, false);
+                if (verdict.outcome() != candidate.expected()) {
+                    ok = false;
+                    System.out.println("   ✗ " + candidate.label() + " reached " + verdict.outcome().recordValue()
+                            + ": " + verdict.reasoning());
+                    System.out.println("     see " + candidateWs.resolve("maven-output.log"));
+                } else {
+                    System.out.println("   ✓ " + expected + (verdict.pass() ? "" : " (" + verdict.reasoning() + ")"));
+                }
             }
         }
 
@@ -220,7 +241,7 @@ public class Main {
     }
 
     private static String sandboxBanner(String image) {
-        return "Sandbox: agent and judge run in fresh per-attempt containers from " + image;
+        return "Sandbox: agent and judge run in fresh per-sample containers from " + image;
     }
 
     /** Judges one workspace in a fresh, env-free judge container. */
@@ -270,16 +291,13 @@ public class Main {
         DockerSandbox.requireDocker();
         int parallel = resolveParallel(opts.get("parallel"));
         List<AgentSpec> specs = resolveAgents(opts);
-        int attempts = Integer.parseInt(opts.getOrDefault("attempts", "1"));
-        if (attempts < 1 || attempts > 10) {
-            throw new IllegalArgumentException("--attempts must be between 1 and 10");
-        }
+        int samples = resolveSamples(opts);
         boolean force = opts.containsKey("force");
 
         List<EvalDefinition> targets = selectTargets(opts);
         double projectedMaximum = specs.stream()
                 .mapToDouble(spec -> spec.estCostPerAttemptUsd() == null ? 0 : spec.estCostPerAttemptUsd())
-                .sum() * targets.size() * attempts;
+                .sum() * targets.size() * samples;
         boolean paid = specs.stream().anyMatch(spec -> spec.estCostPerAttemptUsd() == null
                 || spec.estCostPerAttemptUsd() > 0);
         double costCap = Double.POSITIVE_INFINITY;
@@ -316,7 +334,7 @@ public class Main {
         String campaignId = resolveRunName(opts.get("run-name"), loaded);
         System.out.println("Run name: " + campaignId);
 
-        RunContext ctx = new RunContext(image, targets, attempts, force, paid, benchmarkVersion(),
+        RunContext ctx = new RunContext(image, targets, samples, force, paid, benchmarkVersion(),
                 recordedJavaVersion, campaignId, new RunScheduler.CostReserver(costCap),
                 new RunScheduler.ResultsLedger(loaded, resultStore::save),
                 new java.util.concurrent.ConcurrentHashMap<>(),
@@ -325,7 +343,7 @@ public class Main {
         var lanes = RunScheduler.partitionByLane(specs);
         if (parallel > 1 && lanes.size() > 1) {
             System.out.println("Lanes in parallel: " + String.join(", ", lanes.keySet())
-                    + " (attempts within a lane stay serial; max " + parallel + " concurrent containers)");
+                    + " (samples within a lane stay serial; max " + parallel + " concurrent containers)");
             RunScheduler.runLanes(lanes, parallel,
                     (lane, laneSpecs) -> runLane(ctx, laneSpecs, prefixedLog(lane)));
         } else {
@@ -361,7 +379,7 @@ public class Main {
         };
     }
 
-    private record RunContext(String image, List<EvalDefinition> targets, int attempts, boolean force,
+    private record RunContext(String image, List<EvalDefinition> targets, int samples, boolean force,
             boolean paid, String benchmarkVersion, String recordedJavaVersion, String campaignId,
             RunScheduler.CostReserver reserver, RunScheduler.ResultsLedger ledger,
             Map<String, String> cliVersions, java.util.concurrent.atomic.AtomicBoolean stopped) {
@@ -399,29 +417,30 @@ public class Main {
         List<RunRecord> existing = ctx.ledger().matching(identity);
         if (ctx.force()) {
             ctx.ledger().removeMatching(identity);
-        } else if (existing.stream().anyMatch(RunRecord::passed) || existing.size() >= ctx.attempts()) {
-            log.accept("skip %s (%s): already %s — use --force to rerun".formatted(eval.id(), spec.name(),
-                    existing.stream().anyMatch(RunRecord::passed) ? "passed" : "exhausted"));
+        } else if (existing.size() >= ctx.samples()) {
+            log.accept("skip %s (%s): already holds %d sample(s) under this identity; use --force to rerun"
+                    .formatted(eval.id(), spec.name(), existing.size()));
             return;
         }
 
         Path hostHome = Path.of(System.getProperty("user.home"));
         int done = ctx.force() ? 0 : existing.size();
-        for (int attempt = done + 1; attempt <= ctx.attempts(); attempt++) {
+        // Every sample runs; an earlier pass never short-circuits the cell.
+        for (int sample = done + 1; sample <= ctx.samples(); sample++) {
             if (ctx.stopped().get()) {
                 return;
             }
             double reservation = spec.estCostPerAttemptUsd() == null
                     ? Double.POSITIVE_INFINITY : spec.estCostPerAttemptUsd();
             if (ctx.paid() && !ctx.reserver().reserve(reservation)) {
-                log.accept("Cost cap reached before %s / %s attempt %d. Reserved $%.2f of $%.2f.".formatted(
-                        eval.id(), spec.name(), attempt, ctx.reserver().reserved(), ctx.reserver().cap()));
+                log.accept("Cost cap reached before %s / %s sample %d. Reserved $%.2f of $%.2f.".formatted(
+                        eval.id(), spec.name(), sample, ctx.reserver().reserved(), ctx.reserver().cap()));
                 ctx.stopped().set(true);
                 return;
             }
-            log.accept("%n=== %s / %s / attempt %d/%d ===".formatted(eval.id(), spec.name(), attempt,
-                    ctx.attempts()));
-            Path ws = workspaces.freshCopy(eval, spec.name() + "-a" + attempt);
+            log.accept("%n=== %s / %s / sample %d/%d ===".formatted(eval.id(), spec.name(), sample,
+                    ctx.samples()));
+            Path ws = workspaces.freshCopy(eval, spec.name() + "-s" + sample);
             String baselineHash = ContentHashes.candidate(ws);
 
             AgentRun agentRun;
@@ -447,23 +466,27 @@ public class Main {
                 ctx.reserver().absorbOverrun(agentRun.costUsd() - reservation);
             }
 
-            String failureKind = verdict.pass() ? null : failureKind(agentRun, verdict, ws, untouched);
-            String failureReason = verdict.pass() ? null
+            String failureKind = failureKind(agentRun, verdict, untouched);
+            boolean agentError = "agent_error".equals(failureKind);
+            String outcome = agentError ? "agent_error" : verdict.outcome().recordValue();
+            String failureReason = failureKind == null ? null
                     : agentRun.error() != null ? agentRun.error()
-                    : untouched && "agent_error".equals(failureKind) ? untouchedReason(agentRun)
+                    : untouched && agentError ? untouchedReason(agentRun)
                     : untouched ? "workspace unchanged after the agent ran; " + verdict.reasoning()
                     : verdict.reasoning();
-            ctx.ledger().append(new RunRecord(spec.name(), spec.model(), eval.id(), eval.project(), attempt,
-                    verdict.pass(), agentRun.durationMs(), agentRun.costUsd(), ws.toString(),
+            ctx.ledger().append(new RunRecord(spec.name(), spec.model(), eval.id(), eval.project(), sample,
+                    verdict.pass() && !agentError, agentRun.durationMs(), agentRun.costUsd(), ws.toString(),
                     Instant.now().toString(), UUID.randomUUID().toString(), spec.provider(), "agent",
                     evalHash, agentHash, ctx.benchmarkVersion(), failureKind, failureReason,
-                    ctx.recordedJavaVersion(), osName, osArch, cliVersion, "provider-default", ctx.attempts(),
+                    ctx.recordedJavaVersion(), osName, osArch, cliVersion, "provider-default", ctx.samples(),
                     agentRun.inputTokens(), agentRun.outputTokens(), agentRun.totalTokens(),
-                    candidateHash, agentRun.responseText(), ctx.campaignId()));
-            log.accept(verdict.pass() ? "✓ PASSED" : "✗ failed");
-            if (verdict.pass()) {
-                break;
-            }
+                    candidateHash, agentRun.responseText(), ctx.campaignId(),
+                    outcome, agentError ? null : verdict.testsPassed(), agentError ? null : verdict.idiomatic()));
+            log.accept(switch (outcome) {
+                case "pass" -> "✓ pass";
+                case "functional_only" -> "~ functional_only: " + verdict.reasoning();
+                default -> "✗ " + outcome;
+            });
         }
     }
 
@@ -557,7 +580,7 @@ public class Main {
         return ContentHashes.benchmark(root);
     }
 
-    private static String failureKind(AgentRun agentRun, Judgment verdict, Path workspace, boolean untouched) {
+    private static String failureKind(AgentRun agentRun, Judgment verdict, boolean untouched) {
         if (agentRun.error() != null) {
             return "agent_error";
         }
@@ -566,28 +589,7 @@ public class Main {
         if (untouched && agentRun.durationMs() != null && agentRun.durationMs() < 20_000) {
             return "agent_error";
         }
-        if (verdict.isError()) {
-            return "judge_error";
-        }
-        String text = verdict.reasoning() == null ? "" : verdict.reasoning();
-        try {
-            Path log = workspace.resolve("maven-output.log");
-            if (Files.exists(log)) {
-                text += "\n" + Files.readString(log);
-            }
-        } catch (Exception ignored) {
-        }
-        if (text.contains("required modern Spring mechanism") || text.contains("forbidden workaround")
-                || text.contains("suppress or redirect hidden tests")
-                || text.contains("pinned fixture file modified")
-                || text.contains("pinned path escapes the workspace")
-                || text.contains("pinned path is not a file in the project fixture")) {
-            return "policy_failure";
-        }
-        if (text.contains("COMPILATION ERROR") || text.contains("Compilation failure")) {
-            return "compile_failure";
-        }
-        return "test_failure";
+        return verdict.failureKind();
     }
 
     private static String untouchedReason(AgentRun agentRun) {

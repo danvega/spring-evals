@@ -42,14 +42,17 @@ public class Workspaces {
         return ws;
     }
 
-    /** Replace the workspace's src tree (and optionally pom) with the reference solution. */
-    public void applySolution(EvalDefinition eval, Path ws) {
+    /**
+     * Replace the workspace's src tree (and optionally pom) with a reference
+     * candidate: SOLUTION, an ALTERNATIVES entry, or a WORKAROUNDS entry.
+     */
+    public void applyCandidate(Path candidateDir, Path ws) {
         deleteTree(ws.resolve("src"));
-        copyTree(eval.solutionDir().resolve("src"), ws.resolve("src"));
-        Path solutionPom = eval.solutionDir().resolve("pom.xml");
-        if (Files.exists(solutionPom)) {
+        copyTree(candidateDir.resolve("src"), ws.resolve("src"));
+        Path candidatePom = candidateDir.resolve("pom.xml");
+        if (Files.exists(candidatePom)) {
             try {
-                Files.copy(solutionPom, ws.resolve("pom.xml"), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(candidatePom, ws.resolve("pom.xml"), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

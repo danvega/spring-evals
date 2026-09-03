@@ -12,6 +12,7 @@ import dev.danvega.springevals.Agents.AgentSpec;
 import dev.danvega.springevals.cli.HostProbe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -52,7 +53,9 @@ class AgentDoctorJsonTest {
         Map<?, ?> summary = (Map<?, ?>) json.get("summary");
         assertEquals(1, summary.get("ready"));
         assertEquals(1, summary.get("blocked"));
-        assertTrue(DashboardJson.write(json).contains("\"status\" : \"READY\""));
+        String emitted = DashboardJson.write(json);
+        assertTrue(emitted.contains("\"status\" : \"READY\""));
+        assertFalse(emitted.contains("sk-ant-oat-test"), "credential values must never reach the JSON");
     }
 
     private static final class FakeHost implements HostProbe {

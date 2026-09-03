@@ -8,7 +8,7 @@ Spring Evals measures how well AI models and coding agents write real Spring cod
 
 ## 1. Check the basics
 
-You need JDK 25+, Docker, and network access for Maven. That is all for the free parts. Every agent and every judge runs in a container, so Docker must be running. SDKMAN users can just run `sdk env` in the repo root; the checked-in `.sdkmanrc` pins a matching JDK.
+You need JDK 26+, Docker, and network access for Maven. That is all for the free parts. Every agent and every judge runs in a container, so Docker must be running. SDKMAN users can just run `sdk env` in the repo root; the checked-in `.sdkmanrc` pins a matching JDK.
 
 ```bash
 ./spring-evals list
@@ -37,10 +37,10 @@ Doctor checks credentials and the billing source as the container will see them,
 ## 4. See the price before you spend
 
 ```bash
-./spring-evals estimate --agent claude-sonnet-5 --eval boot/000-initializr-parity --attempts 1
+./spring-evals estimate --agent claude-sonnet-5 --eval boot/000-initializr-parity --samples 1
 ```
 
-One agent, one eval, one attempt is nearly always the right first run. Expect an estimate around a dollar or two.
+One agent, one eval, one sample is nearly always the right first run. The leaderboard default is three samples per cell; one is enough to see the machinery work. Expect an estimate around a dollar or two.
 
 ## 5. Your first scored run
 
@@ -48,7 +48,7 @@ Paid execution refuses to start without an explicit flag and a spend cap:
 
 ```bash
 ./spring-evals run --agent claude-sonnet-5 --eval boot/000-initializr-parity \
-  --attempts 1 --run-name my-first-run --allow-paid-run --max-total-cost 2
+  --samples 1 --run-name my-first-run --allow-paid-run --max-total-cost 2
 ```
 
 The eval asks the model to build a new Spring Boot 4 project from an empty repository, judged against what start.spring.io produces today.
@@ -60,7 +60,7 @@ The eval asks the model to build a new Spring Boot 4 project from an empty repos
 ./spring-evals serve
 ```
 
-Open http://localhost:4173. Your run appears in the Runs section by name, with a scoreboard and per-attempt detail. The raw story lives in `results/runs/my-first-run.md`, including the agent's own summary of what it did.
+Open http://localhost:4173. Your run appears in the Runs section by name, with a scoreboard and per-sample detail. The raw story lives in `results/runs/my-first-run.md`, including the agent's own summary of what it did.
 
 ## Where to go next
 

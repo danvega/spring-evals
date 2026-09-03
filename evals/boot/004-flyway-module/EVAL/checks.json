@@ -9,7 +9,7 @@
     "flyway_schema_history"
   ],
   "requiredPomPatterns": [
-    "<artifactId>spring-boot-(starter-)?flyway</artifactId>"
+    "<dependency>(?:(?!</dependency>|<scope>\\s*test\\s*</scope>).)*<artifactId>spring-boot-(starter-)?flyway</artifactId>(?:(?!</dependency>|<scope>\\s*test\\s*</scope>).)*</dependency>"
   ],
   "forbiddenPomPatterns": [
     "spring-boot-autoconfigure-classic",
