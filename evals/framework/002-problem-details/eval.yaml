@@ -5,11 +5,20 @@ category: web
 type: build
 difficulty: easy
 baseline_failure: test_failure
-boot_version: 4.0.7
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   Spring Framework has first-class RFC 9457 support via ProblemDetail and
   @RestControllerAdvice. The agent must turn a default 500 into a
   compliant application/problem+json 404 with a title, detail, and a
   custom property. One of the suite's two easy evals: a floor check that
-  a model knows modern Spring MVC error handling.
+  a model knows modern Spring MVC error handling. The hidden test parses
+  the body and asserts the RFC members, so the contract is checked from
+  outside. The idiom check accepts the built-in types that carry the RFC
+  body: ProblemDetail, ErrorResponse, ErrorResponseException, and
+  ResponseStatusException. Every framework-native route sets the title and
+  the custom property through one of them, so a candidate can pick any of
+  them. ResponseEntityExceptionHandler is deliberately not accepted: it is
+  a base class, so extending it says nothing about how the body was built.
+  Both workarounds prove that, one plain and one extending that base class
+  while still assembling the body by hand.

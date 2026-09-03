@@ -4,7 +4,7 @@ A partner is integrating with this invoice API and their contract tests reject o
 
 The partner requires RFC 9457 problem details for errors. For a missing invoice, the response must:
 
-- Have status 404
+- Have HTTP status 404, and repeat it in the body's `status` member
 - Have the `application/problem+json` content type
 - Have the title `Invoice Not Found`
 - Have a `detail` that names the requested invoice id
