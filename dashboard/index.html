@@ -41,7 +41,7 @@
     <section class="py-12 sm:py-16">
       <p class="font-mono text-sm/6 font-medium tracking-wide text-spring-deep uppercase dark:text-spring"><span class="not-dark:hidden">// </span>AI agent evaluations</p>
       <h1 class="mt-2 text-4xl font-semibold tracking-tight text-balance sm:text-5xl dark:text-white">How well do AI models write Spring code?</h1>
-      <p class="mt-4 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">Coding agents solve real Spring Boot 4 and Framework 7 tasks in separated temporary workspaces. Trusted tests and mechanism checks are injected after each session. One attempt is the default; retries are explicit.</p>
+      <p class="mt-4 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">Coding agents solve real Spring Boot 4 and Framework 7 tasks in separated temporary workspaces. Hidden tests and idiom checks are injected after each session. Every cell runs several independent samples, and the pass rate is passes over samples.</p>
       <p class="mt-4 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500">Last run <span class="dark:text-neutral-300" data-slot="generated">–</span> <span data-slot="sample" class="ml-2 hidden rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 inset-ring inset-ring-amber-600/20 dark:bg-transparent dark:text-amber-400 dark:inset-ring-amber-400/30">sample data</span></p>
     </section>
 
@@ -59,7 +59,7 @@
         <p class="text-3xl font-semibold tracking-tight tabular-nums dark:text-white" data-slot="stat-agents">–</p>
       </div>
       <div class="border-zinc-950/10 pl-6 lg:border-r lg:px-6 dark:border-white/10">
-        <p class="truncate text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">Best full-coverage Pass@k</p>
+        <p class="truncate text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">Best full-coverage pass rate</p>
         <p class="text-3xl font-semibold tracking-tight text-spring-deep tabular-nums dark:text-spring" data-slot="stat-best">–</p>
       </div>
       <div class="pl-6">
@@ -71,7 +71,7 @@
 
     <section id="leaderboard" class="py-12">
       <h2 class="text-2xl font-semibold tracking-tight text-balance dark:text-white">Leaderboard</h2>
-      <p class="mt-1 text-base/7 text-zinc-600 dark:text-neutral-400">Pass@1 is primary. Pass@k includes authorized retries. Partial runs are diagnostic and are not leaderboard-eligible.</p>
+      <p class="mt-1 text-base/7 text-zinc-600 dark:text-neutral-400">Pass rate is passes over verdict samples: hidden tests pass and the idiom checks hold. Functional counts samples whose tests passed with or without the idiom. Partial runs are diagnostic and are not leaderboard-eligible.</p>
 
       <div class="mt-4 overflow-x-auto">
         <table class="w-full text-left text-sm/6">
@@ -79,8 +79,9 @@
             <tr class="border-b border-zinc-950/10 text-zinc-500 dark:border-white/10 dark:font-mono dark:text-neutral-500">
               <th class="py-2 pr-4 font-medium whitespace-nowrap">Agent / model</th>
               <th class="px-4 py-2 font-medium whitespace-nowrap">Coverage</th>
-              <th class="px-4 py-2 font-medium whitespace-nowrap">Pass@1 <span class="font-normal">/ 95% CI</span></th>
-              <th class="px-4 py-2 font-medium whitespace-nowrap">Pass@k</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap">Pass rate <span class="font-normal">/ 95% CI</span></th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap">Functional</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap">Samples</th>
               <th class="px-4 py-2 font-medium whitespace-nowrap">Avg tokens <span class="font-normal">/ cost</span></th>
               <th class="py-2 pl-4 font-medium whitespace-nowrap">Total cost</th>
             </tr>
@@ -100,13 +101,13 @@
           <tbody data-slot="heatmap"></tbody>
         </table>
       </div>
-      <p class="mt-3 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500">Cell shade = share of the suite's evals passed. Hollow = no evals in that suite yet.</p>
+      <p class="mt-3 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500">Cell shade = share of the suite's samples passed. Hollow = no evals in that suite yet.</p>
       <div data-slot="drill" class="mt-6"></div>
     </section>
 
     <section id="runs" class="border-t border-zinc-950/10 py-12 dark:border-white/10">
       <h2 class="text-2xl font-semibold tracking-tight text-balance dark:text-white">Runs</h2>
-      <p class="mt-1 text-base/7 text-zinc-600 dark:text-neutral-400">Every run invocation by name, newest first. The leaderboard above aggregates current-identity results; this is the execution history. Click a run for its attempts.</p>
+      <p class="mt-1 text-base/7 text-zinc-600 dark:text-neutral-400">Every run invocation by name, newest first. The leaderboard above aggregates current-identity results; this is the execution history. Click a run for its samples.</p>
       <ul role="list" class="mt-6 divide-y divide-zinc-950/5 dark:divide-white/5" data-slot="runs"></ul>
       <button data-slot="runs-more" class="mt-4 hidden text-sm font-medium text-spring-deep hover:underline dark:font-mono dark:text-spring"></button>
       <div data-slot="run-drill" class="mt-6"></div>
@@ -142,7 +143,9 @@ const S = {
   sub: "text-sm text-zinc-500 dark:text-neutral-500",
   evalTitle: "font-medium text-zinc-950 dark:text-neutral-200",
   evalMeta: "font-mono text-sm text-zinc-500 dark:text-neutral-500",
-  badge: "rounded-full bg-spring/10 px-2 py-0.5 text-xs font-medium text-spring-deep dark:bg-transparent dark:font-mono dark:text-spring"
+  badge: "rounded-full bg-spring/10 px-2 py-0.5 text-xs font-medium text-spring-deep dark:bg-transparent dark:font-mono dark:text-spring",
+  good: "font-medium text-spring-deep tabular-nums dark:text-spring",
+  bad: "font-medium text-zinc-500 tabular-nums dark:text-neutral-500"
 };
 
 const pct = v => Math.round(v * 100) + "%";
@@ -153,16 +156,19 @@ function agentCell(a) {
   return `${a.agent}${a.eligible === false ? ' <span class="text-xs text-amber-600 dark:text-amber-400">partial</span>' : ''}`;
 }
 
-function passkBar(a) {
+const passRate = a => a.passRate ?? a.successRate ?? 0;
+const functionalRate = a => a.functionalRate ?? passRate(a);
+
+function rateBar(value) {
   return `<div class="flex items-center gap-3">
-    <div class="${S.barTrack}"><div class="${S.barFill}" style="--w:${a.successRate * 100}%"></div></div>
-    <span class="${S.rate}">${pct(a.successRate)}</span>
+    <div class="${S.barTrack}"><div class="${S.barFill}" style="--w:${value * 100}%"></div></div>
+    <span class="${S.rate}">${pct(value)}</span>
   </div>`;
 }
 
 function renderLeaderboard(data) {
   if ((data.agents || []).length === 0 && (data.noVerdict || []).length === 0) {
-    slot("leaderboard").innerHTML = `<tr><td colspan="6" class="py-4 text-base/7 text-zinc-500 dark:text-neutral-500">No leaderboard-eligible results in the current cohort yet. Past runs stay in the Runs section below.</td></tr>`;
+    slot("leaderboard").innerHTML = `<tr><td colspan="7" class="py-4 text-base/7 text-zinc-500 dark:text-neutral-500">No leaderboard-eligible results in the current cohort yet. Past runs stay in the Runs section below.</td></tr>`;
     return;
   }
   slot("leaderboard").innerHTML = data.agents.map(a => `
@@ -173,16 +179,31 @@ function renderLeaderboard(data) {
       </td>
       <td class="${S.cell} tabular-nums">${a.evals}/${a.totalEvals ?? a.evals}</td>
       <td class="px-4 py-3">
-        <p class="${S.rate}">${pct(a.firstTryRate)}</p>
+        <p class="${S.rate}">${pct(passRate(a))}</p>
         <p class="${S.sub} tabular-nums">${a.ciLower == null ? "" : pct(a.ciLower) + "–" + pct(a.ciUpper)}</p>
       </td>
-      <td class="px-4 py-3">${passkBar(a)}</td>
+      <td class="px-4 py-3">${rateBar(functionalRate(a))}</td>
+      <td class="${S.cell} tabular-nums">${a.samples ?? a.attempts ?? ""}</td>
       <td class="px-4 py-3">
         <p class="text-zinc-600 tabular-nums dark:text-neutral-400">${a.avgTokens == null ? "n/a" : a.avgTokens.toLocaleString()}</p>
-        <p class="${S.sub} tabular-nums">${a.avgCostUsd == null ? "" : "$" + a.avgCostUsd.toFixed(2) + "/task"}</p>
+        <p class="${S.sub} tabular-nums">${a.avgCostUsd == null ? "" : "$" + a.avgCostUsd.toFixed(2) + "/sample"}</p>
       </td>
       <td class="py-3 pl-4 text-zinc-600 tabular-nums dark:text-neutral-400">${a.totalCostUsd == null ? "n/a" : "$" + a.totalCostUsd.toFixed(2)}</td>
     </tr>`).join("");
+}
+
+function projectCell(data, agent, suite) {
+  const raw = (data.byProject?.[agent] || {})[suite];
+  if (!raw) return null;
+  if (Array.isArray(raw)) return { passed: raw[0], samples: raw[1], evals: raw[1], totalEvals: raw[2] ?? raw[1] };
+  return raw;
+}
+
+function evalCell(data, agent, evalId) {
+  const raw = (data.byEval?.[agent] || {})[evalId];
+  if (raw == null) return null;
+  if (typeof raw === "boolean") return { passed: raw ? 1 : 0, functional: raw ? 1 : 0, samples: 1 };
+  return raw;
 }
 
 function suiteStats(data, suite) {
@@ -190,8 +211,8 @@ function suiteStats(data, suite) {
   if (evals.length === 0) return { evals, hasData: false };
   let best = 0;
   for (const a of data.agents) {
-    const cell = (data.byProject[a.agent] || {})[suite];
-    if (cell) best = Math.max(best, cell[0] / (cell[2] ?? cell[1] ?? evals.length));
+    const cell = projectCell(data, a.agent, suite);
+    if (cell && cell.samples) best = Math.max(best, cell.passed / cell.samples);
   }
   return { evals, hasData: true, best };
 }
@@ -210,11 +231,24 @@ function drillHtml(data, suite) {
   }
   const rows = evals.map(e => {
     const dots = data.agents.map(a => {
-      const passed = (data.byEval?.[a.agent] || {})[e.id];
-      const color = passed === true ? "bg-spring" : passed === false ? "bg-zinc-300 dark:bg-neutral-700" : "bg-transparent inset-ring inset-ring-zinc-300 dark:inset-ring-neutral-700";
-      return `<span class="size-2.5 rounded-full ${color}" title="${a.agent}: ${passed === true ? "passed" : passed === false ? "failed" : "not run"}"></span>`;
+      const cell = evalCell(data, a.agent, e.id);
+      let color, label;
+      if (!cell) {
+        color = "bg-transparent inset-ring inset-ring-zinc-300 dark:inset-ring-neutral-700";
+        label = "not run";
+      } else if (cell.passed === cell.samples) {
+        color = "bg-spring";
+        label = `${cell.passed}/${cell.samples} passed`;
+      } else if (cell.passed > 0 || (cell.functional ?? 0) > 0) {
+        color = "bg-amber-400";
+        label = `${cell.passed}/${cell.samples} passed, ${cell.functional ?? 0} functional`;
+      } else {
+        color = "bg-zinc-300 dark:bg-neutral-700";
+        label = `0/${cell.samples} passed`;
+      }
+      return `<span class="size-2.5 rounded-full ${color}" title="${a.agent}: ${label}"></span>`;
     }).join("");
-    const passCount = data.agents.filter(a => (data.byEval?.[a.agent] || {})[e.id] === true).length;
+    const passCount = data.agents.filter(a => { const c = evalCell(data, a.agent, e.id); return c && c.passed === c.samples && c.samples > 0; }).length;
     return `<li class="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div class="min-w-0">
         <p class="${S.evalTitle}">${e.title}</p>
@@ -222,7 +256,7 @@ function drillHtml(data, suite) {
       </div>
       <div class="flex shrink-0 items-center gap-3">
         <div class="flex items-center gap-1">${dots}</div>
-        <span class="${S.sub} tabular-nums">${passCount}/${data.agents.length} agents</span>
+        <span class="${S.sub} tabular-nums">${passCount}/${data.agents.length} agents pass every sample</span>
       </div>
     </li>`;
   }).join("");
@@ -261,16 +295,15 @@ function renderHeatmap(data) {
     <tr>
       <td class="${S.agent} whitespace-nowrap">${a.agent}</td>
       ${SUITES.map(suite => {
-        const cell = (data.byProject[a.agent] || {})[suite];
+        const cell = projectCell(data, a.agent, suite);
         const evalCount = data.evals.filter(e => e.project === suite).length;
-        if (!cell || evalCount === 0) {
+        if (!cell || evalCount === 0 || !cell.samples) {
           return `<td class="p-0.5"><button data-suite="${suite}" class="block size-6 rounded-xs inset-ring inset-ring-zinc-950/10 dark:inset-ring-white/10" title="spring-${suite}: no evals yet"></button></td>`;
         }
-        const [passed, attempted, total = attempted] = cell;
-        const ratio = total === 0 ? 0 : passed / total;
+        const ratio = cell.passed / cell.samples;
         return `<td class="p-0.5"><button data-suite="${suite}" class="block size-6 rounded-xs inset-ring inset-ring-zinc-950/10 dark:inset-ring-white/10"
           style="background-color: color-mix(in srgb, var(--color-spring) ${Math.round(ratio * 90) + (ratio > 0 ? 10 : 0)}%, transparent)"
-          title="spring-${suite} · ${a.agent}: ${passed}/${total} passed"></button></td>`;
+          title="spring-${suite} · ${a.agent}: ${cell.passed}/${cell.samples} samples passed across ${cell.evals}/${cell.totalEvals} evals"></button></td>`;
       }).join("")}
     </tr>`).join("");
 }
@@ -292,22 +325,24 @@ function mdLite(text) {
   }
 }
 
+const outcomeOf = d => d.outcome ?? (d.passed ? "pass" : (d.failureKind === "idiom_failure" ? "functional_only" : (d.failureKind || "test_failure")));
+const isInfra = d => d.failureKind === "agent_error" || d.failureKind === "judge_error";
+
 function runScoreboard(r) {
-  const isInfra = d => d.failureKind === "agent_error" || d.failureKind === "judge_error";
   const byAgent = {};
   r.detail.forEach(d => (byAgent[d.agent] = byAgent[d.agent] || []).push(d));
-  return Object.entries(byAgent).map(([agent, attempts]) => {
-    const verdicts = attempts.filter(d => !isInfra(d));
-    const evalsTried = new Set(verdicts.map(d => d.eval)).size;
-    const passed = new Set(verdicts.filter(d => d.passed).map(d => d.eval)).size;
-    const time = attempts.reduce((total, d) => total + (d.durationMs || 0), 0);
-    const cost = attempts.reduce((total, d) => total + (d.costUsd || 0), 0);
+  return Object.entries(byAgent).map(([agent, samples]) => {
+    const verdicts = samples.filter(d => !isInfra(d));
+    const passed = verdicts.filter(d => outcomeOf(d) === "pass").length;
+    const functionalOnly = verdicts.filter(d => outcomeOf(d) === "functional_only").length;
+    const time = samples.reduce((total, d) => total + (d.durationMs || 0), 0);
+    const cost = samples.reduce((total, d) => total + (d.costUsd || 0), 0);
     let verdict;
     if (verdicts.length === 0) {
-      const kinds = [...new Set(attempts.map(d => d.failureKind || "unknown"))].join(", ");
+      const kinds = [...new Set(samples.map(d => d.failureKind || "unknown"))].join(", ");
       verdict = `<span class="${S.bad}">no verdict (${kinds})</span>`;
     } else {
-      verdict = `<span class="${passed === evalsTried ? S.good : passed === 0 ? S.bad : S.rate}">${passed}/${evalsTried} passed</span>`;
+      verdict = `<span class="${passed === verdicts.length ? S.good : passed === 0 ? S.bad : S.rate}">${passed}/${verdicts.length} samples passed</span>${functionalOnly ? ` <span class="${S.sub}">+${functionalOnly} functional only</span>` : ""}`;
     }
     return `<tr class="${S.row}">
       <td class="${S.agent}">${agent}</td>
@@ -334,7 +369,7 @@ function renderRuns(data) {
           <p class="${S.evalMeta}">${new Date(r.started).toLocaleString()} · ${r.agents.length} agent${r.agents.length === 1 ? "" : "s"} · ${r.evals} eval${r.evals === 1 ? "" : "s"}</p>
         </div>
         <div class="flex shrink-0 items-center gap-3">
-          <span class="${S.rate}">${r.passed}/${r.attempts} passed</span>
+          <span class="${S.rate}">${r.passed}/${r.samples ?? r.attempts} passed</span>
           <span class="${S.sub} tabular-nums">${r.recordedCostUsd ? "$" + r.recordedCostUsd.toFixed(2) : ""}</span>
         </div>
       </button>
@@ -355,10 +390,10 @@ function renderRuns(data) {
       <li class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
           <p class="${S.evalTitle}">${d.agent} · ${d.eval}</p>
-          <p class="${S.evalMeta}">attempt ${d.attempt}${d.failureKind ? " · " + d.failureKind : ""}</p>
+          <p class="${S.evalMeta}">sample ${d.sample ?? d.attempt}${d.testsPassed != null ? " · tests " + (d.testsPassed ? "passed" : "failed") : ""}${d.idiomatic != null ? " · idiom " + (d.idiomatic ? "held" : "missed") : ""}</p>
         </div>
         <div class="flex shrink-0 items-center gap-3 text-sm text-zinc-600 tabular-nums dark:text-neutral-400">
-          <span class="${d.passed ? S.good : S.bad}">${d.passed ? "passed" : "failed"}</span>
+          <span class="${outcomeOf(d) === "pass" ? S.good : outcomeOf(d) === "functional_only" ? S.rate : S.bad}">${outcomeOf(d)}</span>
           <span>${d.durationMs == null ? "" : Math.round(d.durationMs / 1000) + "s"}</span>
           <span>${d.totalTokens == null ? "" : d.totalTokens.toLocaleString() + " tok"}</span>
           <span>${d.costUsd == null ? "" : "$" + d.costUsd.toFixed(2)}</span>
@@ -376,7 +411,7 @@ function renderRuns(data) {
           <tbody>${runScoreboard(r)}</tbody>
         </table>
       </div>
-      <p class="mt-4 text-sm font-medium text-zinc-500 dark:font-mono dark:text-neutral-500">Attempts</p>
+      <p class="mt-4 text-sm font-medium text-zinc-500 dark:font-mono dark:text-neutral-500">Samples</p>
       <ul role="list" class="mt-1 divide-y divide-zinc-950/5 dark:divide-white/5">${rows}</ul>
     </div>`;
   };
@@ -393,7 +428,7 @@ function render(data) {
   slot("stat-projects").textContent = data.projects.length + "/" + SUITES.length;
   slot("stat-agents").textContent = data.agents.length;
   const eligible = data.agents.filter(a => a.eligible !== false && (a.totalEvals == null || a.evals === a.totalEvals));
-  slot("stat-best").textContent = eligible.length ? pct(Math.max(...eligible.map(a => a.successRate))) : "n/a";
+  slot("stat-best").textContent = eligible.length ? pct(Math.max(...eligible.map(passRate))) : "n/a";
   slot("stat-spend").textContent = data.spendUsd == null ? "n/a" : "$" + data.spendUsd.toFixed(2) + (data.spendPartial ? "+" : "");
   if (data.estSpendUsd != null && data.spendPartial) {
     slot("stat-spend-est").textContent = "\u2248 $" + data.estSpendUsd.toFixed(2) + " at API prices";

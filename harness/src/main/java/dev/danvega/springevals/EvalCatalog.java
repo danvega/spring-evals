@@ -96,6 +96,11 @@ public class EvalCatalog {
                 errors.add("required path missing: " + eval.dir().relativize(required));
             }
         }
+        for (EvalDefinition.Candidate candidate : eval.candidates()) {
+            if (!Files.isDirectory(candidate.dir().resolve("src"))) {
+                errors.add("candidate has no src directory: " + candidate.label());
+            }
+        }
         try {
             if (eval.agentTimeout().isZero() || eval.agentTimeout().isNegative()) {
                 errors.add("timeout_seconds must be positive");

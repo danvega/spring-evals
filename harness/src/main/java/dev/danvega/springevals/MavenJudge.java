@@ -14,14 +14,22 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Deterministic verdict tier; JUDGE_COMMAND is the single source of the judged build command. */
+/**
+ * Deterministic verdict tier. Order is integrity, then hidden tests, then
+ * idiom checks, so a candidate that works but misses the modern mechanism
+ * is recorded as functional_only rather than lumped in with failures.
+ * JUDGE_COMMAND is the single source of the judged build command.
+ */
 public class MavenJudge {
 
     private static final Duration MAVEN_TIMEOUT = Duration.ofMinutes(15);
+    private static final Duration RESOLVE_TIMEOUT = Duration.ofMinutes(5);
 
     /** The one judged build command. Validate and run must not diverge. */
     static final List<String> JUDGE_COMMAND = List.of("./mvnw", "-B", "-ntp",
             "-Dmaven.test.skip=false", "-DskipTests=false", "clean", "test");
+
+    static final String RUNTIME_CLASSPATH_FILE = "target/spring-evals-runtime-classpath.txt";
 
     /** Executes the judged build in a specific environment (the attempt's fresh judge container). */
     interface BuildRunner {
@@ -55,106 +63,173 @@ public class MavenJudge {
         return judge(eval, workspace, false, runner);
     }
 
+    /**
+     * Integrity plus idiom checks without a build; null when both hold. Used by
+     * fast tests that prove reference candidates satisfy their own policy.
+     */
     Judgment validatePolicy(EvalDefinition eval, Path workspace) {
-        return validateCandidatePolicy(eval, workspace, true);
+        SourceChecks checks;
+        try {
+            checks = loadChecks(eval);
+            Judgment integrity = checkIntegrity(eval, workspace, checks);
+            if (integrity != null) {
+                return integrity;
+            }
+            if (checks == null) {
+                return null;
+            }
+            String idiom = checkIdiom(workspace, checks, null);
+            return idiom == null ? null : new Judgment(Judgment.Outcome.FUNCTIONAL_ONLY, null, false, idiom, null);
+        } catch (IOException | JacksonException e) {
+            return Judgment.error("could not apply trusted candidate policy", e);
+        }
     }
 
     private Judgment judge(EvalDefinition eval, Path workspace, boolean applyMechanismChecks, BuildRunner runner) {
-        Judgment policy = validateCandidatePolicy(eval, workspace, applyMechanismChecks);
-        if (policy != null) {
-            writeLog(workspace, policy);
-            return policy;
-        }
-        Judgment judgment = judgeWithRunner(workspace, runner);
-        if (judgment.pass()) {
-            Judgment reports = verifyHiddenTestsExecuted(eval, workspace);
-            if (reports != null) {
-                writeLog(workspace, reports);
-                return reports;
+        Judgment judgment;
+        try {
+            SourceChecks checks = loadChecks(eval);
+            judgment = checkIntegrity(eval, workspace, checks);
+            if (judgment == null) {
+                judgment = judgeBuild(eval, workspace, applyMechanismChecks ? checks : null, runner);
             }
+        } catch (IOException | JacksonException e) {
+            judgment = Judgment.error("could not apply trusted candidate policy", e);
         }
         writeLog(workspace, judgment);
         return judgment;
     }
 
-    private static Judgment judgeWithRunner(Path workspace, BuildRunner runner) {
+    private Judgment judgeBuild(EvalDefinition eval, Path workspace, SourceChecks checks, BuildRunner runner)
+            throws IOException {
         BuildResult result = runner.run(workspace, JUDGE_COMMAND, MAVEN_TIMEOUT);
         String output = result.output() == null ? "" : result.output();
         if (result.timedOut()) {
-            return Judgment.fail("judged build timed out after " + MAVEN_TIMEOUT.toMinutes() + " minutes", output);
+            return new Judgment(Judgment.Outcome.TEST_FAILURE, false, null,
+                    "judged build timed out after " + MAVEN_TIMEOUT.toMinutes() + " minutes", output);
         }
-        return result.exitCode() == 0
-                ? Judgment.pass("Command completed successfully with exit code 0", output)
-                : Judgment.fail("Command failed with exit code " + result.exitCode(), output);
+        if (result.exitCode() == 0) {
+            String evidence = verifyHiddenTestsExecuted(eval, workspace);
+            if (evidence != null) {
+                return Judgment.policyFailure(evidence, output);
+            }
+        }
+        boolean testsPassed = result.exitCode() == 0;
+        String idiomFailure = checks == null ? null : checkIdiom(workspace, checks, runner);
+        Boolean idiomatic = checks == null ? null : idiomFailure == null;
+        if (testsPassed) {
+            return idiomFailure == null
+                    ? new Judgment(Judgment.Outcome.PASS, true, idiomatic,
+                            "hidden tests passed" + (idiomatic == null ? "" : " and idiom checks hold"), output)
+                    : new Judgment(Judgment.Outcome.FUNCTIONAL_ONLY, true, false, idiomFailure, output);
+        }
+        Judgment.Outcome outcome = output.contains("COMPILATION ERROR") || output.contains("Compilation failure")
+                ? Judgment.Outcome.COMPILE_FAILURE : Judgment.Outcome.TEST_FAILURE;
+        return new Judgment(outcome, false, idiomatic, "Command failed with exit code " + result.exitCode()
+                + (idiomFailure == null ? "" : "; " + idiomFailure), output);
     }
 
-    private Judgment validateCandidatePolicy(EvalDefinition eval, Path workspace, boolean applyMechanismChecks) {
-        Path pom = workspace.resolve("pom.xml");
-        try {
-            // Comments are inert to Maven, so pom patterns must never see them.
-            String pomText = pomPolicyText(Files.exists(pom) ? Files.readString(pom) : "");
-            for (Pattern pattern : FORBIDDEN_BUILD_CONFIG) {
-                if (pattern.matcher(pomText).find()) {
-                    return Judgment.fail("candidate build configuration can suppress or redirect hidden tests: "
-                            + pattern.pattern());
-                }
-            }
+    private SourceChecks loadChecks(EvalDefinition eval) throws IOException {
+        Path checksFile = eval.evalTestsDir().resolve("checks.json");
+        return Files.exists(checksFile) ? mapper.readValue(checksFile.toFile(), SourceChecks.class) : null;
+    }
 
-            Path checksFile = eval.evalTestsDir().resolve("checks.json");
-            if (!Files.exists(checksFile)) {
-                return null;
+    /** Test suppression and pinned-fixture edits make the build untrustworthy, so nothing else runs. */
+    private Judgment checkIntegrity(EvalDefinition eval, Path workspace, SourceChecks checks) throws IOException {
+        for (Pattern pattern : FORBIDDEN_BUILD_CONFIG) {
+            if (pattern.matcher(pomPolicyText(readPom(workspace))).find()) {
+                return Judgment.policyFailure("candidate build configuration can suppress or redirect hidden tests: "
+                        + pattern.pattern());
             }
-            SourceChecks checks = mapper.readValue(checksFile.toFile(), SourceChecks.class);
-            Judgment pinned = checkPinnedFixtures(eval, workspace, checks.pinned());
-            if (pinned != null) {
-                return pinned;
-            }
-            if (!applyMechanismChecks) {
-                return null;
-            }
-            String sources = readMainSources(workspace);
-            Judgment sourceResult = checkPatterns("source", sources, checks.requiredSourcePatterns(),
-                    checks.forbiddenSourcePatterns());
-            if (sourceResult != null) {
-                return sourceResult;
-            }
-            return checkPatterns("pom", pomText, checks.requiredPomPatterns(), checks.forbiddenPomPatterns());
-        } catch (IOException | JacksonException e) {
-            return Judgment.error("could not apply trusted candidate policy", e);
         }
+        if (checks == null) {
+            return null;
+        }
+        String pinned = checkPinnedFixtures(eval, workspace, checks.pinned());
+        return pinned == null ? null : Judgment.policyFailure(pinned);
+    }
+
+    /** Null when every idiom check holds; otherwise the first failure. Runner may be null when no artifacts are declared. */
+    private String checkIdiom(Path workspace, SourceChecks checks, BuildRunner runner) throws IOException {
+        String sources = readMainSources(workspace);
+        String sourceResult = checkPatterns("source", sources, checks.requiredSourcePatterns(),
+                checks.forbiddenSourcePatterns());
+        if (sourceResult != null) {
+            return sourceResult;
+        }
+        String pomResult = checkPatterns("pom", pomPolicyText(readPom(workspace)), checks.requiredPomPatterns(),
+                checks.forbiddenPomPatterns());
+        if (pomResult != null) {
+            return pomResult;
+        }
+        return checkRuntimeArtifacts(workspace, checks.requiredRuntimeArtifacts(), runner);
+    }
+
+    private static String readPom(Path workspace) throws IOException {
+        Path pom = workspace.resolve("pom.xml");
+        return Files.exists(pom) ? Files.readString(pom) : "";
     }
 
     /**
      * A pinned file must be byte-identical to the eval's project fixture;
      * deletion counts as modified. Workspace bytes only.
      */
-    private static Judgment checkPinnedFixtures(EvalDefinition eval, Path workspace, List<String> pinned)
+    private static String checkPinnedFixtures(EvalDefinition eval, Path workspace, List<String> pinned)
             throws IOException {
         for (String declared : safe(pinned)) {
             Path fixture = eval.projectDir().resolve(declared).normalize();
             Path candidate = workspace.resolve(declared).normalize();
             if (!fixture.startsWith(eval.projectDir().normalize()) || !candidate.startsWith(workspace.normalize())) {
-                return Judgment.fail("pinned path escapes the workspace: " + declared);
+                return "pinned path escapes the workspace: " + declared;
             }
             if (!Files.isRegularFile(fixture)) {
-                return Judgment.fail("pinned path is not a file in the project fixture: " + declared);
+                return "pinned path is not a file in the project fixture: " + declared;
             }
             if (!Files.isRegularFile(candidate) || Files.mismatch(fixture, candidate) >= 0) {
-                return Judgment.fail("pinned fixture file modified: " + declared);
+                return "pinned fixture file modified: " + declared;
             }
         }
         return null;
     }
 
-    private static Judgment checkPatterns(String target, String text, List<String> required, List<String> forbidden) {
+    private static String checkPatterns(String target, String text, List<String> required, List<String> forbidden) {
         for (String expression : safe(required)) {
             if (!Pattern.compile(expression, Pattern.MULTILINE | Pattern.DOTALL).matcher(text).find()) {
-                return Judgment.fail("required modern Spring mechanism missing from " + target + ": " + expression);
+                return "required modern Spring mechanism missing from " + target + ": " + expression;
             }
         }
         for (String expression : safe(forbidden)) {
             if (Pattern.compile(expression, Pattern.MULTILINE | Pattern.DOTALL).matcher(text).find()) {
-                return Judgment.fail("forbidden workaround found in " + target + ": " + expression);
+                return "forbidden workaround found in " + target + ": " + expression;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Pom regexes cannot see dependency scope, so required artifacts are
+     * confirmed on the candidate's resolved runtime classpath instead.
+     */
+    private static String checkRuntimeArtifacts(Path workspace, List<String> coordinates, BuildRunner runner)
+            throws IOException {
+        if (safe(coordinates).isEmpty()) {
+            return null;
+        }
+        if (runner == null) {
+            return null;
+        }
+        BuildResult result = runner.run(workspace, List.of("./mvnw", "-B", "-ntp", "-q",
+                "dependency:build-classpath", "-DincludeScope=runtime",
+                "-Dmdep.outputFile=" + RUNTIME_CLASSPATH_FILE), RESOLVE_TIMEOUT);
+        Path file = workspace.resolve(RUNTIME_CLASSPATH_FILE);
+        if (result.exitCode() != 0 || result.timedOut() || !Files.exists(file)) {
+            return "could not resolve the runtime classpath to confirm required artifacts "
+                    + coordinates + (result.timedOut() ? " (timed out)" : " (exit " + result.exitCode() + ")");
+        }
+        String classpath = Files.readString(file);
+        for (String coordinate : coordinates) {
+            if (!RuntimeArtifacts.present(classpath, coordinate)) {
+                return "required runtime artifact missing from the resolved classpath: " + coordinate;
             }
         }
         return null;
@@ -199,6 +274,7 @@ public class MavenJudge {
         return xml.replaceAll("(?s)<!--.*?(?:-->|\\z)", "");
     }
 
+    /** Comments are inert to the compiler, so source patterns never see them. */
     private static String readMainSources(Path workspace) throws IOException {
         Path main = workspace.resolve("src/main");
         if (!Files.isDirectory(main)) {
@@ -210,13 +286,14 @@ public class MavenJudge {
                     .filter(path -> path.getFileName().toString().endsWith(".java")
                             || path.getFileName().toString().endsWith(".kt"))
                     .sorted().toList()) {
-                text.append(Files.readString(path)).append('\n');
+                text.append(JavaComments.strip(Files.readString(path))).append('\n');
             }
         }
         return text.toString();
     }
 
-    private Judgment verifyHiddenTestsExecuted(EvalDefinition eval, Path workspace) {
+    /** Null when every hidden test class ran and recorded no failures. */
+    private String verifyHiddenTestsExecuted(EvalDefinition eval, Path workspace) throws IOException {
         List<String> missing = new ArrayList<>();
         try (Stream<Path> paths = Files.walk(eval.evalTestsDir())) {
             for (Path test : paths.filter(p -> p.getFileName().toString().endsWith("Test.java")).toList()) {
@@ -243,15 +320,14 @@ public class MavenJudge {
                     }
                 }
             }
-        } catch (IOException e) {
-            return Judgment.error("could not verify hidden-test execution reports", e);
         }
         return missing.isEmpty() ? null
-                : Judgment.fail("Maven returned success without executing every hidden test: " + missing);
+                : "Maven returned success without executing every hidden test: " + missing;
     }
 
     private record SourceChecks(List<String> requiredSourcePatterns, List<String> forbiddenSourcePatterns,
-            List<String> requiredPomPatterns, List<String> forbiddenPomPatterns, List<String> pinned) {
+            List<String> requiredPomPatterns, List<String> forbiddenPomPatterns, List<String> pinned,
+            List<String> requiredRuntimeArtifacts) {
     }
 
     private void writeLog(Path workspace, Judgment judgment) {

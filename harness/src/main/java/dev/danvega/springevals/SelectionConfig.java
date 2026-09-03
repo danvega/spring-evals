@@ -29,25 +29,24 @@ final class SelectionConfig {
         if (!Files.exists(file)) {
             return new SelectionConfig(null);
         }
-        {
-            JsonNode node = JsonMapper.builder().build().readTree(file.toFile());
-            if (!node.has("enabledAgents")) {
-                return new SelectionConfig(null);
-            }
-            if (!node.get("enabledAgents").isArray()) {
-                throw new IllegalArgumentException(FILE_NAME + ": enabledAgents must be an array of agent names");
-            }
-            Set<String> names = new LinkedHashSet<>();
-            node.get("enabledAgents").forEach(name -> names.add(name.asString()));
-            // A typo would silently drop an agent from every selection; refuse instead.
-            for (String name : names) {
-                if (!knownAgents.contains(name)) {
-                    throw new IllegalArgumentException(FILE_NAME + " enables unknown agent '" + name
-                            + "' (no agents/" + name + ".json)");
-                }
-            }
-            return new SelectionConfig(Set.copyOf(names));
+        JsonNode node = JsonMapper.builder().build().readTree(file.toFile());
+        if (!node.has("enabledAgents")) {
+            return new SelectionConfig(null);
         }
+        if (!node.get("enabledAgents").isArray()) {
+            throw new IllegalArgumentException(FILE_NAME + ": enabledAgents must be an array of agent names");
+        }
+        Set<String> names = new LinkedHashSet<>();
+        node.get("enabledAgents").forEach(name -> names.add(name.asString()));
+        // A typo would silently drop an agent from every selection; refuse instead.
+        for (String name : names) {
+            if (!knownAgents.contains(name)) {
+                throw new IllegalArgumentException(FILE_NAME + " enables unknown agent '" + name
+                        + "' (no agents/" + name + ".json)");
+            }
+        }
+        return new SelectionConfig(Set.copyOf(names));
+    
     }
 
     boolean restricts() {

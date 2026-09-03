@@ -55,8 +55,12 @@ public final class ClaudeCli implements AgentCli {
                 return new AgentOutput(output, null, null, null);
             }
             JsonNode usage = node.get("usage");
+            // A non-text result (Jackson 3 asString() throws on objects) must never cost the numbers.
+            JsonNode result = node.get("result");
+            String text = result == null || result.isNull() ? output
+                    : result.isString() ? result.asString() : result.toString();
             return new AgentOutput(
-                    node.hasNonNull("result") ? node.get("result").asString() : output,
+                    text,
                     node.hasNonNull("total_cost_usd") ? node.get("total_cost_usd").asDouble() : null,
                     usage != null && usage.hasNonNull("input_tokens") ? usage.get("input_tokens").asLong() : null,
                     usage != null && usage.hasNonNull("output_tokens") ? usage.get("output_tokens").asLong() : null);

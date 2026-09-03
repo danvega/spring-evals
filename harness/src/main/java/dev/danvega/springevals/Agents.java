@@ -29,27 +29,31 @@ public class Agents {
         this.agentsDir = repoRoot.resolve("agents");
     }
 
+    /** Jackson 3 asString() rejects non-text nodes; env values are always rendered, and null stays empty. */
+    private static String text(JsonNode node) {
+        return node == null || node.isNull() ? "" : node.isString() ? node.asString() : node.toString();
+    }
+
     public AgentSpec load(String name) {
         Path file = agentsDir.resolve(name + ".json");
         if (!Files.exists(file)) {
             throw new IllegalArgumentException("agent config not found: " + file);
         }
-        {
-            JsonNode node = mapper.readTree(file.toFile());
-            Map<String, String> env = new java.util.HashMap<>();
-            if (node.has("env")) {
-                node.get("env").properties()
-                        .forEach(entry -> env.put(entry.getKey(), entry.getValue().asString()));
-            }
-            if (!node.hasNonNull("name") || !node.hasNonNull("provider") || !node.hasNonNull("model")) {
-                throw new IllegalArgumentException("agent config requires name, provider, and model: " + file);
-            }
-            AgentSpec spec = new AgentSpec(node.get("name").asString(), node.get("provider").asString(),
-                    node.get("model").asString(), Map.copyOf(env),
-                    node.has("estCostPerAttemptUsd") ? node.get("estCostPerAttemptUsd").asDouble() : null);
-            validate(file, spec);
-            return spec;
+        JsonNode node = mapper.readTree(file.toFile());
+        Map<String, String> env = new java.util.HashMap<>();
+        if (node.has("env")) {
+            node.get("env").properties()
+                    .forEach(entry -> env.put(entry.getKey(), text(entry.getValue())));
         }
+        if (!node.hasNonNull("name") || !node.hasNonNull("provider") || !node.hasNonNull("model")) {
+            throw new IllegalArgumentException("agent config requires name, provider, and model: " + file);
+        }
+        AgentSpec spec = new AgentSpec(node.get("name").asString(), node.get("provider").asString(),
+                node.get("model").asString(), Map.copyOf(env),
+                node.has("estCostPerAttemptUsd") ? node.get("estCostPerAttemptUsd").asDouble() : null);
+        validate(file, spec);
+        return spec;
+    
     }
 
     private static void validate(Path file, AgentSpec spec) {
