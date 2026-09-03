@@ -76,8 +76,8 @@ class NPlusOneEvalTest {
                 .as("one request issued %d SQL statements; the N+1 pattern is still there", statements)
                 .isLessThanOrEqualTo(5);
         assertThat(statements)
-                .as("the request was served without querying the database at all; "
-                        + "the query pattern has to be fixed, not hidden behind a cache or a canned response")
+                .as("no JPA statement ran for this request; the endpoint must still read through the entity "
+                        + "mapping every time, not from a cache, a canned response, or a read path around JPA")
                 .isGreaterThanOrEqualTo(1);
     }
 
@@ -96,8 +96,9 @@ class NPlusOneEvalTest {
                 .contains("\"Author " + AUTHORS + "\"")
                 .contains("Book " + BOOKS_PER_AUTHOR + " by Author " + AUTHORS);
         assertThat(statements)
-                .as("a warm request issued %d SQL statements; the query count per request must be constant "
-                        + "and independent of the number of authors", statements)
+                .as("a warm request issued %d JPA statements; every request must read through the entity "
+                        + "mapping, and the count must stay constant and independent of the number of authors",
+                        statements)
                 .isBetween(1L, 5L);
     }
 }

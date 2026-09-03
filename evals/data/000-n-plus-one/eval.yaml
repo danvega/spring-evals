@@ -11,13 +11,16 @@ timeout_seconds: 900
 description: >
   A classic N+1: listing authors lazily loads each author's books, turning
   one request into 31 queries. The agent must recognize the pattern from a
-  symptom description (a DBA's query log) and fix it with a fetch join or
-  entity graph, a batch size, or a second query joined in memory. Verified
-  by Hibernate statistics: the hidden tests assert the prepared statement
-  count per request stays between one and five, cold and warm, while every
-  seeded author and title is still in the response and no author is
-  duplicated. The lower bound is what makes the count a real fix: a warmed
-  cache or a canned response serves the endpoint with zero statements, and
-  the prompt rules both out. DataSeeder is pinned, so the seeded data
-  cannot be shrunk to make the query pattern look constant. Tests
-  reasoning about data access, not API recall.
+  symptom description (a DBA's query log) and fix it with a fetch join, an
+  entity graph, or a second query joined in memory. Batch fetching is not
+  enough, because it trades N queries for N over the batch size rather than
+  a constant count. Verified by Hibernate statistics: the hidden tests
+  assert the prepared statement count per request stays between one and
+  five, cold and warm, while every seeded author and title is still in the
+  response and no author is duplicated. The lower bound is what makes the
+  count a real fix, since a warmed cache or a canned response serves the
+  endpoint with zero statements. Hibernate statistics only see JPA, so the
+  prompt keeps the read path on the entity mapping and a JDBC rewrite is a
+  wrong answer rather than a false verdict. DataSeeder is pinned, so the
+  seeded data cannot be shrunk to make the query pattern look constant.
+  Tests reasoning about data access, not API recall.

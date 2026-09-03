@@ -19,8 +19,10 @@ description: >
   through the REST API, read the event back with a raw JMS consumer to
   assert the delivered QoS headers, and stand in for the confirmation
   processor once to check that the request carries its own temporary
-  reply destination. That rules out a send plus a separate receive on a
-  fixed reply queue and an in-process shortcut. Mechanism checks require
+  reply destination, stopping the listener registry first because a
+  candidate's own container factory bean opts out of the auto-startup
+  property. That rules out a send plus a separate receive on a fixed
+  reply queue and an in-process shortcut. Mechanism checks require
   JmsClient in the sources and Spring JMS plus the Artemis client on the
   runtime classpath, and forbid template or raw-producer fallbacks,
   because setExplicitQosEnabled(true) alone would pass the behavioral

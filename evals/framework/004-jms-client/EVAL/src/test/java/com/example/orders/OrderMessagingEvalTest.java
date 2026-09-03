@@ -6,6 +6,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import jakarta.jms.Connection;
@@ -36,9 +37,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * the resulting messages are read back with raw JMS consumers, so the headers
  * observed here are exactly what the broker delivered.
  *
- * The application's JMS listeners start disabled. The first test stands in
- * for the confirmation processor so it can inspect the request the service
- * sends; every later test starts the listeners before placing an order.
+ * The first test stands in for the confirmation processor so it can inspect
+ * the request the service sends, so it stops the application's listeners and
+ * waits for them to drop their consumers first. A candidate may declare its
+ * own listener container factory, which opts out of the auto-startup
+ * property, so stopping is what makes this deterministic. Every later test
+ * starts the listeners again before placing an order.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.jms.listener.auto-startup=false")
@@ -102,6 +106,10 @@ class OrderMessagingEvalTest {
     @Test
     @Order(1)
     void confirmationRequestCarriesItsOwnReplyDestination() throws Exception {
+        CountDownLatch stopped = new CountDownLatch(1);
+        listenerRegistry.stop(stopped::countDown);
+        assertThat(stopped.await(10, TimeUnit.SECONDS)).as("listeners must be fully stopped").isTrue();
+
         CompletableFuture<HttpResponse<String>> pending;
 
         try (Connection connection = connectionFactory.createConnection()) {
