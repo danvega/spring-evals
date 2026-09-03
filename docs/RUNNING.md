@@ -1,10 +1,10 @@
 # Running the benchmark
 
-How to run evals without spending more than you intend, and how to keep results comparable over time. Agent installation and API keys are covered in [AGENT_SETUP.md](AGENT_SETUP.md).
+How to run evals without spending more than you intend, and how to keep results comparable over time. Agent installation and API keys are covered in [AGENT_SETUP.md](AGENT_SETUP.md). If you have not run anything yet, the onboarding wizard in [GETTING_STARTED.md](GETTING_STARTED.md) walks the first run in the browser.
 
 ## Selecting what runs
 
-`run` and `estimate` accept the same selectors, and they combine freely (`doctor` takes only `--agent`, `--family`, or nothing for all agents):
+`run` and `estimate` accept the same selectors, and they combine freely:
 
 ```bash
 --agent a[,b,c]          # explicit picks
@@ -16,8 +16,11 @@ How to run evals without spending more than you intend, and how to keep results 
 --pilot                  # the designated three-eval pilot subset
 --samples 3              # independent samples per (agent, eval) cell; default 3, max 10
 --parallel 4             # run only: max concurrent containers, one lane per agent CLI (default 4, max 8)
---run-name my-baseline   # names the run; omit for a generated name like eager-bean-42
+--run-name my-baseline   # run only: names the run; omit for a generated name like eager-bean-42
+--force                  # run only: rerun cells that already hold results under the current identity
 ```
+
+`doctor` takes `--agent` or `--family` (or nothing, for every agent) plus two switches of its own. `--docker` builds the image if needed and probes every CLI inside it. `--json` prints the same report as one JSON document for scripts: `status`, `billing`, `estimate`, and `findings` per agent, plus a summary. `validate` takes eval ids as plain arguments and runs every eval when given none.
 
 To keep agents defined but out of `--all-agents`, `--family`, and selector-less `estimate`, copy `spring-evals.local.json.example` to a gitignored `spring-evals.local.json` at the repo root and list the agents you actually run:
 
@@ -27,7 +30,7 @@ To keep agents defined but out of `--all-agents`, `--family`, and selector-less 
 }
 ```
 
-An absent file or an absent `enabledAgents` key enables every agent. Naming an agent explicitly with `--agent` still runs it (with a printed note), and `doctor` still inspects every agent while annotating the excluded ones. This keeps the full matrix on disk while only paying for the agents you have keys for. Selection changes which agents commands pick up, never how a sample is measured, so it is not part of result identity.
+An absent file or an absent `enabledAgents` key enables every agent. Naming an agent explicitly with `--agent` still runs it (with a printed note), and `doctor` still inspects every agent while annotating the excluded ones. This keeps the full matrix on disk while only paying for the agents you have keys for. The onboarding wizard's Agents step writes the same file. Selection changes which agents commands pick up, never how a sample is measured, so it is not part of result identity.
 
 ## Estimate first, always
 
@@ -39,7 +42,7 @@ An absent file or an absent `enabledAgents` key enables every agent. Naming an a
 ./spring-evals estimate --all-agents --pilot --samples 3
 ```
 
-Estimates come from `estCostPerAttemptUsd` in each agent config (one sample is one attempt of the task). Every sample runs, so the projection is evals times samples times that figure. Claude Code reports the actual cost per sample automatically; for other CLIs, check the provider console after a run and adjust the config.
+Estimates come from `estCostPerAttemptUsd` in each agent config. The key name predates `--samples`; it is the estimate for one sample. Every sample runs, so the projection is evals times samples times that figure. Claude Code reports the actual cost per sample automatically; for other CLIs, check the provider console after a run and adjust the config.
 
 ## The paid-run lock
 
@@ -82,13 +85,37 @@ The flip side: editing an eval, changing an agent config, upgrading a CLI, or ch
 
 Recorded spend appears in the report output, `results/leaderboard.md`, and the dashboard's Benchmark spend tile.
 
+## Transcripts and contamination flags
+
+Every sample keeps the CLI's own event stream: Claude Code, Gemini CLI, and Qwen Code as `stream-json`, Codex as its JSONL event log. The file lives outside the repository, next to the workspaces:
+
+```
+$TMPDIR/spring-evals-runs/transcripts/<run-name>/<agent>/<project>-<nnn>-<name>-s<sample>.jsonl
+```
+
+`SPRING_EVALS_RUNS_DIR` overrides the root. Transcripts survive until the OS cleans the temp directory, so copy the ones worth keeping.
+
+The result record never copies session text. It carries the path and a summary of counts, which the run log prints on one line per sample:
+
+```
+- transcript: 14 commands, 6 files written, 2 URLs fetched (hosts: docs.spring.io, repo1.maven.org); raw at .../spring-evals-runs/transcripts/my-run/claude-sonnet-5/boot-002-restclient-migration-s1.jsonl
+```
+
+Read it as: how many shell commands the agent ran, how many file writes or edits it made, how many URLs it fetched, and which hosts those URLs pointed at. A CLI whose stream carries no structure reports zeros, never a failure. Open the raw file when an outcome surprises you. It is the agent's full session: every tool call, every command, and the final message.
+
+After the agent container is destroyed and before judging, the harness scans the transcript for anything the agent should never have seen: the benchmark repository (`danvega/spring-evals`, or `spring-evals` on its own), the eval id or its directory name, and the `SOLUTION/`, `EVAL/`, `ALTERNATIVES/`, and `WORKAROUNDS/` directories. A hit becomes a contamination flag on the sample. The flag means the agent's session mentioned the benchmark, the task's identity, or a hidden directory. That is strong evidence it searched for or read the answer instead of solving the task. The flag never changes the verdict. Flagged samples appear in the run log as `CONTAMINATION FLAGS (verdict kept, exclusion is a human call)`, in `results/leaderboard.md`, and on the dashboard with a warning marker. Deciding whether to exclude them is your call, made in the run's findings notes. The scan is a substring check over what the CLI chose to emit, so a quieter CLI shows less, and an agent that fetched the answer without naming the source would not be caught. An egress allowlist is the stronger control and is on the roadmap.
+
 ## After a run
 
-1. `./spring-evals report` refreshes `results/leaderboard.md`, `dashboard/data.json`, and a per-run log at `results/runs/<run-name>.md` with per-sample detail (outcome, tests, idiom) and each agent's closing summary.
+1. `./spring-evals report` refreshes `results/leaderboard.md`, `dashboard/data.json`, and a per-run log at `results/runs/<run-name>.md` with per-sample detail (outcome, tests, idiom, transcript summary, flags) and each agent's closing summary.
 2. Write a plain-language findings summary to `results/runs/<run-name>.notes.md`: what the run tested, real verdicts versus infrastructure failures, what to fix, and what you decided about any contamination-flagged samples. Re-run `report` and it merges into the run log and the dashboard's run drill-down.
-3. Read transcripts where the outcome surprises you. Each run log line "transcript:" gives the counts and the path; raw transcripts live under `$TMPDIR/spring-evals-runs/transcripts/<run-name>/<agent>/` (override the root with `SPRING_EVALS_RUNS_DIR`). They are outside the repository and survive until the OS cleans the temp directory, so copy the ones worth keeping.
+3. Read transcripts where the outcome surprises you. The section above says where they are and how to read the summary line.
 4. `./spring-evals serve` and open http://localhost:4173. The run appears in the Runs section by name.
 5. Check provider consoles for actual spend on API-billed agents, and tune `estCostPerAttemptUsd` in agent configs as real numbers come in.
+
+## The dashboard server
+
+`./spring-evals serve` serves `dashboard/` with the JDK's built-in file server on port 4173 (`--port` changes it) and adds the small JSON API behind `onboarding.html`. It binds to loopback only and answers only to a localhost `Host` header, because that API writes `spring-evals.local.json` and launches `validate`. Nothing it exposes can start a paid run. To publish the dashboard, push to `main`: the Pages workflow uploads `dashboard/` as static files, and the onboarding page detects static hosting and stays read-only.
 
 ## New model day
 
@@ -112,7 +139,7 @@ JSON
 
 # 3. cheap first pass, then the full treatment if it earns it
 ./spring-evals run --agent new-hotness --pilot --samples 1 --allow-paid-run --max-total-cost 5
-./spring-evals run --agent new-hotness --allow-paid-run --max-total-cost 40
+./spring-evals run --agent new-hotness --allow-paid-run --max-total-cost 60
 
 # 4. refresh the leaderboard and dashboard
 ./spring-evals report
@@ -120,7 +147,7 @@ JSON
 
 Every existing row stays comparable because the evals did not change under it.
 
-Supported providers today: `claude`, `codex`, `gemini`, and `qwen-code`. A new model on an existing provider is just another JSON file. A new agent CLI is one `AgentCli` implementation under `harness/src/main/java/dev/danvega/springevals/cli/` (headless command, seeded files, output parsing, doctor checks), one line in `META-INF/services`, and its pinned install line in `harness/docker/Dockerfile`. The `env` map in a config is the only host state passed into the sample's container, and values can reference host environment variables with `${VAR}`.
+Supported providers today: `claude`, `codex`, `gemini`, and `qwen-code`. A new model on an existing provider is just another JSON file. A new agent CLI is one `AgentCli` implementation under `harness/src/main/java/dev/danvega/springevals/cli/` (headless command, seeded files, output parsing, transcript summary, doctor checks), one line in `META-INF/services`, and its pinned install line in `harness/docker/Dockerfile`. The `env` map in a config is the only host state passed into the sample's container, and values can reference host environment variables with `${VAR}`.
 
 ## Open and local models
 
