@@ -1,0 +1,9 @@
+{
+  "name": "claude-opus-4-8",
+  "provider": "claude",
+  "model": "claude-opus-4-8",
+  "env": {
+    "CLAUDE_CODE_OAUTH_TOKEN": "${CLAUDE_BENCH_OAUTH_TOKEN}"
+  },
+  "estCostPerAttemptUsd": 1.45
+}

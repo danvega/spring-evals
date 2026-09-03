@@ -214,5 +214,19 @@
     "billing": "api",
     "cli": "Gemini CLI",
     "description": "Google's fast, low-cost Flash tier for high-volume work."
+  },
+  "claude-opus-4-8": {
+    "lab": "Anthropic",
+    "model": "Claude Opus 4.8",
+    "contextWindow": "1M tokens",
+    "pricingPerMTok": {
+      "input": 5.0,
+      "output": 25.0,
+      "asOf": "2026-09-03",
+      "source": "https://platform.claude.com/docs/en/about-claude/pricing"
+    },
+    "billing": "subscription",
+    "cli": "Claude Code",
+    "description": "The Opus generation before 5, kept alongside it to show whether the newer model actually gains ground."
   }
 }
