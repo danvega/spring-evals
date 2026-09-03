@@ -42,7 +42,7 @@
     <section class="py-12 sm:py-16">
       <p class="font-mono text-sm/6 font-medium tracking-wide text-spring-deep uppercase dark:text-spring"><span class="not-dark:hidden">// </span>the catalog</p>
       <h1 class="mt-2 text-4xl font-semibold tracking-tight text-balance sm:text-5xl dark:text-white">Every eval, every suite</h1>
-      <p class="mt-4 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">One suite per Spring portfolio project. Each eval is a real Spring Boot project with a symptom-based task and hidden tests the agent never sees. Suites without evals are open invitations.</p>
+      <p class="mt-4 text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">One suite per Spring portfolio project. Each eval is a real Spring Boot project with a symptom-based task and hidden tests the agent never sees. Each entry says what it measures and how models fail it. Suites without evals are open invitations.</p>
       <p class="mt-4 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500"><span data-slot="count">–</span> evals across <span data-slot="covered">–</span> of 22 suites</p>
 
       <div class="mt-8 hidden flex-wrap items-center gap-x-8 gap-y-3" data-slot="filters">
@@ -84,6 +84,27 @@ const REPO = "https://github.com/danvega/spring-evals";
 const esc = v => String(v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const slot = name => document.querySelector(`[data-slot="${name}"]`);
 
+// data.json carries no description field (the harness writes it and is off limits to dashboard edits),
+// so each blurb is written here from the eval's eval.yaml description. An eval without one renders without it.
+const BLURBS = {
+  "ai/000-chatclient-basics": "Rebuilding a brittle ticket-triage flow on Spring AI's structured output support, against a stub model that returns free-form prose unless the request states the shape it needs. Models fail it by patching the string parser or hand-rolling JSON prompt text instead of letting the framework drive the response format and the mapping.",
+  "boot/000-initializr-parity": "Generating a new Boot 4 project from an empty repository, judged against what start.spring.io produces today. Models fail it with stale tells: an out-of-date parent version, pre-Boot-4 starter names, or an old Java release.",
+  "boot/001-modular-autoconfig": "Diagnosing two features that silently vanished after Boot 4 split its auto-configuration into modules. The prompt rules out the compatibility bridge, so models fail it by reaching for Boot 3 era fixes instead of finding the modules that now carry each feature.",
+  "boot/002-restclient-migration": "Migrating HTTP client code that no longer compiles on Boot 4 to the current client stack. Models fail it by hand-constructing a client instead of using the auto-configured builder, or by missing the starter the classpath now needs. A model that cannot pass this baseline has no business attempting the harder ones.",
+  "boot/003-jackson3-migration": "Migrating Jackson 2 code to the Jackson 3 stack after a Boot 4 upgrade while keeping snake_case names and ISO dates. Models fail it by building their own mapper instead of configuring the auto-configured one, or by breaking the JSON contract along the way.",
+  "boot/004-flyway-module": "Diagnosing Flyway migrations that silently stopped running after a Boot 4 upgrade, where the ORM hides the failure by creating empty tables. The only signal pointing at the cause is an absence in the logs, so models fail it by treating the symptom and seeding the schema another way instead of restoring the migration mechanism itself.",
+  "boot/005-h2-console": "Restoring the H2 console after Boot 4 moved it out of the monolithic auto-configuration. Models fail it by adjusting properties that do nothing on their own, when the fix is the one dependency that now carries the feature.",
+  "data/000-n-plus-one": "Recognizing an N+1 query pattern from a DBA's query log and fixing it without changing the API response. Hidden tests measure query volume per request, so a fix that only masks the symptom fails.",
+  "data/001-repository-aot": "Moving Spring Data query derivation to build time and fixing the broken finder that the build-time processor exposes. Models fail it by assuming the optimization is automatic, by wiring it to a build phase the test command never reaches, or by missing the method the processor skipped.",
+  "framework/000-resilience-annotations": "Adding retries and a concurrency limit with Framework 7's built-in resilience support, verified over HTTP against a flaky gateway. Models trained on older content reach for third-party retry libraries, which the prompt forbids.",
+  "framework/001-api-versioning": "Serving two response shapes from one path with Framework 7's built-in API versioning, selected by request header with a default version. Models trained on older content hand-roll separate version paths or parse the version themselves, which the prompt forbids.",
+  "framework/002-problem-details": "Turning a default 500 into an RFC 9457 problem response for a missing resource. A floor check that a model knows modern Spring MVC error handling.",
+  "framework/003-transactional-self-invocation": "Fixing a partial-write bug in a service whose transactional boundary never takes effect. The symptom reads like a database problem, and models fail it by treating it as one instead of correcting where the boundary sits.",
+  "framework/004-jms-client": "Migrating queue messaging to Framework 7's fluent client, with per-send quality of service and a request-reply call, against an embedded broker. Models fail it by repairing the symptom on the old template instead of migrating the messaging layer.",
+  "security/000-lockdown": "Securing a catalog API: public reads, authenticated writes, an admin-only area, HTTP Basic, and no server-side session. Models trained on older content reach for a configuration base class that Spring Security removed, or get matcher ordering and 401-versus-403 wrong.",
+  "security/001-method-security": "Closing an authorization bypass where a bulk endpoint reaches admin-only operations around the URL rules. Models fail it by patching that one endpoint, which satisfies the web-layer tests while the underlying operations stay reachable.",
+};
+
 const active = { type: null, difficulty: null };
 
 fetch("./data.json", { cache: "no-store" })
@@ -109,14 +130,16 @@ fetch("./data.json", { cache: "no-store" })
         <ul role="list" class="mt-4 divide-y divide-zinc-950/5 dark:divide-white/5">
           ${evals.map(e => {
             const title = esc(e.title || e.id || "untitled eval");
+            const blurb = typeof e.id === "string" && typeof BLURBS[e.id] === "string" ? BLURBS[e.id] : null;
             const name = e.id
               ? `<a href="${REPO}/tree/main/evals/${esc(encodeURI(e.id))}" target="_blank" rel="noopener" class="font-medium text-zinc-950 hover:text-spring-deep hover:underline dark:text-neutral-200 dark:hover:text-spring">${title}<span aria-hidden="true"> ↗</span></a>`
               : `<span class="font-medium text-zinc-950 dark:text-neutral-200">${title}</span>`;
             return `
-          <li class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between" data-eval-row data-type="${esc(e.type || "")}" data-difficulty="${esc(e.difficulty || "")}">
+          <li class="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between" data-eval-row data-type="${esc(e.type || "")}" data-difficulty="${esc(e.difficulty || "")}">
             <div class="min-w-0">
               <p>${name}</p>
               ${e.id ? `<p class="font-mono text-sm text-zinc-500 dark:text-neutral-500">${esc(e.id)}</p>` : ""}
+              ${blurb ? `<p class="mt-1 max-w-3xl text-sm/6 text-pretty text-zinc-600 dark:text-neutral-400">${esc(blurb)}</p>` : ""}
             </div>
             <div class="flex shrink-0 items-center gap-2">
               ${e.type ? `<span class="${badge}">${esc(e.type)}</span>` : ""}

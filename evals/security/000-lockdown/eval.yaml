@@ -5,7 +5,7 @@ category: security
 type: build
 difficulty: medium
 baseline_failure: test_failure
-boot_version: 4.0.7
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   A catalog API needs a real security configuration: public reads,

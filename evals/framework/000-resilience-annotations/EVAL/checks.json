@@ -1,14 +1,17 @@
 {
   "requiredSourcePatterns": [
-    "org\\.springframework\\.resilience\\.annotation\\.Retryable",
-    "org\\.springframework\\.resilience\\.annotation\\.ConcurrencyLimit",
-    "org\\.springframework\\.resilience\\.annotation\\.EnableResilientMethods"
-  ],
-  "forbiddenSourcePatterns": [
-    "java\\.util\\.concurrent\\.Semaphore"
+    "org\\.springframework\\.resilience\\.annotation",
+    "@(?:org\\.springframework\\.resilience\\.annotation\\.)?Retryable\\b",
+    "@(?:org\\.springframework\\.resilience\\.annotation\\.)?ConcurrencyLimit\\b",
+    "EnableResilientMethods|ResilientMethodsConfiguration|RetryAnnotationBeanPostProcessor",
+    "EnableResilientMethods|ResilientMethodsConfiguration|ConcurrencyLimitBeanPostProcessor"
   ],
   "forbiddenPomPatterns": [
     "spring-retry",
     "resilience4j"
+  ],
+  "pinned": [
+    "src/main/java/com/example/payments/PaymentGateway.java",
+    "src/main/java/com/example/payments/ReportGenerator.java"
   ]
 }

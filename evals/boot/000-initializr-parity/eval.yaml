@@ -5,7 +5,7 @@ category: config
 type: build
 difficulty: medium
 baseline_failure: compile_failure
-boot_version: 4.1.0
+boot_version: 4.1.1
 timeout_seconds: 1200
 description: >
   Models generate new Spring projects in chat constantly, and the stale

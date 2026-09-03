@@ -6,10 +6,15 @@
     "<artifactId>h2</artifactId>",
     "spring-boot-maven-plugin",
     "spring-boot-starter-[a-z-]*test",
-    "<(java\\.version|maven\\.compiler\\.release)>25<"
+    "<(java\\.version|maven\\.compiler\\.release)>26<"
   ],
   "forbiddenPomPatterns": [
     "spring-boot-starter-web</artifactId>",
     "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*[123]\\."
+  ],
+  "requiredRuntimeArtifacts": [
+    "org.springframework.boot:spring-boot-starter-webmvc",
+    "org.springframework.boot:spring-boot-starter-data-jpa",
+    "com.h2database:h2"
   ]
 }

@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.1.0</version>
+		<version>4.1.1</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.example</groupId>
@@ -13,7 +13,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>bookshelf</name>
 	<properties>
-		<maven.compiler.release>25</maven.compiler.release>
+		<maven.compiler.release>26</maven.compiler.release>
 	</properties>
 	<dependencies>
 		<dependency>
