@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Hidden tests always run after integrity holds; the idiom checks decide pass versus functional_only. */
@@ -192,6 +193,109 @@ class MavenJudgeOutcomeTest {
         Judgment judgment = new MavenJudge().judge(eval, workspace, missing);
         assertEquals(Judgment.Outcome.FUNCTIONAL_ONLY, judgment.outcome());
         assertTrue(judgment.reasoning().contains("required runtime artifact missing"));
+    }
+
+    @Test
+    void resolverFailureIsAJudgeErrorNeverAnIdiomMiss() throws Exception {
+        EvalDefinition eval = eval("{\"requiredRuntimeArtifacts\": [\"com.h2database:h2\"]}");
+        Path workspace = workspace("class A { }");
+        MavenJudge.BuildRunner failing = (ws, command, timeout) -> {
+            if (command.contains("dependency:build-classpath")) {
+                return new MavenJudge.BuildResult(1, "resolution failed", false);
+            }
+            return new ScriptedRunner(0, "BUILD SUCCESS", true, "").run(ws, command, timeout);
+        };
+        MavenJudge.BuildRunner silent = (ws, command, timeout) -> {
+            if (command.contains("dependency:build-classpath")) {
+                return new MavenJudge.BuildResult(0, "", false);
+            }
+            return new ScriptedRunner(0, "BUILD SUCCESS", true, "").run(ws, command, timeout);
+        };
+
+        Judgment nonzero = new MavenJudge().judge(eval, workspace, failing);
+        Judgment noFile = new MavenJudge().judge(eval, workspace, silent);
+
+        assertEquals(Judgment.Outcome.JUDGE_ERROR, nonzero.outcome());
+        assertEquals("judge_error", nonzero.failureKind());
+        assertEquals(true, nonzero.testsPassed(), "the test result is still recorded");
+        assertEquals(Judgment.Outcome.JUDGE_ERROR, noFile.outcome());
+        assertTrue(noFile.reasoning().contains("no classpath file written"));
+    }
+
+    @Test
+    void preSeededClasspathFileIsDeletedBeforeResolving() throws Exception {
+        EvalDefinition eval = eval("{\"requiredRuntimeArtifacts\": [\"com.h2database:h2\"]}");
+        Path workspace = workspace("class A { }");
+        Files.writeString(workspace.resolve(MavenJudge.RUNTIME_CLASSPATH_FILE),
+                "/r/com/h2database/h2/2.4.240/h2-2.4.240.jar");
+        MavenJudge.BuildRunner silent = (ws, command, timeout) -> {
+            if (command.contains("dependency:build-classpath")) {
+                return new MavenJudge.BuildResult(0, "", false);
+            }
+            return new ScriptedRunner(0, "BUILD SUCCESS", true, "").run(ws, command, timeout);
+        };
+
+        assertEquals(Judgment.Outcome.JUDGE_ERROR, new MavenJudge().judge(eval, workspace, silent).outcome());
+    }
+
+    @Test
+    void runtimeArtifactsWithoutARunnerRefuseToBeSkipped() throws Exception {
+        EvalDefinition eval = eval("{\"requiredRuntimeArtifacts\": [\"com.h2database:h2\"]}");
+        Path workspace = workspace("class A { }");
+
+        assertThrows(IllegalStateException.class, () -> new MavenJudge().validatePolicy(eval, workspace));
+    }
+
+    @Test
+    void compileFailureRecordsNoIdiomAndResolvesNothing() throws Exception {
+        EvalDefinition eval = eval("{\"requiredSourcePatterns\": [\"JsonMapper\"], \"requiredRuntimeArtifacts\": [\"com.h2database:h2\"]}");
+        Path workspace = workspace("class A { JsonMapper m; }");
+        ScriptedRunner runner = new ScriptedRunner(1, "[ERROR] COMPILATION ERROR : cannot find symbol", false, "");
+
+        Judgment judgment = new MavenJudge().judge(eval, workspace, runner);
+
+        assertEquals(Judgment.Outcome.COMPILE_FAILURE, judgment.outcome());
+        assertNull(judgment.idiomatic());
+        assertTrue(runner.commands.stream().noneMatch(c -> c.contains("dependency:build-classpath")));
+    }
+
+    @Test
+    void buildTimeoutRecordsNoIdiom() throws Exception {
+        EvalDefinition eval = eval("{\"requiredSourcePatterns\": [\"JsonMapper\"]}");
+        Path workspace = workspace("class A { ObjectMapper m; }");
+        MavenJudge.BuildRunner timingOut = (ws, command, timeout) -> new MavenJudge.BuildResult(-1, "", true);
+
+        Judgment judgment = new MavenJudge().judge(eval, workspace, timingOut);
+
+        assertEquals(Judgment.Outcome.TEST_FAILURE, judgment.outcome());
+        assertNull(judgment.idiomatic());
+    }
+
+    @Test
+    void buildRedirectsAndDependencyPluginConfigurationArePolicyFailures() throws Exception {
+        EvalDefinition eval = eval("{}");
+        for (String pom : List.of(
+                "<project><build><directory>elsewhere</directory></build></project>",
+                "<project><profiles><profile><build><outputDirectory>x</outputDirectory></build></profile></profiles></project>",
+                "<project><build><plugins><plugin><artifactId>maven-surefire-plugin</artifactId>"
+                        + "<configuration><reportsDirectory>keep</reportsDirectory></configuration></plugin></plugins></build></project>",
+                "<project><build><plugins><plugin><artifactId>maven-dependency-plugin</artifactId>"
+                        + "<configuration><includeScope>test</includeScope></configuration></plugin></plugins></build></project>")) {
+            Path workspace = workspace("class A { }");
+            Files.writeString(workspace.resolve("pom.xml"), pom);
+            ScriptedRunner runner = new ScriptedRunner(0, "BUILD SUCCESS", true, "");
+
+            Judgment judgment = new MavenJudge().judge(eval, workspace, runner);
+
+            assertEquals(Judgment.Outcome.POLICY_FAILURE, judgment.outcome(), pom);
+            assertTrue(runner.commands.isEmpty(), "the build must not start: " + pom);
+        }
+        Path legit = workspace("class A { }");
+        Files.writeString(legit.resolve("pom.xml"), "<project><build><resources><resource>"
+                + "<directory>src/main/resources</directory></resource></resources></build></project>");
+        assertEquals(Judgment.Outcome.PASS,
+                new MavenJudge().judge(eval, legit, new ScriptedRunner(0, "BUILD SUCCESS", true, "")).outcome(),
+                "a resource directory is not a build redirect");
     }
 
     @Test

@@ -73,6 +73,6 @@ class ReportsTest {
                 "2026-08-04T00:00:0" + sample + "Z", "run-" + sample, "provider", "agent", ContentHashes.eval(eval),
                 ContentHashes.agent(temp, "example"), ContentHashes.benchmark(temp), failureKind, null,
                 "26", "test-os", "test-arch", "cli 1", "closed", 3, 100L, 50L, 150L,
-                "candidate-hash", "done", "campaign-1", outcome, testsPassed, idiomatic);
+                "candidate-hash", "done", "campaign-1", outcome, testsPassed, idiomatic, 0, false);
     }
 }

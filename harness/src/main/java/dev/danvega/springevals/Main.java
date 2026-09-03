@@ -417,16 +417,20 @@ public class Main {
         List<RunRecord> existing = ctx.ledger().matching(identity);
         if (ctx.force()) {
             ctx.ledger().removeMatching(identity);
-        } else if (existing.size() >= ctx.samples()) {
-            log.accept("skip %s (%s): already holds %d sample(s) under this identity; use --force to rerun"
-                    .formatted(eval.id(), spec.name(), existing.size()));
+            existing = List.of();
+        }
+        int toRun = samplesToRun(existing, ctx.samples());
+        if (toRun == 0) {
+            log.accept("skip %s (%s): already holds %d verdict sample(s) under this identity; use --force to rerun"
+                    .formatted(eval.id(), spec.name(), ctx.samples()));
             return;
         }
 
         Path hostHome = Path.of(System.getProperty("user.home"));
-        int done = ctx.force() ? 0 : existing.size();
-        // Every sample runs; an earlier pass never short-circuits the cell.
-        for (int sample = done + 1; sample <= ctx.samples(); sample++) {
+        int first = nextSampleNumber(existing);
+        // Every sample runs; an earlier pass never short-circuits the cell, and
+        // infrastructure failures do not fill it.
+        for (int sample = first; sample < first + toRun; sample++) {
             if (ctx.stopped().get()) {
                 return;
             }
@@ -438,8 +442,8 @@ public class Main {
                 ctx.stopped().set(true);
                 return;
             }
-            log.accept("%n=== %s / %s / sample %d/%d ===".formatted(eval.id(), spec.name(), sample,
-                    ctx.samples()));
+            log.accept("%n=== %s / %s / sample %d (cell target %d verdict samples) ===".formatted(eval.id(),
+                    spec.name(), sample, ctx.samples()));
             Path ws = workspaces.freshCopy(eval, spec.name() + "-s" + sample);
             String baselineHash = ContentHashes.candidate(ws);
 
@@ -470,8 +474,8 @@ public class Main {
             boolean agentError = "agent_error".equals(failureKind);
             String outcome = agentError ? "agent_error" : verdict.outcome().recordValue();
             String failureReason = failureKind == null ? null
-                    : agentRun.error() != null ? agentRun.error()
-                    : untouched && agentError ? untouchedReason(agentRun)
+                    : agentError && agentRun.error() != null ? agentRun.error()
+                    : agentError ? untouchedReason(agentRun)
                     : untouched ? "workspace unchanged after the agent ran; " + verdict.reasoning()
                     : verdict.reasoning();
             ctx.ledger().append(new RunRecord(spec.name(), spec.model(), eval.id(), eval.project(), sample,
@@ -481,7 +485,8 @@ public class Main {
                     ctx.recordedJavaVersion(), osName, osArch, cliVersion, "provider-default", ctx.samples(),
                     agentRun.inputTokens(), agentRun.outputTokens(), agentRun.totalTokens(),
                     candidateHash, agentRun.responseText(), ctx.campaignId(),
-                    outcome, agentError ? null : verdict.testsPassed(), agentError ? null : verdict.idiomatic()));
+                    outcome, agentError ? null : verdict.testsPassed(), agentError ? null : verdict.idiomatic(),
+                    agentRun.exitCode(), agentRun.timedOut()));
             log.accept(switch (outcome) {
                 case "pass" -> "✓ pass";
                 case "functional_only" -> "~ functional_only: " + verdict.reasoning();
@@ -490,8 +495,20 @@ public class Main {
         }
     }
 
-    private record AgentRun(Long durationMs, Double costUsd, String error,
-            Long inputTokens, Long outputTokens, Long totalTokens, String responseText) {
+    record AgentRun(Long durationMs, Double costUsd, String error,
+            Long inputTokens, Long outputTokens, Long totalTokens, String responseText,
+            Integer exitCode, Boolean timedOut) {
+    }
+
+    /** Only verdict samples fill a cell; a rerun tops it up by appending, never by replacing. */
+    static int samplesToRun(List<RunRecord> existing, int samples) {
+        long verdicts = existing.stream().filter(RunRecord::isVerdict).count();
+        return (int) Math.max(0, samples - verdicts);
+    }
+
+    /** Sample numbers stay unique within a cell even when infrastructure failures are on record. */
+    static int nextSampleNumber(List<RunRecord> existing) {
+        return existing.stream().mapToInt(RunRecord::sample).max().orElse(0) + 1;
     }
 
     /** Headless CLI run inside the agent container; only claude reports cost and tokens, others record null. */
@@ -513,11 +530,12 @@ public class Main {
             Long total = parsed.inputTokens() == null || parsed.outputTokens() == null ? null
                     : parsed.inputTokens() + parsed.outputTokens();
             return new AgentRun(result.durationMs(), parsed.costUsd(), error, parsed.inputTokens(),
-                    parsed.outputTokens(), total, truncate(parsed.responseText()));
+                    parsed.outputTokens(), total, truncate(parsed.responseText()), result.exitCode(),
+                    result.timedOut());
         } catch (RuntimeException e) {
             log.accept("agent execution failed: " + e.getMessage());
             return new AgentRun(null, null, e.getClass().getSimpleName() + ": " + e.getMessage(),
-                    null, null, null, null);
+                    null, null, null, null, null, null);
         }
     }
 
@@ -580,13 +598,15 @@ public class Main {
         return ContentHashes.benchmark(root);
     }
 
-    private static String failureKind(AgentRun agentRun, Judgment verdict, boolean untouched) {
-        if (agentRun.error() != null) {
-            return "agent_error";
-        }
-        // A CLI can fail cleanly (exit 0) and score a fake 0%. An untouched workspace alone
-        // is not proof, so reclassify only when the run was also too fast to have engaged.
-        if (untouched && agentRun.durationMs() != null && agentRun.durationMs() < 20_000) {
+    /**
+     * The judge decides on the workspace. An agent exit code or timeout is
+     * recorded but overrides nothing: agent_error only when the workspace is
+     * untouched and either the CLI reported an error or it finished too fast
+     * to have engaged (a CLI that fails with exit 0 would otherwise score a fake 0%).
+     */
+    static String failureKind(AgentRun agentRun, Judgment verdict, boolean untouched) {
+        boolean tooFast = agentRun.durationMs() != null && agentRun.durationMs() < 20_000;
+        if (untouched && (agentRun.error() != null || tooFast || agentRun.durationMs() == null)) {
             return "agent_error";
         }
         return verdict.failureKind();

@@ -7,7 +7,7 @@ Every result records a benchmark version like `0.3.0+11b0497585a6`. It comes fro
 The string has two parts:
 
 - The prefix (`0.3.0`) is declared by hand. It is bumped only when a harness batch changes measurement behavior.
-- The suffix is the first 12 characters of a SHA-256 hash over the measurement-critical harness files: `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `DockerSandbox.java`, `RunScheduler.java`, every file under `cli/`, `harness/docker/Dockerfile`, `harness/pom.xml`, and the `spring-evals` wrapper.
+- The suffix is the first 12 characters of a SHA-256 hash over the measurement-critical harness files: `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `DockerSandbox.java`, `RunScheduler.java`, `Judgment.java`, `JavaComments.java`, `RuntimeArtifacts.java`, every file under `cli/`, `harness/docker/Dockerfile`, `harness/pom.xml`, and the `spring-evals` wrapper.
 
 The meaning of the version is simple. Results with the same full version string are comparable. The leaderboard cohort is keyed on the full string. When the string changes, cached results leave the cohort. They stay in run history, but getting them back on the leaderboard costs a paid re-run. That is why version changes must be rare and deliberate.
 

@@ -76,7 +76,7 @@ Superseded content-addressed `spring-evals-bench` images accumulate as the Docke
 
 ## Memoization and when you pay again
 
-Results accumulate in `results/results.json`. A result's cache identity includes the eval content hash, the agent config hash, the harness version, the CLI version, and the JDK and OS. A later run skips any cell that already holds the requested number of samples under the same identity, and tops up cells that hold fewer, so expanding a campaign only pays for what is new.
+Results accumulate in `results/results.json`. A result's cache identity includes the eval content hash, the agent config hash, the harness version, the CLI version, and the JDK and OS. A later run skips any cell that already holds the requested number of verdict samples under the same identity, and tops up cells that hold fewer by appending new samples. Infrastructure failures (`agent_error`, `judge_error`) never fill a cell, so a rerun after a fix adds the missing verdicts without `--force`. Expanding a campaign only pays for what is new.
 
 The flip side: editing an eval, changing an agent config, upgrading a CLI, or changing the harness invalidates the matching cached results on purpose. Passing `--force` reruns the current identity and replaces those records.
 

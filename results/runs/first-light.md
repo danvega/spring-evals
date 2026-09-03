@@ -20,6 +20,7 @@ Billing note: `ANTHROPIC_API_KEY` in the shell took precedence over the Max plan
 
 - model: claude-fable-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 129s, tokens: n/a, cost: $1.2888635000000002
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-fable-5-a1-3a74401a-7d26-4b2d-bc6c-4575f9041d34
 
 Agent's closing summary:
@@ -39,10 +40,11 @@ What I created:
 Verification details: the test run boots the full context against an in-memory H2 database (Hibernate ORM 7.4.1, HikariCP pool), so JPA is wired and the team can add `@Entity` classes and repositories immediately. One environment note: the machine has JDK 26 installed, and the build compiles with `--release 25` per the pom, so the bytecode targets Java 25 as requested.
 ```
 
-## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · policy_failure
+## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI 2.1.221 (Claude Code))
 - duration: 77s, tokens: n/a, cost: $0.1031695
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-haiku-4-5-a1-e8301ab0-3906-4bb5-b329-4a9dd5df8b03
@@ -80,6 +82,7 @@ The team can now add JPA entities and repositories to start building the bookshe
 
 - model: claude-opus-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 245s, tokens: n/a, cost: $1.4072267499999997
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-opus-5-a1-52ae9503-86c8-4b5e-abd3-ca8d1473e0fb
 
 Agent's closing summary:
@@ -138,6 +141,7 @@ I also noticed the `modular-auto-config` skill lists `spring-boot-starter-h2-con
 
 - model: claude-sonnet-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 240s, tokens: n/a, cost: $1.1746516999999999
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-sonnet-5-a1-2b3b9894-8d84-4a50-9d02-4288aa55742d
 
 Agent's closing summary:

@@ -33,7 +33,11 @@ public class ResultStore {
             String networkPolicy, @JsonAlias("campaignAttempts") int campaignSamples,
             Long inputTokens, Long outputTokens, Long totalTokens,
             String candidateHash, String agentResponse, String campaignId,
-            String outcome, Boolean testsPassed, Boolean idiomatic) {
+            String outcome, Boolean testsPassed, Boolean idiomatic,
+            Integer agentExitCode, Boolean agentTimedOut) {
+
+        /** Pre-0.6.0 judges stopped at a failed idiom check before running tests. */
+        public static final String IDIOM_UNTESTED = "idiom_untested";
 
         public String effectiveOutcome() {
             if (outcome != null) {
@@ -42,8 +46,45 @@ public class ResultStore {
             if (passed) {
                 return "pass";
             }
-            return failureKind == null ? "test_failure"
-                    : "idiom_failure".equals(failureKind) ? "functional_only" : failureKind;
+            if (failureKind == null) {
+                return "test_failure";
+            }
+            if ("idiom_failure".equals(failureKind)) {
+                return "functional_only";
+            }
+            if ("policy_failure".equals(failureKind) && legacyIdiomMiss()) {
+                return IDIOM_UNTESTED;
+            }
+            return failureKind;
+        }
+
+        private boolean legacyIdiomMiss() {
+            return failureReason != null && (failureReason.startsWith("required modern Spring mechanism missing")
+                    || failureReason.startsWith("forbidden workaround found"));
+        }
+
+        /** Null when the tests never ran, including every pre-0.6.0 idiom miss. */
+        public Boolean effectiveTestsPassed() {
+            if (testsPassed != null) {
+                return testsPassed;
+            }
+            String effective = effectiveOutcome();
+            return switch (effective) {
+                case "pass", "functional_only" -> Boolean.TRUE;
+                case "test_failure", "compile_failure" -> outcome == null ? null : Boolean.FALSE;
+                default -> null;
+            };
+        }
+
+        public Boolean effectiveIdiomatic() {
+            if (idiomatic != null) {
+                return idiomatic;
+            }
+            String effective = effectiveOutcome();
+            if ("functional_only".equals(effective) || IDIOM_UNTESTED.equals(effective)) {
+                return Boolean.FALSE;
+            }
+            return "pass".equals(effective) && outcome == null ? Boolean.TRUE : null;
         }
 
         /** Verdict samples are the ones where the agent produced a judged candidate. */

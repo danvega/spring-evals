@@ -23,6 +23,7 @@ Nothing to fix. This closes the subscription-billing item: Claude runs are now e
 
 - model: claude-fable-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 161s, tokens: n/a, cost: $1.074725
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-fable-5-a1-4a689aa5-aa1a-4d79-9f7d-2d655a2c79b0
 
 Agent's closing summary:
@@ -52,10 +53,11 @@ One environment note: this shell exports `SERVER_PORT=0`, so when I ran the app 
 The team can now add entities under `com.example.bookshelf`, create `JpaRepository` interfaces, and inject them into the controller — no further wiring is needed.
 ```
 
-## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · policy_failure
+## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI 2.1.221 (Claude Code))
 - duration: 106s, tokens: n/a, cost: $0.1307798
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-haiku-4-5-a1-b2a509a4-6027-4e9c-baa2-d36c8e4e51f0
@@ -89,6 +91,7 @@ The team can now add entities, repositories, and business logic immediately. The
 
 - model: claude-opus-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 242s, tokens: n/a, cost: $1.3520145000000001
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-opus-5-a1-48c4f211-9a9c-4055-aa62-55b055cb6b30
 
 Agent's closing summary:
@@ -122,10 +125,11 @@ The endpoint verification took an extra round trip: your shell has **`SERVER_POR
 One benign startup warning remains: `spring.jpa.open-in-view is enabled by default`. Initializr projects show this too — I left it alone rather than silently picking a persistence-behavior default for you, but it's worth an explicit decision once entities land.
 ```
 
-## claude-sonnet-5 · boot/000-initializr-parity · sample 1 · policy_failure
+## claude-sonnet-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-sonnet-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 186s, tokens: n/a, cost: $0.7027671
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-sonnet-5-a1-dbc208c5-a280-40d7-8f81-47e263c59b47

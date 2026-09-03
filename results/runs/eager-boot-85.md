@@ -34,6 +34,7 @@ The first run where every measurement control worked. All 12 agents reached thei
 
 - model: claude-fable-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 194s, tokens: n/a, cost: $0.9491755
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-fable-5-a1-8033081d-6ab4-44e2-b62e-2c0f6f6b1cb9
 
 Agent's closing summary:
@@ -59,10 +60,11 @@ The Maven wrapper, `.mvn/` config, and `.gitignore` were left untouched.
 - `./mvnw spring-boot:run`: started in ~0.9s on Boot 4.1.0; curling `/api/books` returned `200` / `[]`. One note: your shell environment exports `SERVER_PORT=0`, so the app binds a random port here (64143 in my run) instead of 8080 — that's environmental, not project config; on a normal machine it will serve on 8080.
 ```
 
-## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · policy_failure
+## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI 2.1.221 (Claude Code))
 - duration: 83s, tokens: n/a, cost: $0.12250174999999999
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-haiku-4-5-a1-e30ae9d8-9b94-4ea3-a3d0-9efc2cae1a79
@@ -110,6 +112,7 @@ The team can now start adding JPA entities and repository interfaces immediately
 
 - model: claude-opus-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 338s, tokens: n/a, cost: $1.69475
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-opus-5-a1-9efdd6d7-1295-4c45-a314-99409055c2b0
 
 Agent's closing summary:
@@ -158,10 +161,11 @@ One judgment call to name: `BookController.findAll()` returns `List<?>` and an e
 Sources: [Modularizing Spring Boot](https://spring.io/blog/2025/10/28/modularizing-spring-boot/), [@WebMvcTest (Boot 4.1.0 API)](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/webmvc/test/autoconfigure/WebMvcTest.html), [Spring Boot 4.0 Migration Guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
 ```
 
-## claude-sonnet-5 · boot/000-initializr-parity · sample 1 · policy_failure
+## claude-sonnet-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-sonnet-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 122s, tokens: n/a, cost: $0.4662454999999999
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-sonnet-5-a1-1e47439e-e1a3-4b1d-8b91-44fec996a561
@@ -186,18 +190,21 @@ Verified: `./mvnw clean verify` builds and passes tests (Hibernate 7 / Tomcat 11
 
 - model: gpt-5.6-luna (codex, CLI codex-cli 0.146.0)
 - duration: 223s, tokens: n/a, cost: n/a
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-luna-a1-a7c77540-fdc0-494a-87bb-aa984bd1f232
 
 ## codex-gpt-5-6-sol · boot/000-initializr-parity · sample 1 · pass
 
 - model: gpt-5.6-sol (codex, CLI codex-cli 0.146.0)
 - duration: 242s, tokens: n/a, cost: n/a
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-sol-a1-6290b948-f173-42b8-bc3d-1f52deba732a
 
 ## codex-gpt-5-6-terra · boot/000-initializr-parity · sample 1 · pass
 
 - model: gpt-5.6-terra (codex, CLI codex-cli 0.146.0)
 - duration: 250s, tokens: n/a, cost: n/a
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-terra-a1-921c9005-78b6-4a55-9bd5-761954575e21
 
 ## gemini-3-1-pro · boot/000-initializr-parity · sample 1 · agent_error
@@ -220,18 +227,21 @@ Verified: `./mvnw clean verify` builds and passes tests (Hibernate 7 / Tomcat 11
 
 - model: gemini-3.6-flash (gemini, CLI 0.1.13)
 - duration: 175s, tokens: n/a, cost: n/a
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-gemini-3-6-flash-a1-af0b9dcf-7549-4927-88de-54c0cf6eccf0
 
 ## grok-4-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: grok-4.5 (qwen-code, CLI 0.21.5)
 - duration: 77s, tokens: n/a, cost: n/a
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-grok-4-5-a1-7954aa45-5277-4c74-92eb-5580eafdc863
 
-## kimi-k3 · boot/000-initializr-parity · sample 1 · policy_failure
+## kimi-k3 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: kimi-k3 (claude, CLI 2.1.221 (Claude Code))
 - duration: 265s, tokens: n/a, cost: $0.48291699999999993
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-kimi-k3-a1-29d504d1-928d-4533-8c3e-72b7b25a190a

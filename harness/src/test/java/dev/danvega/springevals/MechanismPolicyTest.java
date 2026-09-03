@@ -14,6 +14,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class MechanismPolicyTest {
 
+    private static boolean declaresRuntimeArtifacts(EvalDefinition eval) {
+        try {
+            Path checks = eval.evalTestsDir().resolve("checks.json");
+            return java.nio.file.Files.exists(checks)
+                    && java.nio.file.Files.readString(checks).contains("requiredRuntimeArtifacts");
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+    }
+
     @Test
     void everyReferenceCandidateHasTheExpectedPolicyOutcome() {
         Path root = Path.of("..").toAbsolutePath().normalize();
@@ -29,7 +39,10 @@ class MechanismPolicyTest {
                 Path workspace = workspaces.freshCopy(eval, "policy-test");
                 try {
                     workspaces.applyCandidate(candidate.dir(), workspace);
-                    Judgment policy = judge.validatePolicy(eval, workspace);
+                    // Evals that confirm runtime artifacts need a real resolution; the local runner does it on the host.
+                    Judgment policy = declaresRuntimeArtifacts(eval)
+                            ? judge.validatePolicy(eval, workspace, new LocalBuildRunner())
+                            : judge.validatePolicy(eval, workspace);
                     if (candidate.expected() == Judgment.Outcome.PASS) {
                         assertNull(policy, () -> candidate.label() + " violates mechanism policy for " + eval.id()
                                 + (policy == null ? "" : ": " + policy.reasoning()));

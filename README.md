@@ -10,9 +10,9 @@ Complementary to [Agent Bench](https://github.com/markpollack/agent-bench), whic
 
 ## What it produces
 
-Real results from a real run (12 agents, one build eval, one attempt each). The task: write a new Spring Boot 4 project from an empty repository to the standard start.spring.io would produce today. Seven agents passed and three failed on the merits, each making the same mistake: pre-Boot-4 conventions, caught by hidden mechanism checks. Two agents hit infrastructure errors, so they are excluded from scoring instead of being counted as model failures; that is why the dashboard header counts 10 agents with verdicts. The two "at API prices" figures differ by definition: the header estimates actual samples, the run log projects the configured per-sample estimates.
+Real results from a real run (12 agents, one build eval, one sample each). The task: write a new Spring Boot 4 project from an empty repository to the standard start.spring.io would produce today. Seven agents passed and three failed on the merits, each making the same mistake: pre-Boot-4 conventions, caught by hidden mechanism checks. Two agents hit infrastructure errors, so they are excluded from scoring instead of being counted as model failures; that is why the dashboard header counts 10 agents with verdicts. The two "at API prices" figures differ by definition: the header estimates actual samples, the run log projects the configured per-sample estimates.
 
-![Leaderboard with per-agent Pass@1, confidence intervals, tokens, and cost](docs/images/dashboard-leaderboard.png)
+![Leaderboard with per-agent pass rate, confidence intervals, tokens, and cost](docs/images/dashboard-leaderboard.png)
 
 Every run is recorded by name with its own scoreboard and a findings write-up, so infrastructure failures are never mistaken for model failures:
 

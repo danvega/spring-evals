@@ -139,6 +139,6 @@ class RunSchedulerTest {
     private static RunRecord record(String agent) {
         return new RunRecord(agent, "model", "boot/000-example", "boot", 1, false, null, null, "/tmp/ws",
                 "2026-01-01T00:00:00Z", "run-id", "claude", "agent", null, null, null, null, null,
-                null, null, null, null, null, 1, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, 1, null, null, null, null, null, null, null, null, null, null, null);
     }
 }

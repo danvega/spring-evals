@@ -90,6 +90,7 @@
           <tbody data-slot="leaderboard"></tbody>
         </table>
       </div>
+      <p data-slot="no-verdict" class="mt-3 hidden text-sm text-zinc-500 dark:font-mono dark:text-neutral-500"></p>
     </section>
 
     <section class="py-4 pb-12">
@@ -391,7 +392,7 @@ function renderRuns(data) {
       <li class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
           <p class="${S.evalTitle}">${d.agent} · ${d.eval}</p>
-          <p class="${S.evalMeta}">sample ${d.sample ?? d.attempt}${d.testsPassed != null ? " · tests " + (d.testsPassed ? "passed" : "failed") : ""}${d.idiomatic != null ? " · idiom " + (d.idiomatic ? "held" : "missed") : ""}</p>
+          <p class="${S.evalMeta}">sample ${d.sample ?? d.attempt}${d.testsPassed != null ? " · tests " + (d.testsPassed ? "passed" : "failed") : ""}${d.idiomatic != null ? " · idiom " + (d.idiomatic ? "held" : "missed") : ""}${outcomeOf(d) === "idiom_untested" ? " · tests never ran (pre-0.6.0 judge)" : ""}${d.agentTimedOut ? " · agent timed out" : d.agentExitCode ? " · agent exit " + d.agentExitCode : ""}</p>
         </div>
         <div class="flex shrink-0 items-center gap-3 text-sm text-zinc-600 tabular-nums dark:text-neutral-400">
           <span class="${outcomeOf(d) === "pass" ? S.good : outcomeOf(d) === "functional_only" ? S.rate : S.bad}">${outcomeOf(d)}</span>
@@ -437,6 +438,12 @@ function render(data) {
   }
 
   renderLeaderboard(data);
+  const noVerdict = data.noVerdict || [];
+  if (noVerdict.length) {
+    slot("no-verdict").textContent = "No verdict (infrastructure failed before the model saw the task): "
+      + noVerdict.map(n => `${n.agent} (${(n.kinds || []).join(", ")}, ${n.samples ?? n.attempts ?? 0} sample${(n.samples ?? n.attempts) === 1 ? "" : "s"})`).join("; ");
+    slot("no-verdict").classList.remove("hidden");
+  }
   renderHeatmap(data);
   renderRuns(data);
   wireDrill(slot("heatmap-head").closest("table"), "drill");

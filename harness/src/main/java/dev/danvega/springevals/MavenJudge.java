@@ -29,7 +29,11 @@ public class MavenJudge {
     static final List<String> JUDGE_COMMAND = List.of("./mvnw", "-B", "-ntp",
             "-Dmaven.test.skip=false", "-DskipTests=false", "clean", "test");
 
-    static final String RUNTIME_CLASSPATH_FILE = "target/spring-evals-runtime-classpath.txt";
+    /**
+     * Outside target/ so clean cannot touch it; deleted before resolving so a
+     * pre-seeded file can never stand in for a real resolution.
+     */
+    static final String RUNTIME_CLASSPATH_FILE = ".spring-evals-runtime-classpath.txt";
 
     /** Executes the judged build in a specific environment (the attempt's fresh judge container). */
     interface BuildRunner {
@@ -47,7 +51,15 @@ public class MavenJudge {
             Pattern.compile("<testClassesDirectory>", Pattern.CASE_INSENSITIVE),
             Pattern.compile("<(?:excludes|includes)>", Pattern.CASE_INSENSITIVE),
             Pattern.compile("maven\\.test\\.failure\\.ignore", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("testFailureIgnore", Pattern.CASE_INSENSITIVE));
+            Pattern.compile("testFailureIgnore", Pattern.CASE_INSENSITIVE),
+            // Redirected reports would let pre-seeded surefire XML survive clean.
+            Pattern.compile("reportsDirectory", Pattern.CASE_INSENSITIVE),
+            // Any dependency-plugin configuration can override the judge's classpath resolution flags.
+            Pattern.compile("(?s)maven-dependency-plugin(?:(?!</plugin>).)*?<configuration>", Pattern.CASE_INSENSITIVE));
+
+    /** Direct children of any build element that relocate outputs, so clean cannot be trusted. */
+    private static final java.util.Set<String> BUILD_REDIRECTS = java.util.Set.of(
+            "directory", "outputDirectory", "testOutputDirectory");
 
     // A misspelled key in checks.json must fail the judge, never silently drop a check.
     private final JsonMapper mapper = JsonMapper.builder()
@@ -68,6 +80,11 @@ public class MavenJudge {
      * fast tests that prove reference candidates satisfy their own policy.
      */
     Judgment validatePolicy(EvalDefinition eval, Path workspace) {
+        return validatePolicy(eval, workspace, null);
+    }
+
+    /** Pass a runner when the eval declares requiredRuntimeArtifacts; without one that check refuses to be skipped. */
+    Judgment validatePolicy(EvalDefinition eval, Path workspace, BuildRunner runner) {
         SourceChecks checks;
         try {
             checks = loadChecks(eval);
@@ -78,8 +95,12 @@ public class MavenJudge {
             if (checks == null) {
                 return null;
             }
-            String idiom = checkIdiom(workspace, checks, null);
-            return idiom == null ? null : new Judgment(Judgment.Outcome.FUNCTIONAL_ONLY, null, false, idiom, null);
+            IdiomResult idiom = checkIdiom(workspace, checks, runner);
+            if (idiom.resolverFailure() != null) {
+                return new Judgment(Judgment.Outcome.JUDGE_ERROR, null, null, idiom.resolverFailure(), null);
+            }
+            return idiom.failure() == null ? null
+                    : new Judgment(Judgment.Outcome.FUNCTIONAL_ONLY, null, false, idiom.failure(), null);
         } catch (IOException | JacksonException e) {
             return Judgment.error("could not apply trusted candidate policy", e);
         }
@@ -115,18 +136,36 @@ public class MavenJudge {
             }
         }
         boolean testsPassed = result.exitCode() == 0;
-        String idiomFailure = checks == null ? null : checkIdiom(workspace, checks, runner);
-        Boolean idiomatic = checks == null ? null : idiomFailure == null;
+        boolean compiled = testsPassed
+                || !(output.contains("COMPILATION ERROR") || output.contains("Compilation failure"));
+        if (!compiled) {
+            // Idiom is judged only once the build reached the test phase.
+            return new Judgment(Judgment.Outcome.COMPILE_FAILURE, false, null,
+                    "Command failed with exit code " + result.exitCode(), output);
+        }
+        IdiomResult idiom = checks == null ? IdiomResult.NOT_CHECKED : checkIdiom(workspace, checks, runner);
+        if (idiom.resolverFailure() != null) {
+            return new Judgment(Judgment.Outcome.JUDGE_ERROR, testsPassed, null, idiom.resolverFailure(), output);
+        }
+        Boolean idiomatic = checks == null ? null : idiom.failure() == null;
         if (testsPassed) {
-            return idiomFailure == null
+            return idiom.failure() == null
                     ? new Judgment(Judgment.Outcome.PASS, true, idiomatic,
                             "hidden tests passed" + (idiomatic == null ? "" : " and idiom checks hold"), output)
-                    : new Judgment(Judgment.Outcome.FUNCTIONAL_ONLY, true, false, idiomFailure, output);
+                    : new Judgment(Judgment.Outcome.FUNCTIONAL_ONLY, true, false, idiom.failure(), output);
         }
-        Judgment.Outcome outcome = output.contains("COMPILATION ERROR") || output.contains("Compilation failure")
-                ? Judgment.Outcome.COMPILE_FAILURE : Judgment.Outcome.TEST_FAILURE;
-        return new Judgment(outcome, false, idiomatic, "Command failed with exit code " + result.exitCode()
-                + (idiomFailure == null ? "" : "; " + idiomFailure), output);
+        return new Judgment(Judgment.Outcome.TEST_FAILURE, false, idiomatic,
+                "Command failed with exit code " + result.exitCode()
+                        + (idiom.failure() == null ? "" : "; " + idiom.failure()), output);
+    }
+
+    /** Failure is the first idiom miss; resolverFailure means the judge could not confirm artifacts at all. */
+    private record IdiomResult(String failure, String resolverFailure) {
+        static final IdiomResult NOT_CHECKED = new IdiomResult(null, null);
+
+        static IdiomResult miss(String failure) {
+            return new IdiomResult(failure, null);
+        }
     }
 
     private SourceChecks loadChecks(EvalDefinition eval) throws IOException {
@@ -136,11 +175,17 @@ public class MavenJudge {
 
     /** Test suppression and pinned-fixture edits make the build untrustworthy, so nothing else runs. */
     private Judgment checkIntegrity(EvalDefinition eval, Path workspace, SourceChecks checks) throws IOException {
+        String pomText = pomPolicyText(readPom(workspace));
         for (Pattern pattern : FORBIDDEN_BUILD_CONFIG) {
-            if (pattern.matcher(pomPolicyText(readPom(workspace))).find()) {
+            if (pattern.matcher(pomText).find()) {
                 return Judgment.policyFailure("candidate build configuration can suppress or redirect hidden tests: "
                         + pattern.pattern());
             }
+        }
+        String redirect = buildRedirect(readPom(workspace));
+        if (redirect != null) {
+            return Judgment.policyFailure("candidate build configuration can suppress or redirect hidden tests: "
+                    + redirect);
         }
         if (checks == null) {
             return null;
@@ -149,20 +194,53 @@ public class MavenJudge {
         return pinned == null ? null : Judgment.policyFailure(pinned);
     }
 
-    /** Null when every idiom check holds; otherwise the first failure. Runner may be null when no artifacts are declared. */
-    private String checkIdiom(Path workspace, SourceChecks checks, BuildRunner runner) throws IOException {
+    private IdiomResult checkIdiom(Path workspace, SourceChecks checks, BuildRunner runner) throws IOException {
         String sources = readMainSources(workspace);
         String sourceResult = checkPatterns("source", sources, checks.requiredSourcePatterns(),
                 checks.forbiddenSourcePatterns());
         if (sourceResult != null) {
-            return sourceResult;
+            return IdiomResult.miss(sourceResult);
         }
         String pomResult = checkPatterns("pom", pomPolicyText(readPom(workspace)), checks.requiredPomPatterns(),
                 checks.forbiddenPomPatterns());
         if (pomResult != null) {
-            return pomResult;
+            return IdiomResult.miss(pomResult);
         }
         return checkRuntimeArtifacts(workspace, checks.requiredRuntimeArtifacts(), runner);
+    }
+
+    /**
+     * Any build element relocating outputs (project or profile level) lets
+     * pre-seeded files survive clean, so the judge refuses the pom. Malformed
+     * XML falls through; Maven rejects it anyway.
+     */
+    static String buildRedirect(String xml) {
+        try {
+            var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+            factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setXIncludeAware(false);
+            factory.setExpandEntityReferences(false);
+            var document = factory.newDocumentBuilder()
+                    .parse(new org.xml.sax.InputSource(new java.io.StringReader(xml)));
+            var builds = document.getElementsByTagName("build");
+            for (int i = 0; i < builds.getLength(); i++) {
+                var children = builds.item(i).getChildNodes();
+                for (int j = 0; j < children.getLength(); j++) {
+                    String name = children.item(j).getLocalName() == null
+                            ? children.item(j).getNodeName() : children.item(j).getLocalName();
+                    if (children.item(j).getNodeType() == org.w3c.dom.Node.ELEMENT_NODE
+                            && BUILD_REDIRECTS.contains(name)) {
+                        return "<build><" + name + ">";
+                    }
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static String readPom(Path workspace) throws IOException {
@@ -210,29 +288,33 @@ public class MavenJudge {
      * Pom regexes cannot see dependency scope, so required artifacts are
      * confirmed on the candidate's resolved runtime classpath instead.
      */
-    private static String checkRuntimeArtifacts(Path workspace, List<String> coordinates, BuildRunner runner)
+    private static IdiomResult checkRuntimeArtifacts(Path workspace, List<String> coordinates, BuildRunner runner)
             throws IOException {
         if (safe(coordinates).isEmpty()) {
-            return null;
+            return IdiomResult.NOT_CHECKED;
         }
         if (runner == null) {
-            return null;
+            throw new IllegalStateException("requiredRuntimeArtifacts needs a build runner to resolve the classpath; "
+                    + "this check is never skipped");
         }
+        Path file = workspace.resolve(RUNTIME_CLASSPATH_FILE);
+        Files.deleteIfExists(file);
         BuildResult result = runner.run(workspace, List.of("./mvnw", "-B", "-ntp", "-q",
                 "dependency:build-classpath", "-DincludeScope=runtime",
                 "-Dmdep.outputFile=" + RUNTIME_CLASSPATH_FILE), RESOLVE_TIMEOUT);
-        Path file = workspace.resolve(RUNTIME_CLASSPATH_FILE);
-        if (result.exitCode() != 0 || result.timedOut() || !Files.exists(file)) {
-            return "could not resolve the runtime classpath to confirm required artifacts "
-                    + coordinates + (result.timedOut() ? " (timed out)" : " (exit " + result.exitCode() + ")");
+        if (result.exitCode() != 0 || result.timedOut() || !Files.isRegularFile(file)) {
+            return new IdiomResult(null, "judge could not resolve the runtime classpath to confirm " + coordinates
+                    + (result.timedOut() ? " (timed out)" : result.exitCode() != 0
+                            ? " (exit " + result.exitCode() + ")" : " (no classpath file written)"));
         }
         String classpath = Files.readString(file);
+        Files.deleteIfExists(file);
         for (String coordinate : coordinates) {
             if (!RuntimeArtifacts.present(classpath, coordinate)) {
-                return "required runtime artifact missing from the resolved classpath: " + coordinate;
+                return IdiomResult.miss("required runtime artifact missing from the resolved classpath: " + coordinate);
             }
         }
-        return null;
+        return IdiomResult.NOT_CHECKED;
     }
 
     private static List<String> safe(List<String> values) {
@@ -286,7 +368,8 @@ public class MavenJudge {
                     .filter(path -> path.getFileName().toString().endsWith(".java")
                             || path.getFileName().toString().endsWith(".kt"))
                     .sorted().toList()) {
-                text.append(JavaComments.strip(Files.readString(path))).append('\n');
+                boolean kotlin = path.getFileName().toString().endsWith(".kt");
+                text.append(JavaComments.strip(Files.readString(path), kotlin)).append('\n');
             }
         }
         return text.toString();

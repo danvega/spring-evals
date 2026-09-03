@@ -379,8 +379,10 @@ public class Reports {
                 item.put("sample", record.sample());
                 item.put("outcome", record.effectiveOutcome());
                 item.put("passed", record.passed());
-                item.put("testsPassed", record.testsPassed());
-                item.put("idiomatic", record.idiomatic());
+                item.put("testsPassed", record.effectiveTestsPassed());
+                item.put("idiomatic", record.effectiveIdiomatic());
+                item.put("agentExitCode", record.agentExitCode());
+                item.put("agentTimedOut", record.agentTimedOut());
                 item.put("failureKind", record.failureKind());
                 item.put("durationMs", record.agentDurationMs());
                 item.put("costUsd", record.costUsd());
@@ -435,9 +437,17 @@ public class Reports {
                             : (r.agentDurationMs() / 1000) + "s")
                             .append(", tokens: ").append(r.totalTokens() == null ? "n/a" : r.totalTokens())
                             .append(", cost: ").append(r.costUsd() == null ? "n/a" : "$" + r.costUsd()).append("\n");
-                    if (r.testsPassed() != null || r.idiomatic() != null) {
-                        log.append("- hidden tests: ").append(yesNo(r.testsPassed()))
-                                .append(", idiom checks: ").append(yesNo(r.idiomatic())).append("\n");
+                    if (r.effectiveTestsPassed() != null || r.effectiveIdiomatic() != null) {
+                        log.append("- hidden tests: ").append(yesNo(r.effectiveTestsPassed()))
+                                .append(", idiom checks: ").append(yesNo(r.effectiveIdiomatic()))
+                                .append(RunRecord.IDIOM_UNTESTED.equals(r.effectiveOutcome())
+                                        ? " (pre-0.6.0 judge stopped before the tests)" : "")
+                                .append("\n");
+                    }
+                    if (r.agentExitCode() != null && r.agentExitCode() != 0
+                            || Boolean.TRUE.equals(r.agentTimedOut())) {
+                        log.append("- agent CLI: exit ").append(r.agentExitCode())
+                                .append(Boolean.TRUE.equals(r.agentTimedOut()) ? ", timed out" : "").append("\n");
                     }
                     if (!r.passed()) {
                         log.append("- failure kind: ").append(r.failureKind() == null ? "unknown" : r.failureKind())

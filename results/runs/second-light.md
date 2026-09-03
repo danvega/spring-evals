@@ -31,6 +31,7 @@ What this run tested: all 12 agents against boot/000-initializr-parity, one atte
 
 - model: claude-fable-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 167s, tokens: n/a, cost: $1.4311555
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-fable-5-a1-ef300ad2-8085-45c9-93f4-a2bd2abffa6f
 
 Agent's closing summary:
@@ -54,10 +55,11 @@ Verification results:
 The team can start adding `@Entity` classes and Spring Data repositories right away; the datasource and JPA are already wired. One heads-up for later: in Boot 4 the H2 web console no longer comes with the raw H2 jar, so if anyone wants it for local debugging, add the `spring-boot-starter-h2-console` starter.
 ```
 
-## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · policy_failure
+## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI 2.1.221 (Claude Code))
 - duration: 93s, tokens: n/a, cost: $0.13195020000000002
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-haiku-4-5-a1-2155047a-f843-4215-a1d4-7421c4158b2f
@@ -93,6 +95,7 @@ The team can now start adding entities to the `entity` package and repositories 
 
 - model: claude-opus-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 288s, tokens: n/a, cost: $1.5951745000000002
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-opus-5-a1-ab789d06-ca44-4fe9-8957-41ca7c34485f
 
 Agent's closing summary:
@@ -141,6 +144,7 @@ One note on the test output: you will see JVM warnings about a dynamically loade
 
 - model: claude-sonnet-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 155s, tokens: n/a, cost: $0.8298398999999999
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-sonnet-5-a1-d316aa05-c6d9-4d36-9371-7f39300470fe
 
 Agent's closing summary:
@@ -215,10 +219,11 @@ Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads wi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-grok-4-5-a1-03ac1eab-aecf-4483-9843-600ac305c5e1
 
-## kimi-k3 · boot/000-initializr-parity · sample 1 · policy_failure
+## kimi-k3 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: kimi-k3 (claude, CLI 2.1.221 (Claude Code))
 - duration: 1s, tokens: n/a, cost: $0.0
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\s*4\.
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-kimi-k3-a1-5075a7e7-aecf-48f6-a55b-b56b824ca6b9
