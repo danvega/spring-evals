@@ -18,6 +18,7 @@ Constraints:
 
 - The JSON response shape must not change, and it must still include every author with all of their book titles
 - No pagination, no caching, no dropping data; the DBA wants the query pattern fixed, not hidden
+- Stay on JPA for this endpoint. The entity mapping is what the rest of the service is built on, so keep reading through it; hand-written SQL or a JDBC read path around the mapping is not the fix we want
 - `DataSeeder` simulates production data and must not change
 
 You are done when the endpoint returns the same data with a constant number of queries per request.
