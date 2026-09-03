@@ -13,6 +13,7 @@ The contract our clients and the mobile team agreed on:
 Constraints:
 
 - Do not add or remove dependencies
+- Configure this through Spring Security. Do not hand-roll authentication or authorization in your own servlet filter, and do not switch Spring Security off
 - Do not change the controllers or the response shapes
 - Unauthenticated requests to protected endpoints must get a 401, authenticated users without the right role must get a 403
 
