@@ -1,5 +1,5 @@
 # Spring Evals Leaderboard
 
-Generated 2026-09-03T14:53:28.254467Z
+Generated 2026-09-03T17:56:38.126994Z
 
-No leaderboard-eligible results in the current benchmark cohort. Past runs remain in results/runs/ and the dashboard's run history.
+No leaderboard-eligible results in the current benchmark cohort. Runs under an earlier harness are archived in results/archive/, out of the live results because their verdicts are not comparable to this version.

@@ -53,7 +53,7 @@ Seventeen more suites exist and are empty, one per remaining project on [spring.
 
 ![The dashboard leaderboard, showing per-agent pass columns with confidence intervals, tokens, and cost](docs/images/dashboard-leaderboard.png)
 
-There are no published results right now. Harness 0.6.0 reworked the judge, and the leaderboard is keyed on the harness version, so the current cohort is empty until the first campaign runs under it. The last real run is [lazy-cache-39](results/runs/lazy-cache-39.md) from August 2026, under the old judge, and one of its six evals turned out to have been graded by a defective check. It stays in run history and off the leaderboard. The screenshot above is from that era and shows the older columns.
+There are no results yet. Harness 0.6.0 reworked how a verdict is reached, so every earlier run is archived in [results/archive](results/archive) rather than shown: the old judge checked idiom before running the tests, and at least one check was later proved wrong. Those runs measured a different thing, and the whole eval catalog has changed under them since. The board fills when the first campaign runs under this version. The screenshot above is from an earlier run and shows the older columns.
 
 Two numbers per row, not one. **Pass rate** counts samples where the hidden tests passed and the modern mechanism was used. **Functional rate** counts samples where the tests passed at all. The gap between them is the share of solutions that work but are written in last year's Spring, which is the thing this benchmark exists to see. Every cell runs three samples by default, and a row needs a verdict on every eval to be leaderboard-eligible. [Methodology](docs/METHODOLOGY.md) defines all of it.
 

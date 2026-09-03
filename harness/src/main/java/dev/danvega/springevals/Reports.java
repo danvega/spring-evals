@@ -58,7 +58,8 @@ public class Reports {
                 Files.createDirectories(leaderboard.getParent());
                 Files.writeString(leaderboard, "# Spring Evals Leaderboard\n\nGenerated " + Instant.now()
                         + "\n\nNo leaderboard-eligible results in the current benchmark cohort. "
-                        + "Past runs remain in results/runs/ and the dashboard's run history.\n");
+                        + "Runs under an earlier harness are archived in results/archive/, out of the "
+                        + "live results because their verdicts are not comparable to this version.\n");
                 System.out.println("wrote results/leaderboard.md (empty cohort)");
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
