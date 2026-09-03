@@ -1,0 +1,16 @@
+name: 003-transactional-self-invocation
+project: framework
+title: Fix a partial-write bug caused by transactional self-invocation
+category: data
+type: fix
+difficulty: hard
+baseline_failure: test_failure
+boot_version: 4.0.7
+timeout_seconds: 900
+description: >
+  The classic proxy trap: @Transactional methods invoked through `this`
+  are not intercepted, so a failed transfer commits the withdrawal and
+  loses money. The symptom reads like a database problem; the fix
+  requires understanding Spring's proxy model and moving the transaction
+  boundary to the entry point. Verified over HTTP by checking balances
+  after a failed and a successful transfer.

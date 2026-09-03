@@ -1,0 +1,16 @@
+name: 000-lockdown
+project: security
+title: Secure an API with a stateless SecurityFilterChain
+category: security
+type: build
+difficulty: medium
+baseline_failure: test_failure
+boot_version: 4.0.7
+timeout_seconds: 900
+description: >
+  A catalog API needs a real security configuration: public reads,
+  authenticated writes, an ADMIN-only area, HTTP Basic, and full
+  statelessness. Models trained on older Spring content reach for the
+  removed WebSecurityConfigurerAdapter or get matcher ordering and
+  401-vs-403 semantics wrong. Verified through a pure HTTP status matrix
+  plus a no-session-cookie check.

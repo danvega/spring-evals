@@ -7,5 +7,9 @@
   "forbiddenPomPatterns": [
     "spring-boot-autoconfigure-classic",
     "spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\\s*(?:[123]\\.|4\\.0\\.)"
+  ],
+  "pinned": [
+    "src/main/java/com/example/triage/stub/StubChatModel.java",
+    "src/main/java/com/example/triage/stub/StubModelConfig.java"
   ]
 }
