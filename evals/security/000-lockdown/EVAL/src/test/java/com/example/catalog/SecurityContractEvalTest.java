@@ -95,6 +95,24 @@ class SecurityContractEvalTest {
                 .header("Authorization", basic("admin", "admin-pass"))
                 .POST(HttpRequest.BodyPublishers.ofString(PRODUCT_JSON)).build());
 
+        assertNoSessionCookie(response);
+    }
+
+    @Test
+    void rejectedBrowserStyleRequestsCreateNoSessionEither() throws Exception {
+        // The Accept header matters: a session-backed chain saves a rejected
+        // HTML-accepting GET in a new session before it answers 401.
+        HttpResponse<String> response = send(request("/api/admin/stats")
+                .header("Accept", "text/html,application/xhtml+xml")
+                .GET().build());
+
+        assertThat(response.statusCode())
+                .as("anonymous browser-style request to the admin area must be 401, not a login redirect")
+                .isEqualTo(401);
+        assertNoSessionCookie(response);
+    }
+
+    private static void assertNoSessionCookie(HttpResponse<String> response) {
         List<String> cookies = response.headers().allValues("Set-Cookie");
         assertThat(cookies)
                 .as("a stateless API must not create sessions; got Set-Cookie: %s", cookies)
