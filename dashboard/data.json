@@ -1,5 +1,5 @@
 {
-  "generated" : "2026-09-03T01:49:56.812061Z",
+  "generated" : "2026-09-03T12:19:00.084346Z",
   "sample" : false,
   "spendUsd" : 0.0,
   "spendPartial" : true,
@@ -1064,10 +1064,17 @@
   } ],
   "noVerdict" : [ ],
   "agents" : [ ],
-  "projects" : [ "boot" ],
+  "projects" : [ "ai", "boot", "data", "framework", "security" ],
   "byProject" : { },
   "byEval" : { },
   "evals" : [ {
+    "id" : "ai/000-chatclient-basics",
+    "project" : "ai",
+    "title" : "Rebuild a brittle ticket-triage flow with structured output and prompt discipline",
+    "type" : "fix",
+    "difficulty" : "medium",
+    "pilot" : false
+  }, {
     "id" : "boot/000-initializr-parity",
     "project" : "boot",
     "title" : "Generate a new Boot 4 project from scratch to the Initializr bar",
@@ -1108,6 +1115,69 @@
     "title" : "Restore the H2 console moved to its own Boot 4 module",
     "type" : "fix",
     "difficulty" : "easy",
+    "pilot" : false
+  }, {
+    "id" : "data/000-n-plus-one",
+    "project" : "data",
+    "title" : "Eliminate an N+1 query problem without changing the response",
+    "type" : "fix",
+    "difficulty" : "hard",
+    "pilot" : true
+  }, {
+    "id" : "data/001-repository-aot",
+    "project" : "data",
+    "title" : "Move Spring Data query derivation to build time",
+    "type" : "fix",
+    "difficulty" : "hard",
+    "pilot" : false
+  }, {
+    "id" : "framework/000-resilience-annotations",
+    "project" : "framework",
+    "title" : "Add retries and concurrency limits without new dependencies",
+    "type" : "build",
+    "difficulty" : "medium",
+    "pilot" : false
+  }, {
+    "id" : "framework/001-api-versioning",
+    "project" : "framework",
+    "title" : "Version an endpoint with Framework 7 native API versioning",
+    "type" : "build",
+    "difficulty" : "medium",
+    "pilot" : true
+  }, {
+    "id" : "framework/002-problem-details",
+    "project" : "framework",
+    "title" : "RFC 9457 problem details for error responses",
+    "type" : "build",
+    "difficulty" : "easy",
+    "pilot" : false
+  }, {
+    "id" : "framework/003-transactional-self-invocation",
+    "project" : "framework",
+    "title" : "Fix a partial-write bug caused by transactional self-invocation",
+    "type" : "fix",
+    "difficulty" : "hard",
+    "pilot" : false
+  }, {
+    "id" : "framework/004-jms-client",
+    "project" : "framework",
+    "title" : "Migrate JmsTemplate order messaging to the fluent JmsClient",
+    "type" : "fix",
+    "difficulty" : "medium",
+    "pilot" : false
+  }, {
+    "id" : "security/000-lockdown",
+    "project" : "security",
+    "title" : "Secure an API with a stateless SecurityFilterChain",
+    "type" : "build",
+    "difficulty" : "medium",
+    "pilot" : false
+  }, {
+    "id" : "security/001-method-security",
+    "project" : "security",
+    "title" : "Enforce admin-only operations on every path, not just the web layer",
+    "type" : "fix",
+    "difficulty" : "medium",
     "pilot" : false
   } ]
 }
