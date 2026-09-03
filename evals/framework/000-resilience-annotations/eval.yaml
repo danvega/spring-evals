@@ -5,7 +5,7 @@ category: config
 type: build
 difficulty: medium
 baseline_failure: test_failure
-boot_version: 4.0.7
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   Spring Framework 7 ships @Retryable and @ConcurrencyLimit in core,
@@ -14,3 +14,14 @@ description: >
   The eval verifies behavior over HTTP: a flaky gateway that fails twice
   must succeed in one API call with exactly 3 recorded attempts, and 6
   parallel report requests must never exceed 2 concurrent executions.
+  The idiom checks look for the resilience annotation package, a
+  @Retryable and a @ConcurrencyLimit usage in any import style or
+  placement (method, class, or composed annotation), and evidence that
+  the mechanism is switched on, since Boot 4.1 does not auto-configure
+  it and the annotations are inert without an enabler. Both
+  @EnableResilientMethods and direct registration of the two resilience
+  post-processors count. A hand-rolled loop, a Semaphore, a programmatic
+  RetryTemplate, an AOP throttle interceptor, or annotations left inert
+  next to hand-rolled work passes the tests but records functional_only. The two
+  stand-ins the prompt puts off-limits are pinned, so editing the flaky
+  gateway or the concurrency counter is a policy failure.
