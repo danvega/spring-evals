@@ -6,6 +6,5 @@
     "ANTHROPIC_BASE_URL": "https://api.moonshot.ai/anthropic",
     "ANTHROPIC_API_KEY": "${MOONSHOT_API_KEY}"
   },
-  "budgetUsd": 1.5,
   "estCostPerAttemptUsd": 0.3
 }

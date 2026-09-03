@@ -1,6 +1,6 @@
 # Run: first-light
 
-Started 2026-08-05T14:21:06.905637Z. 3 of 10 attempts passed. Harness 0.2.0+9e4deb544cd1.
+Started 2026-08-05T14:21:06.905637Z. 3 of 10 samples passed. Harness 0.2.0+9e4deb544cd1.
 
 ## Findings
 
@@ -16,10 +16,11 @@ The test: build a new Spring Boot 4 project from an empty repository, judged aga
 
 Billing note: `ANTHROPIC_API_KEY` in the shell took precedence over the Max plan, so the $3.97 recorded is real API spend.
 
-## claude-fable-5 · boot/000-initializr-parity · attempt 1 · PASSED
+## claude-fable-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-fable-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 129s, tokens: n/a, cost: $1.2888635000000002
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-fable-5-a1-3a74401a-7d26-4b2d-bc6c-4575f9041d34
 
 Agent's closing summary:
@@ -39,10 +40,11 @@ What I created:
 Verification details: the test run boots the full context against an in-memory H2 database (Hibernate ORM 7.4.1, HikariCP pool), so JPA is wired and the team can add `@Entity` classes and repositories immediately. One environment note: the machine has JDK 26 installed, and the build compiles with `--release 25` per the pom, so the bytecode targets Java 25 as requested.
 ```
 
-## claude-haiku-4-5 · boot/000-initializr-parity · attempt 1 · FAILED
+## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI 2.1.221 (Claude Code))
 - duration: 77s, tokens: n/a, cost: $0.1031695
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-haiku-4-5-a1-e8301ab0-3906-4bb5-b329-4a9dd5df8b03
@@ -76,10 +78,11 @@ I'll set up this Spring Boot 4 project from scratch. Let me start by checking th
 The team can now add JPA entities and repositories to start building the bookshelf service.
 ```
 
-## claude-opus-5 · boot/000-initializr-parity · attempt 1 · PASSED
+## claude-opus-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-opus-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 245s, tokens: n/a, cost: $1.4072267499999997
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-opus-5-a1-52ae9503-86c8-4b5e-abd3-ca8d1473e0fb
 
 Agent's closing summary:
@@ -134,10 +137,11 @@ Content-Length: 2
 I also noticed the `modular-auto-config` skill lists `spring-boot-starter-h2-console` as the H2 console artifact. That one 404s on Maven Central; the real module in 4.1.0 is `spring-boot-h2console`. This project doesn't need the console, so nothing here is affected, but the skill is worth correcting.
 ```
 
-## claude-sonnet-5 · boot/000-initializr-parity · attempt 1 · PASSED
+## claude-sonnet-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-sonnet-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 240s, tokens: n/a, cost: $1.1746516999999999
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-sonnet-5-a1-2b3b9894-8d84-4a50-9d02-4288aa55742d
 
 Agent's closing summary:
@@ -155,7 +159,7 @@ I'll start by inspecting the existing repository structure.This is a from-scratc
 Verified end-to-end: `./mvnw clean verify` passes (Hikari/H2/Hibernate all initialize cleanly with 0 entities), and `./mvnw spring-boot:run` starts the app and `curl http://localhost:8080/api/books` returns `[]`. The running instance was stopped after verification.
 ```
 
-## codex-gpt-5-6-luna · boot/000-initializr-parity · attempt 1 · FAILED
+## codex-gpt-5-6-luna · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gpt-5.6-luna (codex, CLI 0.1.2504161551)
 - duration: 0s, tokens: n/a, cost: n/a
@@ -163,7 +167,7 @@ Verified end-to-end: `./mvnw clean verify` passes (Hikari/H2/Hibernate all initi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-luna-a1-8aaee2fb-fc79-4e0d-b886-d8f4060d7f76
 
-## codex-gpt-5-6-sol · boot/000-initializr-parity · attempt 1 · FAILED
+## codex-gpt-5-6-sol · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gpt-5.6-sol (codex, CLI 0.1.2504161551)
 - duration: 0s, tokens: n/a, cost: n/a
@@ -171,7 +175,7 @@ Verified end-to-end: `./mvnw clean verify` passes (Hikari/H2/Hibernate all initi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-sol-a1-99851e01-b517-417f-9647-7a6ce276d094
 
-## codex-gpt-5-6-terra · boot/000-initializr-parity · attempt 1 · FAILED
+## codex-gpt-5-6-terra · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gpt-5.6-terra (codex, CLI 0.1.2504161551)
 - duration: 0s, tokens: n/a, cost: n/a
@@ -179,7 +183,7 @@ Verified end-to-end: `./mvnw clean verify` passes (Hikari/H2/Hibernate all initi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-terra-a1-b9a2892d-c2a4-4ddb-947f-8cb04277decf
 
-## gemini-2-5-flash · boot/000-initializr-parity · attempt 1 · FAILED
+## gemini-2-5-flash · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gemini-2.5-flash (gemini, CLI 0.1.13)
 - duration: 1200s, tokens: n/a, cost: n/a
@@ -187,7 +191,7 @@ Verified end-to-end: `./mvnw clean verify` passes (Hikari/H2/Hibernate all initi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-gemini-2-5-flash-a1-aa213024-a740-43b5-80f0-cc5feef8b1d0
 
-## gemini-2-5-flash-lite · boot/000-initializr-parity · attempt 1 · FAILED
+## gemini-2-5-flash-lite · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gemini-2.5-flash-lite (gemini, CLI 0.1.13)
 - duration: 332s, tokens: n/a, cost: n/a
@@ -195,7 +199,7 @@ Verified end-to-end: `./mvnw clean verify` passes (Hikari/H2/Hibernate all initi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-gemini-2-5-flash-lite-a1-d53f24b5-9b06-4cc8-90df-7f0b7d3eb72f
 
-## gemini-2-5-pro · boot/000-initializr-parity · attempt 1 · FAILED
+## gemini-2-5-pro · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gemini-2.5-pro (gemini, CLI 0.1.13)
 - duration: 0s, tokens: n/a, cost: n/a

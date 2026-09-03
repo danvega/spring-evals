@@ -1,6 +1,6 @@
 # Run: second-light
 
-Started 2026-08-05T15:54:21.520255Z. 3 of 12 attempts passed. Harness 0.2.0+87a8d7e9d450.
+Started 2026-08-05T15:54:21.520255Z. 3 of 12 samples passed. Harness 0.2.0+87a8d7e9d450.
 
 ## Findings
 
@@ -27,10 +27,11 @@ What this run tested: all 12 agents against boot/000-initializr-parity, one atte
 
 **What to fix before the next run, in order:** restore the codex config backup and verify the CLI manually; update the two Gemini flash model IDs and settle the GOOGLE_API_KEY vs GEMINI_API_KEY question; find the right Moonshot model ID for Kimi and test it with a direct CLI call before spending; investigate the gemini CLI exit-1 and the qwen-code session failure against x.ai.
 
-## claude-fable-5 · boot/000-initializr-parity · attempt 1 · PASSED
+## claude-fable-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-fable-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 167s, tokens: n/a, cost: $1.4311555
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-fable-5-a1-ef300ad2-8085-45c9-93f4-a2bd2abffa6f
 
 Agent's closing summary:
@@ -54,10 +55,11 @@ Verification results:
 The team can start adding `@Entity` classes and Spring Data repositories right away; the datasource and JPA are already wired. One heads-up for later: in Boot 4 the H2 web console no longer comes with the raw H2 jar, so if anyone wants it for local debugging, add the `spring-boot-starter-h2-console` starter.
 ```
 
-## claude-haiku-4-5 · boot/000-initializr-parity · attempt 1 · FAILED
+## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI 2.1.221 (Claude Code))
 - duration: 93s, tokens: n/a, cost: $0.13195020000000002
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-haiku-4-5-a1-2155047a-f843-4215-a1d4-7421c4158b2f
@@ -89,10 +91,11 @@ I'll set up a fresh Spring Boot 4 project from scratch. Let me start by checking
 The team can now start adding entities to the `entity` package and repositories to the `config`/repository packages. The database is ready to accept JPA entities immediately.
 ```
 
-## claude-opus-5 · boot/000-initializr-parity · attempt 1 · PASSED
+## claude-opus-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-opus-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 288s, tokens: n/a, cost: $1.5951745000000002
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-opus-5-a1-ab789d06-ca44-4fe9-8957-41ca7c34485f
 
 Agent's closing summary:
@@ -137,10 +140,11 @@ I skipped the H2 web console. In Boot 4 it needs a separate module, so setting `
 One note on the test output: you will see JVM warnings about a dynamically loaded byte-buddy agent. That comes from Mockito inside `spring-boot-starter-test` on modern JDKs. It is not caused by anything in this setup, and a freshly generated project shows the same thing.
 ```
 
-## claude-sonnet-5 · boot/000-initializr-parity · attempt 1 · PASSED
+## claude-sonnet-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-sonnet-5 (claude, CLI 2.1.221 (Claude Code))
 - duration: 155s, tokens: n/a, cost: $0.8298398999999999
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-sonnet-5-a1-d316aa05-c6d9-4d36-9371-7f39300470fe
 
 Agent's closing summary:
@@ -159,7 +163,7 @@ Now let me check what starter artifact names look like in Boot 4 (since Boot 4 r
 Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads with H2 + JPA wired), and `./mvnw spring-boot:run` starts the app, with `curl http://localhost:8080/api/books` returning `200 OK` and body `[]`. The existing `.mvn` wrapper and `.gitignore` were left untouched.
 ```
 
-## codex-gpt-5-6-luna · boot/000-initializr-parity · attempt 1 · FAILED
+## codex-gpt-5-6-luna · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gpt-5.6-luna (codex, CLI codex-cli 0.146.0)
 - duration: 0s, tokens: n/a, cost: n/a
@@ -167,7 +171,7 @@ Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads wi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-luna-a1-3a9ae0a3-e22e-4770-bf14-e890351a5bb6
 
-## codex-gpt-5-6-sol · boot/000-initializr-parity · attempt 1 · FAILED
+## codex-gpt-5-6-sol · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gpt-5.6-sol (codex, CLI codex-cli 0.146.0)
 - duration: 0s, tokens: n/a, cost: n/a
@@ -175,7 +179,7 @@ Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads wi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-sol-a1-78eee8f0-a617-4cc0-a72b-e050b1d8ff8d
 
-## codex-gpt-5-6-terra · boot/000-initializr-parity · attempt 1 · FAILED
+## codex-gpt-5-6-terra · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gpt-5.6-terra (codex, CLI codex-cli 0.146.0)
 - duration: 0s, tokens: n/a, cost: n/a
@@ -183,7 +187,7 @@ Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads wi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-codex-gpt-5-6-terra-a1-be6ef2bf-0b6c-417b-ba27-d550fd88e60c
 
-## gemini-2-5-flash · boot/000-initializr-parity · attempt 1 · FAILED
+## gemini-2-5-flash · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gemini-2.5-flash (gemini, CLI 0.1.13)
 - duration: 1s, tokens: n/a, cost: n/a
@@ -191,7 +195,7 @@ Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads wi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-gemini-2-5-flash-a1-a9192342-73a0-410e-9de4-1a640bc3cad4
 
-## gemini-2-5-flash-lite · boot/000-initializr-parity · attempt 1 · FAILED
+## gemini-2-5-flash-lite · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gemini-2.5-flash-lite (gemini, CLI 0.1.13)
 - duration: 0s, tokens: n/a, cost: n/a
@@ -199,7 +203,7 @@ Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads wi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-gemini-2-5-flash-lite-a1-1bb8d544-01b7-4c62-9482-11d58869de0d
 
-## gemini-2-5-pro · boot/000-initializr-parity · attempt 1 · FAILED
+## gemini-2-5-pro · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: gemini-2.5-pro (gemini, CLI 0.1.13)
 - duration: 75s, tokens: n/a, cost: n/a
@@ -207,7 +211,7 @@ Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads wi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-gemini-2-5-pro-a1-9ac11787-d959-40ef-ae53-2a58b266be69
 
-## grok-4-5 · boot/000-initializr-parity · attempt 1 · FAILED
+## grok-4-5 · boot/000-initializr-parity · sample 1 · agent_error
 
 - model: grok-4.5 (qwen-code, CLI 0.21.5)
 - duration: 0s, tokens: n/a, cost: n/a
@@ -215,10 +219,11 @@ Verified end-to-end: `./mvnw clean test` passes (BUILD SUCCESS, context loads wi
 - failure reason: NullPointerException: Cannot invoke "java.util.function.Supplier.get()" because "defaultObjectSupplier" is null
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-grok-4-5-a1-03ac1eab-aecf-4483-9843-600ac305c5e1
 
-## kimi-k3 · boot/000-initializr-parity · attempt 1 · FAILED
+## kimi-k3 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: kimi-k3 (claude, CLI 2.1.221 (Claude Code))
 - duration: 1s, tokens: n/a, cost: $0.0
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-parent</artifactId>(?:(?!</parent>).)*?<version>\s*4\.
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-kimi-k3-a1-5075a7e7-aecf-48f6-a55b-b56b824ca6b9

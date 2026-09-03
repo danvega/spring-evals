@@ -22,12 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RunSchedulerTest {
 
     private static AgentSpec spec(String name, String provider) {
-        return new AgentSpec(name, provider, "model", Map.of(), null, 0.1);
+        return new AgentSpec(name, provider, "model", Map.of(), 0.1);
     }
 
     @Test
-    void partitionsIntoProviderLanesPreservingResolvedOrder() {
-        var lanes = RunScheduler.partitionByProvider(List.of(
+    void partitionsIntoLanesPreservingResolvedOrder() {
+        var lanes = RunScheduler.partitionByLane(List.of(
                 spec("claude-a", "claude"), spec("codex-a", "codex"),
                 spec("claude-b", "claude"), spec("gemini-a", "gemini")));
 
@@ -104,7 +104,7 @@ class RunSchedulerTest {
 
     @Test
     void lanesRunConcurrentlyButNeverExceedTheParallelCap() {
-        var lanes = RunScheduler.partitionByProvider(List.of(
+        var lanes = RunScheduler.partitionByLane(List.of(
                 spec("a", "claude"), spec("b", "codex"), spec("c", "gemini"), spec("d", "qwen-code")));
         AtomicInteger active = new AtomicInteger();
         AtomicInteger peak = new AtomicInteger();
@@ -123,7 +123,7 @@ class RunSchedulerTest {
 
     @Test
     void laneFailureSurfacesOnlyAfterEveryLaneFinishes() {
-        var lanes = RunScheduler.partitionByProvider(List.of(spec("a", "claude"), spec("b", "codex")));
+        var lanes = RunScheduler.partitionByLane(List.of(spec("a", "claude"), spec("b", "codex")));
         AtomicInteger completed = new AtomicInteger();
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
                 () -> RunScheduler.runLanes(lanes, 4, (provider, specs) -> {
@@ -139,6 +139,7 @@ class RunSchedulerTest {
     private static RunRecord record(String agent) {
         return new RunRecord(agent, "model", "boot/000-example", "boot", 1, false, null, null, "/tmp/ws",
                 "2026-01-01T00:00:00Z", "run-id", "claude", "agent", null, null, null, null, null,
-                null, null, null, null, null, 1, null, null, null, null, null, null);
+                null, null, null, null, null, 1, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null);
     }
 }

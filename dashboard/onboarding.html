@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding · Spring Evals</title>
+<meta name="description" content="From clone to your first scored Spring Evals run: environment, agents, credentials, a free validate, an estimate, and the exact run command.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%236db33f' d='M20.6 2.2c-.3.8-.8 1.6-1.3 2.3A10.6 10.6 0 0 0 1.7 12c0 5.9 4.8 10.6 10.6 10.6 5.7 0 10.4-4.5 10.6-10.2.2-2.8-.5-6.5-2.3-10.2ZM6.9 19.1a.9.9 0 1 1-.1-1.3.9.9 0 0 1 .1 1.3Zm13.5-3c-2.5 3.3-7.8 2.2-11.2 2.4 0 0-.6 0-1.2.1 0 0 .2-.1.5-.2 2.4-.8 3.5-1 5-1.7 2.7-1.4 5.4-4.4 5.9-7.5-1 3-4.1 5.6-7 6.6-2 .7-5.5 1.4-5.5 1.4l-.1-.1c-2.4-1.2-2.5-6.4 1.9-8.1 1.9-.7 3.8-.3 5.9-.8 2.2-.5 4.8-2.2 5.8-4.4 1.2 3.4 2.5 8.7 0 12.3Z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style type="text/tailwindcss">
+  @theme {
+    --color-spring: #6db33f;
+    --color-spring-deep: #4c8a2e;
+    --font-sans: "InterVariable", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  }
+  body { font-feature-settings: "cv02", "cv03", "cv04", "cv11"; }
+</style>
+</head>
+<body class="isolate min-h-dvh bg-white font-sans text-zinc-900 dark:bg-neutral-950 dark:text-neutral-200">
+
+  <header class="border-b border-zinc-950/10 dark:border-white/10">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2.5">
+        <svg viewBox="0 0 24 24" class="size-7 shrink-0 fill-spring" aria-hidden="true"><path d="M20.6 2.2c-.3.8-.8 1.6-1.3 2.3A10.6 10.6 0 0 0 1.7 12c0 5.9 4.8 10.6 10.6 10.6 5.7 0 10.4-4.5 10.6-10.2.2-2.8-.5-6.5-2.3-10.2ZM6.9 19.1a.9.9 0 1 1-.1-1.3.9.9 0 0 1 .1 1.3Zm13.5-3c-2.5 3.3-7.8 2.2-11.2 2.4 0 0-.6 0-1.2.1 0 0 .2-.1.5-.2 2.4-.8 3.5-1 5-1.7 2.7-1.4 5.4-4.4 5.9-7.5-1 3-4.1 5.6-7 6.6-2 .7-5.5 1.4-5.5 1.4l-.1-.1c-2.4-1.2-2.5-6.4 1.9-8.1 1.9-.7 3.8-.3 5.9-.8 2.2-.5 4.8-2.2 5.8-4.4 1.2 3.4 2.5 8.7 0 12.3Z"/></svg>
+        <a href="index.html" class="text-lg font-semibold tracking-tight dark:font-mono dark:text-white"><span class="not-dark:hidden text-spring">$ </span>Spring Evals</a>
+      </div>
+      <nav class="flex items-center gap-6 text-sm font-medium text-zinc-600 dark:font-mono dark:text-neutral-400">
+        <a href="index.html#leaderboard" class="hover:text-zinc-950 dark:hover:text-spring">Leaderboard</a>
+        <a href="index.html#runs" class="hover:text-zinc-950 dark:hover:text-spring">Runs</a>
+        <a href="evals.html" class="hover:text-zinc-950 dark:hover:text-spring">Evals</a>
+        <a href="models.html" class="hover:text-zinc-950 dark:hover:text-spring">Models</a>
+        <a href="onboarding.html" class="text-zinc-950 dark:text-white">Onboarding</a>
+        <a href="https://github.com/danvega/spring-evals" class="hover:text-zinc-950 dark:hover:text-spring">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section class="py-12 sm:py-16">
+      <p class="font-mono text-sm/6 font-medium tracking-wide text-spring-deep uppercase dark:text-spring"><span class="not-dark:hidden">// </span>setup</p>
+      <h1 class="mt-2 text-4xl font-semibold tracking-tight text-balance sm:text-5xl dark:text-white">From clone to your first scored run</h1>
+      <p class="mt-4 max-w-3xl text-base/7 text-pretty text-zinc-600 dark:text-neutral-400">Six steps. Everything here is free, and the last step only prints a command. Keys stay in your shell and are never stored. Nothing on this page can start a paid run.</p>
+      <div class="mt-6 hidden rounded-lg border border-amber-600/30 bg-amber-50 p-4 text-sm/6 text-amber-800 dark:border-amber-400/30 dark:bg-transparent dark:font-mono dark:text-amber-300" data-slot="offline">
+        <p class="font-medium">This page is being served statically, so the harness is not reachable.</p>
+        <p class="mt-1">Clone the repo, then run <code class="rounded bg-amber-100 px-1 py-0.5 font-mono dark:bg-transparent">./spring-evals serve</code> and open <code class="rounded bg-amber-100 px-1 py-0.5 font-mono dark:bg-transparent">http://localhost:4173/onboarding.html</code>. Each step below explains what it checks; the buttons stay disabled until then.</p>
+      </div>
+      <p class="mt-4 hidden text-sm text-zinc-500 dark:font-mono dark:text-neutral-500" data-slot="connection"></p>
+    </section>
+
+    <div class="grid grid-cols-1 gap-10 border-t border-zinc-950/10 py-10 lg:grid-cols-[16rem_1fr] dark:border-white/10">
+      <aside class="lg:sticky lg:top-6 lg:self-start">
+        <ol class="space-y-1 text-sm" data-slot="stepper"></ol>
+        <p class="mt-6 text-xs/5 text-zinc-500 dark:font-mono dark:text-neutral-500">Every step reads the current state when you press its button, so you can come back and re-run any of them.</p>
+      </aside>
+
+      <div class="min-w-0 space-y-14">
+
+        <section id="step-1" class="scroll-mt-6">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-sm text-spring-deep dark:text-spring">01</span>
+            <h2 class="text-2xl font-semibold tracking-tight dark:text-white">Environment</h2>
+          </div>
+          <p class="mt-2 text-base/7 text-zinc-600 dark:text-neutral-400">Agents and the judge run in Docker containers from one pinned image. The harness itself needs a JDK.</p>
+          <dl class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2" data-slot="environment"></dl>
+          <div class="mt-4 flex items-center gap-3">
+            <button data-action="environment" class="rounded-md bg-zinc-950 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-spring dark:text-neutral-950 dark:hover:bg-spring-deep">Re-check</button>
+            <span class="text-sm text-zinc-500 dark:font-mono dark:text-neutral-500" data-slot="environment-note"></span>
+          </div>
+        </section>
+
+        <section id="step-2" class="scroll-mt-6">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-sm text-spring-deep dark:text-spring">02</span>
+            <h2 class="text-2xl font-semibold tracking-tight dark:text-white">Agents</h2>
+          </div>
+          <p class="mt-2 text-base/7 text-zinc-600 dark:text-neutral-400">Each agent is a CLI and model pair from <code class="font-mono text-sm">agents/*.json</code>. Pick the ones you have accounts for. The selection is saved to a gitignored local file and never changes how an attempt is measured.</p>
+          <p class="mt-3 text-sm text-zinc-500 dark:font-mono dark:text-neutral-500" data-slot="agents-summary"></p>
+          <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" data-slot="agents"></div>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button data-action="save-agents" class="rounded-md bg-zinc-950 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-spring dark:text-neutral-950 dark:hover:bg-spring-deep">Save selection</button>
+            <button data-action="enable-all" class="rounded-md border border-zinc-950/10 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-neutral-300 dark:hover:bg-white/5">Enable every agent</button>
+            <span class="text-sm text-zinc-500 dark:font-mono dark:text-neutral-500" data-slot="agents-note"></span>
+          </div>
+        </section>
+
+        <section id="step-3" class="scroll-mt-6">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-sm text-spring-deep dark:text-spring">03</span>
+            <h2 class="text-2xl font-semibold tracking-tight dark:text-white">Credentials</h2>
+          </div>
+          <p class="mt-2 text-base/7 text-zinc-600 dark:text-neutral-400">Each config references keys as <code class="font-mono text-sm">${VAR}</code>. The doctor checks that the variables are set in your shell and which billing source they select. It never prints values and never stores anything. Add the export lines to your shell profile, restart the terminal, and re-check.</p>
+          <div class="mt-4 flex items-center gap-3">
+            <button data-action="doctor" class="rounded-md bg-zinc-950 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-spring dark:text-neutral-950 dark:hover:bg-spring-deep">Check enabled agents</button>
+            <span class="text-sm text-zinc-500 dark:font-mono dark:text-neutral-500" data-slot="doctor-note"></span>
+          </div>
+          <div class="mt-4 space-y-4" data-slot="doctor"></div>
+        </section>
+
+        <section id="step-4" class="scroll-mt-6">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-sm text-spring-deep dark:text-spring">04</span>
+            <h2 class="text-2xl font-semibold tracking-tight dark:text-white">Prove it</h2>
+          </div>
+          <p class="mt-2 text-base/7 text-zinc-600 dark:text-neutral-400">Validate one eval: the broken project must fail the hidden tests and the reference solution must pass them, both inside containers. No model is involved and nothing is spent. The first run builds the benchmark image and downloads dependencies, so allow several minutes.</p>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <select data-slot="prove-eval" class="rounded-md border border-zinc-950/10 bg-white px-2 py-1.5 text-sm dark:border-white/10 dark:bg-neutral-900 dark:font-mono dark:text-neutral-200"></select>
+            <button data-action="validate" class="rounded-md bg-zinc-950 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-spring dark:text-neutral-950 dark:hover:bg-spring-deep">Run validate</button>
+            <span class="text-sm text-zinc-500 dark:font-mono dark:text-neutral-500" data-slot="validate-note"></span>
+          </div>
+          <pre class="mt-4 hidden max-h-96 overflow-auto rounded-lg border border-zinc-950/10 bg-zinc-50 p-4 font-mono text-xs/5 whitespace-pre-wrap text-zinc-800 dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-300" data-slot="validate-output"></pre>
+        </section>
+
+        <section id="step-5" class="scroll-mt-6">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-sm text-spring-deep dark:text-spring">05</span>
+            <h2 class="text-2xl font-semibold tracking-tight dark:text-white">Estimate</h2>
+          </div>
+          <p class="mt-2 text-base/7 text-zinc-600 dark:text-neutral-400">Projected spend for the enabled agents: every sample runs, so it is evals times samples times the per-sample estimate in each config. Subscription-billed agents draw on plan quota instead of dollars. This is a planning number, not a billing guarantee.</p>
+          <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+            <label class="flex items-center gap-2">Scope
+              <select data-slot="scope" class="rounded-md border border-zinc-950/10 bg-white px-2 py-1.5 dark:border-white/10 dark:bg-neutral-900 dark:font-mono dark:text-neutral-200">
+                <option value="pilot">pilot subset</option>
+                <option value="all">every eval</option>
+                <option value="eval">one eval</option>
+              </select>
+            </label>
+            <select data-slot="scope-eval" class="hidden rounded-md border border-zinc-950/10 bg-white px-2 py-1.5 dark:border-white/10 dark:bg-neutral-900 dark:font-mono dark:text-neutral-200"></select>
+            <label class="flex items-center gap-2"><span data-slot="samples-label">samples</span>
+              <input data-slot="samples" type="number" min="1" max="10" value="3" class="w-16 rounded-md border border-zinc-950/10 bg-white px-2 py-1.5 tabular-nums dark:border-white/10 dark:bg-neutral-900 dark:font-mono dark:text-neutral-200">
+            </label>
+            <button data-action="estimate" class="rounded-md bg-zinc-950 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-spring dark:text-neutral-950 dark:hover:bg-spring-deep">Estimate</button>
+            <span class="text-sm text-zinc-500 dark:font-mono dark:text-neutral-500" data-slot="estimate-note"></span>
+          </div>
+          <div class="mt-4 overflow-x-auto" data-slot="estimate"></div>
+        </section>
+
+        <section id="step-6" class="scroll-mt-6">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-sm text-spring-deep dark:text-spring">06</span>
+            <h2 class="text-2xl font-semibold tracking-tight dark:text-white">Your run command</h2>
+          </div>
+          <p class="mt-2 text-base/7 text-zinc-600 dark:text-neutral-400">Paid runs are started from the terminal by a person, never from this page. The harness refuses to spend without both flags below, and it stops before the cap would be exceeded. The cap here is the projection from step 5, rounded up.</p>
+          <pre class="mt-4 overflow-x-auto rounded-lg border border-zinc-950/10 bg-zinc-50 p-4 font-mono text-sm/6 text-zinc-800 dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-200" data-slot="command"></pre>
+          <div class="mt-3 flex items-center gap-3">
+            <button data-action="copy" class="rounded-md border border-zinc-950/10 px-3 py-1.5 text-sm font-medium whitespace-nowrap text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-neutral-300 dark:hover:bg-white/5">Copy</button>
+            <span class="text-sm text-zinc-500 dark:font-mono dark:text-neutral-500" data-slot="command-note"></span>
+          </div>
+          <p class="mt-4 text-base/7 text-zinc-600 dark:text-neutral-400">After the run, <code class="font-mono text-sm">./spring-evals report</code> rebuilds the leaderboard and the run appears under <a href="index.html#runs" class="font-medium text-spring-deep hover:underline dark:text-spring">Runs</a>. Write a short findings note to <code class="font-mono text-sm">results/runs/&lt;run-name&gt;.notes.md</code> and re-run report; it merges into the run log.</p>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="border-t border-zinc-950/10 py-8 dark:border-white/10">
+    <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8 dark:font-mono dark:text-neutral-500">
+      <p>Plain Java harness. Agents and judge run in Docker.</p>
+      <p>Setup details per platform in <a href="https://github.com/danvega/spring-evals/blob/main/docs/AGENT_SETUP.md" class="font-medium text-zinc-700 hover:text-zinc-950 dark:text-neutral-300 dark:hover:text-spring">AGENT_SETUP.md</a>.</p>
+    </div>
+  </footer>
+
+<script>
+const API_HEADERS = { "X-Spring-Evals": "1", "Content-Type": "application/json" };
+const SETUP_DOC = "https://github.com/danvega/spring-evals/blob/main/docs/AGENT_SETUP.md";
+const STEPS = ["Environment", "Agents", "Credentials", "Prove it", "Estimate", "Run command"];
+
+const state = {
+  offline: false,
+  environment: null,
+  agents: [],
+  restricts: false,
+  models: {},
+  evals: [],
+  doctor: null,
+  estimate: null,
+  samplesFlag: "samples",
+  stepStatus: {},
+};
+
+const slot = name => document.querySelector(`[data-slot="${name}"]`);
+const action = name => document.querySelector(`[data-action="${name}"]`);
+const esc = value => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const money = value => typeof value === "number" && isFinite(value) ? "$" + value.toFixed(2) : "n/a";
+const badge = "inline-flex items-center rounded-full bg-spring/10 px-2 py-0.5 text-xs font-medium text-spring-deep dark:bg-transparent dark:font-mono dark:text-spring";
+
+const LEVEL = {
+  READY: { mark: "✓", cls: "text-spring-deep dark:text-spring" },
+  WARNING: { mark: "!", cls: "text-amber-700 dark:text-amber-400" },
+  BLOCKED: { mark: "✗", cls: "text-red-700 dark:text-red-400" },
+};
+
+function levelBadge(level) {
+  const color = level === "READY" ? "bg-spring/10 text-spring-deep dark:text-spring"
+    : level === "WARNING" ? "bg-amber-50 text-amber-700 dark:text-amber-400"
+    : "bg-red-50 text-red-700 dark:text-red-400";
+  return `<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium dark:bg-transparent dark:font-mono ${color}">${esc(level)}</span>`;
+}
+
+function setStep(index, status) {
+  state.stepStatus[index] = status;
+  renderStepper();
+}
+
+function renderStepper() {
+  slot("stepper").innerHTML = STEPS.map((title, i) => {
+    const status = state.stepStatus[i] || "idle";
+    const dot = status === "ok" ? "bg-spring" : status === "warn" ? "bg-amber-500" : status === "block" ? "bg-red-500" : "bg-zinc-300 dark:bg-neutral-700";
+    return `<li><a href="#step-${i + 1}" class="flex items-center gap-3 rounded-md px-2 py-1.5 text-zinc-700 hover:bg-zinc-50 dark:font-mono dark:text-neutral-300 dark:hover:bg-white/5">
+      <span class="size-2 shrink-0 rounded-full ${dot}"></span>
+      <span class="font-mono text-xs text-zinc-400 dark:text-neutral-600">0${i + 1}</span>
+      <span>${esc(title)}</span>
+    </a></li>`;
+  }).join("");
+}
+
+async function api(path, options) {
+  const response = await fetch(`api/${path}`, { cache: "no-store", ...options });
+  const text = await response.text();
+  let body = null;
+  try { body = JSON.parse(text); } catch (err) { body = null; }
+  if (!response.ok) {
+    throw new Error(body && body.error ? body.error : `${response.status} ${response.statusText}`);
+  }
+  if (body === null) {
+    throw new Error("the harness did not answer with JSON; is ./spring-evals serve running?");
+  }
+  return body;
+}
+
+function goOffline() {
+  state.offline = true;
+  slot("offline").classList.remove("hidden");
+  slot("connection").classList.add("hidden");
+  document.querySelectorAll("[data-action]").forEach(button => { button.disabled = true; });
+  document.querySelectorAll("select, input").forEach(control => { control.disabled = true; });
+  slot("environment").innerHTML = row("Harness", "not reachable from this page");
+  slot("environment-note").textContent = "";
+  slot("agents-summary").textContent = "Needs a local ./spring-evals serve.";
+  slot("doctor-note").textContent = "Needs a local ./spring-evals serve.";
+  slot("validate-note").textContent = "Needs a local ./spring-evals serve.";
+  slot("estimate-note").textContent = "Needs a local ./spring-evals serve.";
+  slot("command").textContent = "./spring-evals run --agent <agents> --pilot --samples 3 --allow-paid-run --max-total-cost <usd>";
+  slot("command-note").textContent = "Shown as a template until the harness is reachable.";
+}
+
+function row(label, value, ok) {
+  const mark = ok === true ? `<span class="${LEVEL.READY.cls}">✓</span> ` : ok === false ? `<span class="${LEVEL.BLOCKED.cls}">✗</span> ` : "";
+  return `<div class="rounded-lg border border-zinc-950/10 p-4 dark:border-white/10">
+    <dt class="text-sm/6 text-zinc-500 dark:font-mono dark:text-neutral-500">${esc(label)}</dt>
+    <dd class="mt-1 text-sm/6 font-medium break-all text-zinc-950 dark:text-white">${mark}${value}</dd>
+  </div>`;
+}
+
+async function loadEnvironment() {
+  slot("environment-note").textContent = "checking...";
+  const env = await api("environment");
+  state.environment = env;
+  const docker = env.docker || {};
+  slot("environment").innerHTML = [
+    row("JDK", `Java ${esc(env.java && env.java.version)} <span class="font-normal text-zinc-500 dark:text-neutral-500">(${esc(env.java && env.java.runtime)})</span>`, true),
+    row("Docker daemon", docker.reachable ? "reachable" : "not reachable. Start Docker and re-check.", !!docker.reachable),
+    row("Benchmark image", docker.imageBuilt
+      ? `built <span class="font-mono font-normal text-zinc-500 dark:text-neutral-500">${esc(docker.image)}</span>`
+      : `not built yet. Step 4 builds it, or run <code class="font-mono">./spring-evals doctor --docker</code>.`, docker.imageBuilt ? true : undefined),
+    row("Sandbox", `${esc(env.sandbox)}: agent and judge in fresh containers per attempt`, true),
+    row("Repository", `<span class="font-mono font-normal">${esc(env.repoRoot)}</span>`),
+    row("Local selection file", env.selectionFileExists
+      ? `<span class="font-mono font-normal">${esc(env.selectionFile)}</span> present`
+      : `none yet, so every agent is enabled`),
+  ].join("");
+  slot("environment-note").textContent = "";
+  setStep(0, docker.reachable ? "ok" : "block");
+  slot("connection").textContent = `Connected to the local harness at ${location.origin}.`;
+  slot("connection").classList.remove("hidden");
+}
+
+async function loadModels() {
+  try {
+    const response = await fetch("./models.json", { cache: "no-store" });
+    if (response.ok) state.models = await response.json();
+  } catch (err) {
+    state.models = {};
+  }
+}
+
+function agentCard(agent) {
+  const meta = state.models[agent.name] || {};
+  const checked = agent.enabled ? "checked" : "";
+  const cost = agent.estCostPerAttemptUsd == null ? "no estimate (refused by the paid-run lock)" : money(agent.estCostPerAttemptUsd) + " per sample";
+  const problem = agent.configError ? `<p class="mt-2 text-sm ${LEVEL.BLOCKED.cls}">${esc(agent.configError)}</p>` : "";
+  return `<label class="flex cursor-pointer gap-3 rounded-lg border border-zinc-950/10 p-4 hover:border-spring/60 has-checked:border-spring dark:border-white/10 dark:hover:border-spring/60 dark:has-checked:border-spring">
+    <input type="checkbox" data-agent="${esc(agent.name)}" ${checked} class="mt-1 size-4 shrink-0 accent-spring">
+    <div class="min-w-0 flex-1">
+      <p class="font-medium text-zinc-950 dark:font-mono dark:text-white">${esc(meta.model || agent.name)}</p>
+      <p class="truncate font-mono text-sm text-zinc-500 dark:text-neutral-500">${esc(agent.name)} <span class="text-zinc-400 dark:text-neutral-600">·</span> ${esc(agent.model || "")}</p>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <span class="${badge}">${esc(meta.cli || agent.provider)}</span>
+        ${meta.billing ? `<span class="${badge}">${esc(meta.billing === "api" ? "API key" : meta.billing)}</span>` : ""}
+        ${meta.lab ? `<span class="text-xs text-zinc-500 dark:font-mono dark:text-neutral-500">${esc(meta.lab)}</span>` : ""}
+      </div>
+      <p class="mt-2 text-sm text-zinc-600 dark:text-neutral-400">${esc(cost)}</p>
+      ${(agent.envRefs || []).length ? `<p class="mt-1 font-mono text-xs text-zinc-500 dark:text-neutral-500">needs ${agent.envRefs.map(esc).join(", ")}</p>` : ""}
+      ${problem}
+    </div>
+  </label>`;
+}
+
+function renderAgents(body) {
+  state.agents = body.agents || [];
+  state.restricts = !!body.restricts;
+  const enabled = state.agents.filter(a => a.enabled).length;
+  slot("agents").innerHTML = state.agents.map(agentCard).join("");
+  slot("agents-summary").textContent = body.selectionError
+    ? `${body.selectionFile} could not be read: ${body.selectionError}`
+    : state.restricts
+      ? `${enabled} of ${state.agents.length} agents enabled in ${body.selectionFile}.`
+      : `No restriction saved in ${body.selectionFile}, so all ${state.agents.length} agents are enabled. Save a selection to narrow it.`;
+  setStep(1, body.selectionError ? "block" : enabled > 0 ? "ok" : "warn");
+  state.estimate = null;
+  renderCommand();
+}
+
+async function loadAgents() {
+  renderAgents(await api("agents"));
+}
+
+async function saveAgents() {
+  const names = [...document.querySelectorAll("input[data-agent]")].filter(box => box.checked).map(box => box.dataset.agent);
+  slot("agents-note").textContent = "saving...";
+  try {
+    renderAgents(await api("agents/enabled", { method: "PUT", headers: API_HEADERS, body: JSON.stringify({ enabledAgents: names }) }));
+    slot("agents-note").textContent = `Saved. --all-agents and --family now pick up ${names.length} agent${names.length === 1 ? "" : "s"}.`;
+  } catch (err) {
+    slot("agents-note").textContent = err.message;
+  }
+}
+
+async function enableAll() {
+  slot("agents-note").textContent = "saving...";
+  try {
+    renderAgents(await api("agents/enabled", { method: "PUT", headers: API_HEADERS, body: JSON.stringify({ enabledAgents: null }) }));
+    slot("agents-note").textContent = "Restriction removed. Every agent is enabled.";
+  } catch (err) {
+    slot("agents-note").textContent = err.message;
+  }
+}
+
+function enabledNames() {
+  return state.agents.filter(a => a.enabled && !a.configError).map(a => a.name);
+}
+
+function exportHint(text) {
+  const match = /missing environment variable required by config: ([A-Z0-9_]+)/.exec(text);
+  if (!match) return "";
+  return `<pre class="mt-1 overflow-x-auto rounded-md bg-zinc-50 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-neutral-900 dark:text-neutral-200">export ${esc(match[1])}=...   # add to ~/.zshrc or your shell profile, then restart the terminal</pre>
+    <p class="mt-1 text-xs text-zinc-500 dark:font-mono dark:text-neutral-500">Where to get it: <a href="${SETUP_DOC}" class="font-medium text-spring-deep hover:underline dark:text-spring">AGENT_SETUP.md</a>.</p>`;
+}
+
+function doctorCard(agent) {
+  const findings = (agent.findings || []).map(f => {
+    const level = LEVEL[f.level] || LEVEL.WARNING;
+    return `<li class="flex gap-2 text-sm/6"><span class="${level.cls} shrink-0 font-mono">${level.mark}</span><span class="min-w-0 break-words text-zinc-700 dark:text-neutral-300">${esc(f.text)}${exportHint(f.text)}</span></li>`;
+  }).join("");
+  return `<div class="rounded-lg border border-zinc-950/10 p-4 dark:border-white/10">
+    <div class="flex flex-wrap items-center gap-2">
+      ${levelBadge(agent.status)}
+      <span class="font-medium text-zinc-950 dark:font-mono dark:text-white">${esc(agent.name)}</span>
+      <span class="font-mono text-sm text-zinc-500 dark:text-neutral-500">${esc(agent.provider || "")} / ${esc(agent.model || "")}</span>
+      ${agent.billing ? `<span class="${badge}">${esc(agent.billing)}</span>` : ""}
+    </div>
+    <ul class="mt-3 space-y-1">${findings}</ul>
+  </div>`;
+}
+
+async function runDoctor() {
+  const names = enabledNames();
+  if (names.length === 0) {
+    slot("doctor-note").textContent = "Enable at least one agent in step 2 first.";
+    return;
+  }
+  slot("doctor-note").textContent = `checking ${names.length} agent${names.length === 1 ? "" : "s"}...`;
+  action("doctor").disabled = true;
+  try {
+    const body = await api(`doctor?agent=${encodeURIComponent(names.join(","))}`);
+    state.doctor = body;
+    slot("doctor").innerHTML = (body.agents || []).map(doctorCard).join("");
+    const s = body.summary || {};
+    slot("doctor-note").textContent = `${s.ready || 0} ready, ${s.warning || 0} warning, ${s.blocked || 0} blocked. ${body.note || ""}`;
+    setStep(2, (s.blocked || 0) > 0 ? "block" : (s.warning || 0) > 0 ? "warn" : "ok");
+  } catch (err) {
+    slot("doctor-note").textContent = err.message;
+    setStep(2, "block");
+  } finally {
+    action("doctor").disabled = false;
+  }
+}
+
+function evalOptions(select, preferred) {
+  select.innerHTML = state.evals.map(e => `<option value="${esc(e.id)}" ${e.id === preferred ? "selected" : ""}>${esc(e.id)} (${esc(e.difficulty)})</option>`).join("");
+}
+
+async function loadEvals() {
+  state.evals = await api("evals");
+  const preferred = (state.environment && state.environment.proveEval) || (state.evals[0] && state.evals[0].id);
+  evalOptions(slot("prove-eval"), preferred);
+  evalOptions(slot("scope-eval"), preferred);
+  if (state.evals.length === 0) {
+    slot("validate-note").textContent = "No evals found under evals/.";
+  }
+}
+
+async function runValidate() {
+  const id = slot("prove-eval").value;
+  if (!id) return;
+  const output = slot("validate-output");
+  output.classList.remove("hidden");
+  output.textContent = "";
+  slot("validate-note").textContent = "running in Docker, this takes a few minutes...";
+  action("validate").disabled = true;
+  setStep(3, "warn");
+  try {
+    const response = await fetch(`api/validate?eval=${encodeURIComponent(id)}`, { method: "POST", headers: API_HEADERS, cache: "no-store" });
+    if (!response.ok) {
+      let message = `${response.status} ${response.statusText}`;
+      try { message = (await response.json()).error || message; } catch (err) { /* keep the status text */ }
+      throw new Error(message);
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let text = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      text += decoder.decode(value, { stream: true });
+      output.textContent = text;
+      output.scrollTop = output.scrollHeight;
+    }
+    const passed = /All validations passed/.test(text) && /\[exit 0\]/.test(text);
+    slot("validate-note").textContent = passed ? `${id} validated: broken fails, solution passes.` : `Validate did not pass. Read the output above.`;
+    setStep(3, passed ? "ok" : "block");
+    if (passed) loadEnvironment().catch(() => {});
+  } catch (err) {
+    slot("validate-note").textContent = err.message;
+    setStep(3, "block");
+  } finally {
+    action("validate").disabled = false;
+  }
+}
+
+function scopeQuery() {
+  const kind = slot("scope").value;
+  if (kind === "pilot") return { query: "&pilot=true", flag: "--pilot" };
+  if (kind === "eval") {
+    const id = slot("scope-eval").value;
+    return { query: `&eval=${encodeURIComponent(id)}`, flag: `--eval ${id}` };
+  }
+  return { query: "", flag: "" };
+}
+
+async function runEstimate() {
+  const names = enabledNames();
+  if (names.length === 0) {
+    slot("estimate-note").textContent = "Enable at least one agent in step 2 first.";
+    return;
+  }
+  const samples = readSamples();
+  slot("estimate-note").textContent = "estimating...";
+  try {
+    const scope = scopeQuery();
+    const body = await api(`estimate?agents=${encodeURIComponent(names.join(","))}&${state.samplesFlag}=${samples}${scope.query}`);
+    state.estimate = body;
+    state.samplesFlag = body.samplesFlag || state.samplesFlag;
+    slot("samples-label").textContent = state.samplesFlag;
+    const rows = (body.rows || []).map(r => `<tr class="border-b border-zinc-950/5 dark:border-white/5">
+      <td class="py-2 pr-4 font-mono">${esc(r.agent)}</td>
+      <td class="px-4 py-2 text-right tabular-nums">${money(r.perSample)}</td>
+      <td class="px-4 py-2 text-right tabular-nums">${esc(r.samples)}</td>
+      <td class="py-2 pl-4 text-right tabular-nums">${money(r.projected)}</td>
+    </tr>`).join("");
+    slot("estimate").innerHTML = `<table class="w-full text-left text-sm/6">
+      <thead><tr class="border-b border-zinc-950/10 text-zinc-500 dark:border-white/10 dark:font-mono dark:text-neutral-500">
+        <th class="py-2 pr-4 font-medium">Agent</th><th class="px-4 py-2 text-right font-medium">Per sample</th><th class="px-4 py-2 text-right font-medium">Samples</th><th class="py-2 pl-4 text-right font-medium">Projected</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="font-medium dark:text-white"><td class="py-2 pr-4">Total</td><td></td><td></td><td class="py-2 pl-4 text-right tabular-nums">${money(body.total)}</td></tr></tfoot>
+    </table>`;
+    const unknown = body.unknownCost || [];
+    slot("estimate-note").textContent = `${body.evals} eval${body.evals === 1 ? "" : "s"} x ${samples} ${state.samplesFlag} each.` + (unknown.length ? ` No estimate for ${unknown.join(", ")}; the paid-run lock refuses them.` : "");
+    setStep(4, unknown.length ? "warn" : "ok");
+    renderCommand();
+  } catch (err) {
+    slot("estimate-note").textContent = err.message;
+    setStep(4, "block");
+  }
+}
+
+function readSamples() {
+  const samples = Math.min(10, Math.max(1, parseInt(slot("samples").value, 10) || 1));
+  slot("samples").value = samples;
+  return samples;
+}
+
+/** Any change to what the estimate covered makes it stale, so the command drops the cap until step 5 runs again. */
+function invalidateEstimate() {
+  state.estimate = null;
+  if (slot("estimate").innerHTML) {
+    slot("estimate-note").textContent = "Inputs changed since the last estimate. Run it again.";
+  }
+  renderCommand();
+}
+
+function renderCommand() {
+  if (state.offline) return;
+  const names = enabledNames();
+  const samples = readSamples();
+  const scope = scopeQuery();
+  const total = state.estimate && typeof state.estimate.total === "number" && state.estimate.total > 0
+    ? Math.ceil(state.estimate.total) : null;
+  const parts = ["./spring-evals run",
+    names.length ? `--agent ${names.join(",")}` : "--agent <agents>",
+    scope.flag,
+    `--${state.samplesFlag} ${samples}`,
+    "--allow-paid-run",
+    `--max-total-cost ${total == null ? "<usd>" : total}`].filter(Boolean);
+  slot("command").textContent = parts.join(" \\\n  ");
+  slot("command-note").textContent = total == null
+    ? "Run step 5 to fill in the cap from the projected spend."
+    : `Cap set to the projection of ${money(state.estimate.total)}, rounded up. Keep provider-side limits in place too.`;
+  setStep(5, names.length && total != null ? "ok" : "idle");
+}
+
+async function copyCommand() {
+  try {
+    await navigator.clipboard.writeText(slot("command").textContent);
+    slot("command-note").textContent = "Copied. Paste it into a terminal at the repo root.";
+  } catch (err) {
+    slot("command-note").textContent = "Copy is not available here; select the text instead.";
+  }
+}
+
+function wire() {
+  action("environment").addEventListener("click", () => loadEnvironment().catch(err => { slot("environment-note").textContent = err.message; }));
+  action("save-agents").addEventListener("click", saveAgents);
+  action("enable-all").addEventListener("click", enableAll);
+  action("doctor").addEventListener("click", runDoctor);
+  action("validate").addEventListener("click", runValidate);
+  action("estimate").addEventListener("click", runEstimate);
+  action("copy").addEventListener("click", copyCommand);
+  slot("scope").addEventListener("change", () => {
+    slot("scope-eval").classList.toggle("hidden", slot("scope").value !== "eval");
+    invalidateEstimate();
+  });
+  slot("scope-eval").addEventListener("change", invalidateEstimate);
+  slot("samples").addEventListener("change", invalidateEstimate);
+  slot("agents").addEventListener("change", event => {
+    if (event.target.matches("input[data-agent]")) {
+      slot("agents-note").textContent = "Selection changed; save it to apply.";
+      invalidateEstimate();
+    }
+  });
+}
+
+// The API only ever binds to loopback, so any other host is static hosting and gets no failing fetch.
+const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
+
+async function boot() {
+  renderStepper();
+  wire();
+  if (!LOCAL_HOSTS.includes(location.hostname)) {
+    goOffline();
+    return;
+  }
+  try {
+    await loadEnvironment();
+  } catch (err) {
+    goOffline();
+    return;
+  }
+  await loadModels();
+  try { await loadAgents(); } catch (err) { slot("agents-summary").textContent = err.message; setStep(1, "block"); }
+  try { await loadEvals(); } catch (err) { slot("validate-note").textContent = err.message; }
+  renderCommand();
+}
+
+boot();
+</script>
+</body>
+</html>

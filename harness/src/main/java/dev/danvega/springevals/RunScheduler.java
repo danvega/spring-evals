@@ -14,10 +14,11 @@ import java.util.function.Predicate;
 
 import dev.danvega.springevals.Agents.AgentSpec;
 import dev.danvega.springevals.ResultStore.RunRecord;
+import dev.danvega.springevals.cli.AgentCli;
 
 /**
- * Provider lanes run concurrently (docker mode only); attempts within a lane
- * stay strictly serial because provider rate limits apply per account.
+ * Lanes run concurrently; attempts within a lane stay strictly serial
+ * because provider rate limits apply per account.
  */
 final class RunScheduler {
 
@@ -25,10 +26,11 @@ final class RunScheduler {
     }
 
     /** Lane order and in-lane spec order both follow the resolved spec order. */
-    static LinkedHashMap<String, List<AgentSpec>> partitionByProvider(List<AgentSpec> specs) {
+    static LinkedHashMap<String, List<AgentSpec>> partitionByLane(List<AgentSpec> specs) {
         LinkedHashMap<String, List<AgentSpec>> lanes = new LinkedHashMap<>();
         for (AgentSpec spec : specs) {
-            lanes.computeIfAbsent(spec.provider(), provider -> new ArrayList<>()).add(spec);
+            String lane = AgentCli.forProvider(spec.provider()).lane();
+            lanes.computeIfAbsent(lane, ignored -> new ArrayList<>()).add(spec);
         }
         return lanes;
     }
@@ -43,7 +45,7 @@ final class RunScheduler {
         ExecutorService pool = Executors.newFixedThreadPool(Math.max(1, Math.min(lanes.size(), maxParallel)));
         try {
             List<Future<?>> futures = new ArrayList<>();
-            lanes.forEach((provider, specs) -> futures.add(pool.submit(() -> laneBody.accept(provider, specs))));
+            lanes.forEach((lane, specs) -> futures.add(pool.submit(() -> laneBody.accept(lane, specs))));
             RuntimeException failure = null;
             for (Future<?> future : futures) {
                 try {
@@ -55,7 +57,7 @@ final class RunScheduler {
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw new IllegalStateException("interrupted while waiting for provider lanes", e);
+                    throw new IllegalStateException("interrupted while waiting for lanes", e);
                 }
             }
             if (failure != null) {

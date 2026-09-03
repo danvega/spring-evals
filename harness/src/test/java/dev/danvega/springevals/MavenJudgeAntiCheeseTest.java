@@ -44,7 +44,7 @@ class MavenJudgeAntiCheeseTest {
                 </properties></project>
                 """);
 
-        var judgment = new MavenJudge().judge(eval(), workspace);
+        var judgment = new MavenJudge().judge(eval(), workspace, new LocalBuildRunner());
 
         assertFalse(judgment.pass());
         assertTrue(judgment.reasoning().contains("suppress or redirect hidden tests"));
@@ -63,7 +63,7 @@ class MavenJudgeAntiCheeseTest {
                 </plugin></plugins></build></project>
                 """);
 
-        var judgment = new MavenJudge().judge(eval(), workspace);
+        var judgment = new MavenJudge().judge(eval(), workspace, new LocalBuildRunner());
 
         assertFalse(judgment.pass());
         assertTrue(judgment.reasoning().contains("suppress or redirect hidden tests"));
@@ -78,7 +78,7 @@ class MavenJudgeAntiCheeseTest {
                 </properties></project>
                 """);
 
-        var judgment = new MavenJudge().judge(eval(), workspace);
+        var judgment = new MavenJudge().judge(eval(), workspace, new LocalBuildRunner());
 
         assertFalse(judgment.pass());
         assertTrue(judgment.reasoning().contains("suppress or redirect hidden tests"));
@@ -97,7 +97,7 @@ class MavenJudgeAntiCheeseTest {
     void missingSurefireReportsDirectoryFailsDespiteBuildSuccess() throws Exception {
         Path workspace = workspaceWithStubMaven();
 
-        var judgment = new MavenJudge().judge(eval(), workspace);
+        var judgment = new MavenJudge().judge(eval(), workspace, new LocalBuildRunner());
 
         assertFalse(judgment.pass());
         assertTrue(judgment.reasoning().contains("without executing every hidden test"));
@@ -108,7 +108,7 @@ class MavenJudgeAntiCheeseTest {
         Path workspace = workspaceWithStubMaven();
         writeSurefireReport(workspace, "tests=\"0\" failures=\"0\" errors=\"0\"");
 
-        var judgment = new MavenJudge().judge(eval(), workspace);
+        var judgment = new MavenJudge().judge(eval(), workspace, new LocalBuildRunner());
 
         assertFalse(judgment.pass());
         assertTrue(judgment.reasoning().contains("zero tests"));
@@ -119,7 +119,7 @@ class MavenJudgeAntiCheeseTest {
         Path workspace = workspaceWithStubMaven();
         writeSurefireReport(workspace, "tests=\"3\" failures=\"1\" errors=\"0\"");
 
-        var judgment = new MavenJudge().judge(eval(), workspace);
+        var judgment = new MavenJudge().judge(eval(), workspace, new LocalBuildRunner());
 
         assertFalse(judgment.pass());
         assertTrue(judgment.reasoning().contains("failing tests despite build success"));
@@ -130,7 +130,7 @@ class MavenJudgeAntiCheeseTest {
         Path workspace = workspaceWithStubMaven();
         writeSurefireReport(workspace, "tests=\"3\" failures=\"0\" errors=\"2\"");
 
-        var judgment = new MavenJudge().judge(eval(), workspace);
+        var judgment = new MavenJudge().judge(eval(), workspace, new LocalBuildRunner());
 
         assertFalse(judgment.pass());
         assertTrue(judgment.reasoning().contains("failing tests despite build success"));
@@ -141,7 +141,7 @@ class MavenJudgeAntiCheeseTest {
         Path workspace = workspaceWithStubMaven();
         writeSurefireReport(workspace, "tests=\"3\" failures=\"0\" errors=\"0\"");
 
-        var judgment = new MavenJudge().judge(eval(), workspace);
+        var judgment = new MavenJudge().judge(eval(), workspace, new LocalBuildRunner());
 
         assertTrue(judgment.pass());
     }

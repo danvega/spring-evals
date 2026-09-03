@@ -10,9 +10,9 @@ Complementary to [Agent Bench](https://github.com/markpollack/agent-bench), whic
 
 ## What it produces
 
-Real results from a real run (12 agents, one build eval, one attempt each). The task: write a new Spring Boot 4 project from an empty repository to the standard start.spring.io would produce today. Seven agents passed and three failed on the merits, each making the same mistake: pre-Boot-4 conventions, caught by hidden mechanism checks. Two agents hit infrastructure errors, so they are excluded from scoring instead of being counted as model failures; that is why the dashboard header counts 10 agents with verdicts. The two "at API prices" figures differ by definition: the header estimates actual attempts, the run log projects the configured per-attempt estimates.
+Real results from a real run (12 agents, one build eval, one sample each). The task: write a new Spring Boot 4 project from an empty repository to the standard start.spring.io would produce today. Seven agents passed and three failed on the merits, each making the same mistake: pre-Boot-4 conventions, caught by hidden mechanism checks. Two agents hit infrastructure errors, so they are excluded from scoring instead of being counted as model failures; that is why the dashboard header counts 10 agents with verdicts. The two "at API prices" figures differ by definition: the header estimates actual samples, the run log projects the configured per-sample estimates.
 
-![Leaderboard with per-agent Pass@1, confidence intervals, tokens, and cost](docs/images/dashboard-leaderboard.png)
+![Leaderboard with per-agent pass rate, confidence intervals, tokens, and cost](docs/images/dashboard-leaderboard.png)
 
 Every run is recorded by name with its own scoreboard and a findings write-up, so infrastructure failures are never mistaken for model failures:
 
@@ -39,41 +39,43 @@ Each eval is a self-contained Spring Boot project plus a task:
 - `EVAL/` holds hidden JUnit tests. The agent never sees them.
 - `SOLUTION/` is a reference solution used only to validate the eval itself in CI.
 
-The harness is a Java app in `harness/`, built on the [Spring AI Community Agent Client](https://github.com/spring-ai-community/agent-client). For each attempt it copies `project/` to a fresh temporary workspace outside the repository and runs the configured coding agent. After the agent exits, the harness removes candidate tests, restores the trusted Maven launcher, injects hidden tests, applies deterministic mechanism checks, and verifies that every hidden test actually executed. The default is one attempt; retries are explicit.
+The harness is a plain Java app in `harness/`. For each sample it copies `project/` to a fresh workspace outside the repository and runs the configured coding-agent CLI headless in a fresh container from one pinned image. After the agent container is destroyed, the harness removes candidate tests, restores the trusted Maven launcher, injects hidden tests, applies deterministic mechanism checks, and runs the judge in a second fresh container, verifying that every hidden test actually executed. Every (agent, eval) cell runs three independent samples by default; `--samples` changes that.
 
 Metrics:
 
-- **Pass@1**: passed on attempt 1; the primary capability metric
-- **Pass@k**: passed within the explicitly authorized attempt budget
-- **95% Wilson interval**: makes uncertainty from a small binary task set visible
-- **Coverage**: attempted evals versus the full catalog; partial rows are not leaderboard-eligible
-- **Avg task duration**, **avg task cost**, and **cost per pass**, aggregating every attempt spent on a task
+- **Pass rate**: samples whose hidden tests passed and whose idiom checks held, over all verdict samples; the primary capability metric
+- **Functional rate**: samples whose hidden tests passed with or without the idiom; the gap to the pass rate is the share of working but last-generation solutions
+- **95% Wilson interval**: makes uncertainty from a small sample count visible
+- **Coverage**: evals with at least one verdict sample versus the full catalog; partial rows are not leaderboard-eligible
+- **Avg duration**, **avg cost**, and **cost per pass**, per sample
+- **Contamination flags**: samples whose transcript referenced the benchmark repository, the eval, or a hidden directory; verdicts are kept and the flag is shown, exclusion is a human call
 
 Rows measure an **agent configuration**: model plus coding-agent CLI, tool policy, and runtime. They are not pure model measurements. See [Benchmark methodology](docs/METHODOLOGY.md) for the controlled-model track design.
 
 ## Quick start
 
-Requirements: JDK 25+ and network access for Maven (SDKMAN users: `sdk env` activates the pinned JDK from `.sdkmanrc`). Scored runs also need agent CLIs set up; see [Setup for real runs](#setup-for-real-runs) and read the [cost warning](#cost-warning) first.
+Requirements: JDK 26+, Docker, and network access for Maven (SDKMAN users: `sdk env` activates the pinned JDK from `.sdkmanrc`). Every agent and every judge runs in a container, so Docker must be running even for `validate`. Scored runs also need credentials; see [Setup for real runs](#setup-for-real-runs) and read the [cost warning](#cost-warning) first.
 
 ```bash
 # see available evals
 ./spring-evals list
 
-# verify agent CLIs, credential sources, env references, and local endpoints
+# verify credentials, billing sources, env references, and endpoints as the container sees them
 # no prompt is sent and no generation request is made
 ./spring-evals doctor
 ./spring-evals doctor --family codex
 ./spring-evals doctor --agent claude-sonnet-5,gemini-3-1-pro
+./spring-evals doctor --docker      # also build the image and probe every CLI inside it
 
-# check every eval is well-formed (broken fails, solution passes)
+# check every eval is well-formed (broken fails; solution and alternatives pass; workarounds are functional only)
 ./spring-evals validate
 
 # inspect the three-task pilot and its maximum cost (no model calls)
 ./spring-evals list
-./spring-evals estimate --agent claude-sonnet-5 --pilot --attempts 1
+./spring-evals estimate --agent claude-sonnet-5 --pilot --samples 1
 
 # paid execution is locked until both intent and a campaign cap are explicit
-./spring-evals run --agent claude-sonnet-5 --pilot --attempts 1 \
+./spring-evals run --agent claude-sonnet-5 --pilot --samples 1 \
   --allow-paid-run --max-total-cost 2.00
 
 # run just one project's suite, or one eval
@@ -121,7 +123,7 @@ An agent config is an (agent CLI, model) pair, so comparing models within one CL
 
 Local models via Ollama are not shipped as configs, but the [agent setup guide](docs/AGENT_SETUP.md) shows how to add them in one JSON file.
 
-Agent selection is built into the CLI, and every selector combines with `--project`, `--difficulty`, `--eval`, `--pilot`, and `--attempts`. The commands below are illustrative; paid runs also require `--allow-paid-run --max-total-cost <usd>`:
+Agent selection is built into the CLI, and every selector combines with `--project`, `--difficulty`, `--eval`, `--pilot`, and `--samples`. The commands below are illustrative; paid runs also require `--allow-paid-run --max-total-cost <usd>`:
 
 ```bash
 # one model family, name-prefix match (claude-*, codex-*)
@@ -134,7 +136,7 @@ Agent selection is built into the CLI, and every selector combines with `--proje
 ./spring-evals run --agent claude-fable-5,codex-gpt-5-6-sol
 
 # cost-conscious combos
-./spring-evals estimate --all-agents --project boot --attempts 1
+./spring-evals estimate --all-agents --project boot --samples 1
 ./spring-evals estimate --family codex --difficulty easy
 ```
 
@@ -152,9 +154,9 @@ To add a model variant, drop a JSON file in `agents/`:
 
 ## Setup for real runs
 
-`validate` needs nothing beyond a JDK. Scored runs drive real agent CLIs, so each agent you want on the leaderboard needs its CLI installed and a funded account behind it.
+`validate` needs nothing beyond a JDK and Docker. Scored runs drive real agent CLIs inside the benchmark image, so each agent you want on the leaderboard needs a credential and a funded account behind it; the CLIs themselves are never installed on your machine.
 
-[Agent setup](docs/AGENT_SETUP.md) walks through every platform: signing up, getting API keys, installing the CLIs, and verifying each one. The short loop is: set up a platform, then run `./spring-evals doctor --agent <name>`. Doctor checks CLI presence, credentials, endpoints, and host contamination without sending a prompt or spending anything, and exits non-zero if any selected agent is blocked.
+[Agent setup](docs/AGENT_SETUP.md) walks through every platform: signing up, getting credentials, and verifying each one. The short loop is: set up a platform, then run `./spring-evals doctor --agent <name>`. Doctor checks credentials, billing source, and endpoints as the container will see them, without sending a prompt or spending anything, and exits non-zero if any selected agent is blocked.
 
 ## Host context isolation
 
@@ -163,29 +165,32 @@ A run is only worth publishing if the agent could not see your machine's context
 What the harness does about it:
 
 - **Workspaces are stripped.** Candidate workspaces are created outside the repository, and agent context files (CLAUDE.md, AGENTS.md, GEMINI.md, QWEN.md, `.claude/`, `.mcp.json`, Cursor and Copilot instruction files) are removed from every fresh copy before the agent starts.
-- **Claude Code is forced into an isolated config directory.** Every run sets `CLAUDE_CONFIG_DIR` to an empty directory, so host CLAUDE.md, skills, plugins, and MCP servers cannot load. This is enforced by the harness, not assumed. Interactive login does not carry into the sterile config, so Claude-family runs authenticate with `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` (subscription billing, the shipped default) or `ANTHROPIC_API_KEY` (metered API with exact per-attempt costs). See [AGENT_SETUP.md](docs/AGENT_SETUP.md).
-- **Other CLIs are checked, not controlled.** Codex, Gemini CLI, and Qwen Code read global context files and MCP settings the harness cannot disable per run. `doctor` warns when they exist (`~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`, `settings.json` MCP config, and so on). For published campaigns, run these CLIs in a container or a clean account until the warning list is empty.
+- **Every sample runs in a fresh container.** The agent CLI runs headless in a container built from one pinned image, with no host home directory, no host config files, and no host environment beyond the agent config env. Claude Code sees an empty config directory baked into the image, so host CLAUDE.md, skills, plugins, and MCP servers cannot load. Codex gets only its seeded `auth.json`. Gemini CLI and Qwen Code find no home config at all. There is no host execution mode.
+- **Credentials are declared, never inherited.** Interactive logins do not exist inside the container, so each config declares its credential as a `${VAR}` reference: `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` (subscription billing, the shipped default) or `ANTHROPIC_API_KEY` (metered API with exact per-attempt costs), `GEMINI_API_KEY`, and so on. `doctor` reports the billing source from exactly what reaches the container. See [AGENT_SETUP.md](docs/AGENT_SETUP.md).
+- **The judge runs in a second fresh container**, started only after the agent container is destroyed, so nothing the agent left running or planted can touch judging.
+- **Every session is kept and scanned.** The CLI's own event stream is stored outside the repository, summarized into counts on the row, and scanned for references to this repository, the eval, or its hidden directories. A hit becomes a contamination flag on the row, visible on the leaderboard and in the run log.
 
 The full policy, including residual risks like prompt-level bans, is in [Benchmark methodology](docs/METHODOLOGY.md) under Host context isolation.
 
 ## Cost warning
 
-**Scored runs spend real money on your API accounts.** Every attempt is a full agent session that reads the project, edits code, and runs Maven builds. The harness defaults to one attempt and refuses paid execution unless both `--allow-paid-run` and `--max-total-cost <usd>` are present. Before each attempt it reserves that agent's configured estimate and stops before the campaign cap would be exceeded. This is an estimated reservation cap—not a provider billing guarantee—so unknown-cost agents are refused and provider-side limits remain essential.
+**Scored runs spend real money on your API accounts.** Every sample is a full agent session that reads the project, edits code, and runs Maven builds. The harness defaults to three samples per cell (pass `--samples 1` for a smoke test) and refuses paid execution unless both `--allow-paid-run` and `--max-total-cost <usd>` are present. Before each sample it reserves that agent's configured estimate and stops before the campaign cap would be exceeded. This is an estimated reservation cap, not a provider billing guarantee, so unknown-cost agents are refused and provider-side limits remain essential.
 
 Get a projection before you spend anything; `estimate` is free and takes the same selectors as `run`:
 
 ```bash
-./spring-evals estimate --all-agents --pilot --attempts 1
+./spring-evals estimate --all-agents --pilot --samples 1
 ```
 
-For the current 10-eval suite, the full 12-agent matrix at one attempt projects to roughly $68 at API prices; with 4 attempts everywhere it is roughly $115 expected and $270 absolute worst case. Subscription-billed agents (Claude, ChatGPT, Google sign-ins) draw on plans instead, so real cash spend is usually far lower. A single eval across the paid agents is about $6. The full cost-control playbook, the memoization rules that decide when you pay again, the new-model-day recipe, and the open and local model story are all in the [running guide](docs/RUNNING.md).
+For the current six-eval suite, the full 12-agent matrix at one sample per cell projects to roughly $45 at API prices, and the default three samples to roughly $135. Subscription-billed agents (Claude, ChatGPT, Google sign-ins) draw on plans instead, so real cash spend is usually far lower. A single eval across the paid agents is about $6. The full cost-control playbook, the memoization rules that decide when you pay again, the new-model-day recipe, and the open and local model story are all in the [running guide](docs/RUNNING.md).
 
 ## Dashboard
 
 `dashboard/` is a static, Spring-branded results site. Light mode follows spring.io's look; dark mode goes full terminal. `./spring-evals report` writes `dashboard/data.json` from real results.
 
-- `index.html` — the results view: leaderboard, all-22-suite heatmap with drill-down, run history by name with per-attempt detail and each run's findings summary, and spend (recorded plus an API-price estimate when cost reporting is partial). The evals list here shows only evals with results.
-- `evals.html` — the full catalog: every eval in every suite, with empty suites linking to the proposal form.
+- `index.html`: the results view: leaderboard, all-22-suite heatmap with drill-down, run history by name with per-sample detail and each run's findings summary, and spend (recorded plus an API-price estimate when cost reporting is partial). The evals list here shows only evals with results.
+- `evals.html`: the full catalog: every eval in every suite, with empty suites linking to the proposal form.
+- `onboarding.html`: the setup wizard. Served by `./spring-evals serve`, it checks the environment, saves the local agent selection, checks that credentials are set without storing them, streams a free validate, projects cost, and prints the run command. On static hosting it explains what each step checks and stays read-only.
 
 Serve it with the built-in JDK file server (or any static host, including GitHub Pages):
 
@@ -204,22 +209,18 @@ Community benchmark ideas are very welcome. Two ways to help:
 
 ## Built on
 
-Spring Evals is a thin layer over open source projects that do the heavy lifting. If you want to understand or extend the harness, these are the projects to learn:
-
-**[Agent Client](https://github.com/spring-ai-community/agent-client)** (Spring AI Community, `org.springaicommunity.agents`, v0.16.0). A portable Java API for driving autonomous CLI coding agents: Claude Code, Codex, Gemini CLI, Qwen Code, Amazon Q, and Amp behind one `AgentClient` interface, modeled after Spring AI's `ChatClient`. It is why this harness can add a new agent with a JSON file instead of parsing another CLI's output format, and why duration and cost come back uniformly across providers. Docs: [Spring AI Community docs](https://springaicommunity.mintlify.app/projects/incubating/agent-client), intro post: [Introducing Agent Client and Agent Bench](https://spring.io/blog/2025/10/28/agents-and-benchmarks/).
-
-**[Agent Judge](https://github.com/spring-ai-community/agent-judge)** (Spring AI Community, `org.springaicommunity:agent-judge-*`, v0.9.1). A verdict framework for agent output: a `Judge` interface, deterministic judges like `CommandJudge` and `BuildSuccessJudge`, LLM judges, and jury patterns for combining them. Our pass/fail verdict is its `CommandJudge` running `./mvnw clean test` against the hidden tests. Its jury support is the path to a future idiom-scoring tier.
-
-**[Agent Sandbox](https://github.com/spring-ai-community/agent-sandbox)** (Spring AI Community, `org.springaicommunity:agent-sandbox-*`, v0.9.1). An execution abstraction with local and Docker implementations. Judge commands run through it today via `LocalSandbox`; `DockerSandbox` is the drop-in upgrade for container isolation on the roadmap.
+Spring Evals is a plain Java harness with no framework dependencies. It drives the agent CLIs headless inside Docker, judges with Maven, and keeps every measurement-critical file under a content hash. Each agent CLI is one small `AgentCli` implementation in `harness/src/main/java/dev/danvega/springevals/cli/`; adding a CLI is one class, one services line, and one pinned install line in the Dockerfile.
 
 **[Spring Boot](https://spring.io/projects/spring-boot) and the [Spring portfolio](https://spring.io/projects)**. The subject under test. Every eval fixture is a real Spring Boot 4 project generated from [start.spring.io](https://start.spring.io), and the suite layout mirrors the portfolio's projects one to one.
 
-Related but not a dependency: **[Agent Bench](https://github.com/markpollack/agent-bench)** by Mark Pollack (docs at [lab.pollack.ai](https://lab.pollack.ai/projects/agent-bench)) benchmarks agents on enterprise Java workflows like issue triage, PR review, and coverage improvement, using the same Agent Client and judge foundations. Spring Evals measures a different axis: whether a model knows the framework itself. Run both if you want the full picture.
+**[Claude Code](https://claude.com/claude-code), [Codex](https://github.com/openai/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [Qwen Code](https://github.com/QwenLM/qwen-code)**. The coding agents under test, installed at pinned versions in the benchmark image.
+
+Related but not a dependency: **[Agent Bench](https://github.com/markpollack/agent-bench)** by Mark Pollack (docs at [lab.pollack.ai](https://lab.pollack.ai/projects/agent-bench)) benchmarks agents on enterprise Java workflows like issue triage, PR review, and coverage improvement, built on the Spring AI Community agent projects. Spring Evals measures a different axis: whether a model knows the framework itself. Run both if you want the full picture.
 
 ## Roadmap
 
 - More evals: modular auto-config, HTTP interface clients, API versioning, resilience, RestTestClient, null safety, Spring Data AOT, security
-- OS/container isolation in addition to the current out-of-repository workspace separation
+- An egress allowlist for the agent container, so contamination is prevented rather than flagged, and a closed-book track on top of it
 - A controlled-model track with one agent loop, tool contract, token budget, and network policy
 - A private rotating holdout catalog, with retired tasks published for community review
 - More deterministic architecture checks, with an LLM judge used only as supplemental qualitative evidence

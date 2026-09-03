@@ -26,7 +26,7 @@ class MavenJudgeTest {
                 """);
         EvalDefinition eval = new EvalDefinition("boot/000-example", "boot", evalDir, Map.of());
 
-        var judgment = new MavenJudge().judge(eval, workspace);
+        var judgment = new MavenJudge().judge(eval, workspace, LocalBuildRunner.neverInvoked());
 
         assertFalse(judgment.pass());
         assertTrue(judgment.reasoning().contains("suppress or redirect hidden tests"));

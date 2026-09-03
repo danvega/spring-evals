@@ -1,6 +1,6 @@
 # Run: lazy-cache-39
 
-Started 2026-08-06T02:19:24.145144Z. 17 of 24 attempts passed. Harness 0.5.0+d447e969230a.
+Started 2026-08-06T02:19:24.145144Z. 17 of 24 samples passed. Harness 0.5.0+d447e969230a.
 
 ## Findings
 
@@ -21,10 +21,13 @@ The first paid run under the frozen 0.5.0 harness, and the first ever through co
 
 **Nothing to fix.** First run in project history where the findings contain no infrastructure section and no follow-up list.
 
-## claude-fable-5 · boot/000-initializr-parity · attempt 1 · PASSED
+**Correction, added 2026-09-02.** The sonnet miss on boot/003 was a judge defect, not a knowledge gap. Sonnet's solution used a `JsonMapperBuilderCustomizer` and injected `ObjectMapper` by type, which resolves to Boot 4's auto-configured JsonMapper. A reconstruction of that shape passes all five hidden tests. The required pattern demanded the literal `JsonMapper` class name, which the prompt never asked for, and the judge stopped at the pattern before running the tests. The boot/003 checks have since been rewritten and the hidden tests strengthened, which rotates that eval's hash and drops its four rows from the cohort. Haiku's boot/003 row was scored by the same pattern and should not be cited either. Read this run as five evals, not six, until boot/003 is re-run under harness 0.6.0.
+
+## claude-fable-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-fable-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 104s, tokens: 7624, cost: $1.065259
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-fable-5-a1-ff77f75e-378a-4b9e-80a2-c279ea4e050d
 
 Agent's closing summary:
@@ -43,10 +46,11 @@ What I put in place, written by hand (no generator used), keeping the existing M
 One heads-up from the test logs, nothing that needs action now: Boot 4.1 still enables `spring.jpa.open-in-view` by default and logs a warning suggesting you set it explicitly — worth deciding once the first real entities land.
 ```
 
-## claude-fable-5 · boot/001-modular-autoconfig · attempt 1 · PASSED
+## claude-fable-5 · boot/001-modular-autoconfig · sample 1 · pass
 
 - model: claude-fable-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 104s, tokens: 6087, cost: $0.9595459999999998
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-001-modular-autoconfig-claude-fable-5-a1-a04988c8-fc8d-4a50-a741-ba6ab29b1142
 
 Agent's closing summary:
@@ -75,10 +79,11 @@ Both features are back. Fixed and verified — the app starts, Flyway applies `V
 This respects the platform team's constraint — these are the two targeted modules rather than the `spring-boot-autoconfigure-classic` bridge, and Flyway still owns the real migration history (startup logs show `Migrating schema "PUBLIC" to version "1 - create tasks"`). One optional cleanup: your explicit `flyway-core` dependency is now redundant since `spring-boot-flyway` pulls it in transitively — harmless to keep, but you can drop it. I've stopped the app I started for verification.
 ```
 
-## claude-fable-5 · boot/002-restclient-migration · attempt 1 · PASSED
+## claude-fable-5 · boot/002-restclient-migration · sample 1 · pass
 
 - model: claude-fable-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 100s, tokens: 5134, cost: $0.8975409999999999
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-002-restclient-migration-claude-fable-5-a1-fc832a9c-2829-4c4c-a11e-33184943cf0c
 
 Agent's closing summary:
@@ -98,10 +103,11 @@ Done — the build is green and `GET /api/quotes` serves the partner quotes agai
 **Verification:** `./mvnw clean verify` exits 0, and running the app and hitting `http://localhost:8080/api/quotes` returned the three partner quotes (Hopper, Kay, Liskov) as JSON. The app has been stopped again.
 ```
 
-## claude-fable-5 · boot/003-jackson3-migration · attempt 1 · PASSED
+## claude-fable-5 · boot/003-jackson3-migration · sample 1 · pass
 
 - model: claude-fable-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 133s, tokens: 7260, cost: $1.1683379999999999
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-003-jackson3-migration-claude-fable-5-a1-f75e4bf0-9786-4fce-b1cb-b797a0efdb67
 
 Agent's closing summary:
@@ -124,10 +130,11 @@ The build is fixed and the API contract is verified intact. `./mvnw clean compil
 - `GET /api/orders/3/export` → byte-identical JSON to the API representation.
 ```
 
-## claude-fable-5 · boot/004-flyway-module · attempt 1 · PASSED
+## claude-fable-5 · boot/004-flyway-module · sample 1 · pass
 
 - model: claude-fable-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 69s, tokens: 4722, cost: $0.750631
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-004-flyway-module-claude-fable-5-a1-9b475be0-5e00-4b19-9be6-54ccbbfbee76
 
 Agent's closing summary:
@@ -147,10 +154,11 @@ Fixed — the app now runs both migrations at startup and serves the seeded data
 One harmless note from the logs: Flyway warns that H2 2.4.240 is newer than its latest verified version (2.3.232). It's informational only — the migrations run fine — but it will go away on its own as Flyway updates its verification matrix.
 ```
 
-## claude-fable-5 · boot/005-h2-console · attempt 1 · PASSED
+## claude-fable-5 · boot/005-h2-console · sample 1 · pass
 
 - model: claude-fable-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 43s, tokens: 2860, cost: $0.49355099999999996
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-005-h2-console-claude-fable-5-a1-53b2d49e-f195-458f-ba87-cafb2ddabdd5
 
 Agent's closing summary:
@@ -180,10 +188,11 @@ I used `runtime` scope to match your `h2` dependency, since nothing compiles aga
 I stopped the app afterward. One heads-up for the rest of the upgrade: if other Boot 3-era features go quiet the same way (Flyway, actuator endpoints, mail, etc.), check for the corresponding new `spring-boot-<feature>` module first — same failure mode.
 ```
 
-## claude-haiku-4-5 · boot/000-initializr-parity · attempt 1 · FAILED
+## claude-haiku-4-5 · boot/000-initializr-parity · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 72s, tokens: 4171, cost: $0.09736259999999998
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-webmvc
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-haiku-4-5-a1-026e72b4-803d-4546-98e8-ba8ac3efa33c
@@ -211,10 +220,11 @@ Perfect! The Spring Boot 4 project is now fully set up and ready. Here's what I'
 The H2 database is wired up and ready, so the team can immediately start adding JPA entities and repository interfaces. The existing Maven wrapper is preserved.
 ```
 
-## claude-haiku-4-5 · boot/001-modular-autoconfig · attempt 1 · FAILED
+## claude-haiku-4-5 · boot/001-modular-autoconfig · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 301s, tokens: 17845, cost: $0.4146133999999999
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-(starter-)?flyway
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-001-modular-autoconfig-claude-haiku-4-5-a1-cfefc5fa-5bdd-4aac-b0f2-f5e1942576b5
@@ -257,10 +267,11 @@ I've successfully fixed both Spring Boot 4.0 compatibility issues:
 - ✓ **H2 Console** responds at `/h2-console` (302 redirect is normal behavior)
 ```
 
-## claude-haiku-4-5 · boot/002-restclient-migration · attempt 1 · FAILED
+## claude-haiku-4-5 · boot/002-restclient-migration · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 114s, tokens: 5146, cost: $0.11259170000000002
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from pom: spring-boot-starter-restclient
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-002-restclient-migration-claude-haiku-4-5-a1-959fd2fc-d794-41bd-bb77-0f3bb225101e
@@ -285,10 +296,11 @@ The fix involved two changes:
 The application is now fully functional on Spring Boot 4.0.
 ```
 
-## claude-haiku-4-5 · boot/003-jackson3-migration · attempt 1 · FAILED
+## claude-haiku-4-5 · boot/003-jackson3-migration · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 164s, tokens: 12614, cost: $0.2137322
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from source: tools\.jackson\.databind\.json\.JsonMapper
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-003-jackson3-migration-claude-haiku-4-5-a1-97cce98d-1b2c-4e9d-9728-ee5047430f9a
@@ -318,10 +330,11 @@ Spring Boot 4 upgraded to Jackson 3, which uses a different package structure (`
 No dependencies were modified in `pom.xml` as requested.
 ```
 
-## claude-haiku-4-5 · boot/004-flyway-module · attempt 1 · FAILED
+## claude-haiku-4-5 · boot/004-flyway-module · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 247s, tokens: 12931, cost: $0.25719289999999995
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: forbidden workaround found in source: Flyway\.configure
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-004-flyway-module-claude-haiku-4-5-a1-b01e5de4-ac0a-42b4-b869-f2b186b4dc3e
@@ -356,10 +369,11 @@ The issue was that **Spring Boot 4.0+ changed how Flyway is auto-configured**, a
 - ✅ Migration history is preserved (not faked)
 ```
 
-## claude-haiku-4-5 · boot/005-h2-console · attempt 1 · FAILED
+## claude-haiku-4-5 · boot/005-h2-console · sample 1 · idiom_untested
 
 - model: claude-haiku-4-5-20251001 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 212s, tokens: 12310, cost: $0.26599209999999995
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: forbidden workaround found in source: org\.h2\.server
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-005-h2-console-claude-haiku-4-5-a1-1f164a7f-de7e-49f6-b960-41865848b68a
@@ -393,10 +407,11 @@ Both endpoints are now working:
 - **`GET /h2-console/`** → H2 console UI accessible for debugging
 ```
 
-## claude-opus-5 · boot/000-initializr-parity · attempt 1 · PASSED
+## claude-opus-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-opus-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 193s, tokens: 13115, cost: $1.0254474999999998
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-opus-5-a1-99a39847-9fc9-4c78-a321-6fa4b7c06168
 
 Agent's closing summary:
@@ -445,10 +460,11 @@ Two notes on things I deliberately did *not* configure, since a freshly generate
 `BookController.books()` returns `List<Object>` as a placeholder — swap it for `List<Book>` once the entity exists.
 ```
 
-## claude-opus-5 · boot/001-modular-autoconfig · attempt 1 · PASSED
+## claude-opus-5 · boot/001-modular-autoconfig · sample 1 · pass
 
 - model: claude-opus-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 199s, tokens: 12240, cost: $1.0094744999999998
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-001-modular-autoconfig-claude-opus-5-a1-c8648b4d-9643-4000-af7b-071515d9ec70
 
 Agent's closing summary:
@@ -507,10 +523,11 @@ H2 console available at '/h2-console'
 One thing worth flagging for the rest of your upgrade: your explicit `org.flywaydb:flyway-core` entry is now redundant, since `spring-boot-flyway` brings it transitively. I left it alone — it's harmless and it documents intent. If you'd prefer the idiomatic Boot 4 shape, `spring-boot-starter-flyway` replaces both entries. And since this failure mode is silent, it's worth auditing any other library you declare directly rather than through a starter — each one needs its `spring-boot-<tech>` module now.
 ```
 
-## claude-opus-5 · boot/002-restclient-migration · attempt 1 · PASSED
+## claude-opus-5 · boot/002-restclient-migration · sample 1 · pass
 
 - model: claude-opus-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 226s, tokens: 10832, cost: $1.2088155
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-002-restclient-migration-claude-opus-5-a1-c627fe86-7bff-44be-a424-778fa5736ad4
 
 Agent's closing summary:
@@ -550,10 +567,11 @@ I left `partnerBaseUrl()` alone and kept resolving it per call rather than bakin
 One note for the team: the config prefix is `spring.http.clients` (plural) in Boot 4. I first tested with `spring.http.client.read-timeout`, which is silently ignored — worth checking if any of your deployment configs carry a Boot 3-era spelling, since a stale property name here fails open to no timeout rather than erroring.
 ```
 
-## claude-opus-5 · boot/003-jackson3-migration · attempt 1 · PASSED
+## claude-opus-5 · boot/003-jackson3-migration · sample 1 · pass
 
 - model: claude-opus-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 226s, tokens: 15947, cost: $1.4922475
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-003-jackson3-migration-claude-opus-5-a1-3f7328b3-ec80-44c5-8fba-d8bd95d871e3
 
 Agent's closing summary:
@@ -591,10 +609,11 @@ GET  /api/orders/3/export   byte-for-byte identical to GET /api/orders/3
 snake_case field names, ISO date strings (no numeric timestamps), 404s still behave, and export matches the API representation exactly for every order. `pom.xml` was not touched — no dependencies added, removed, or pinned.
 ```
 
-## claude-opus-5 · boot/004-flyway-module · attempt 1 · PASSED
+## claude-opus-5 · boot/004-flyway-module · sample 1 · pass
 
 - model: claude-opus-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 155s, tokens: 10581, cost: $1.0560100000000001
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-004-flyway-module-claude-opus-5-a1-8e298768-9c4d-496b-8f5b-25ed779f8b31
 
 Agent's closing summary:
@@ -650,10 +669,11 @@ I also grepped the startup log to confirm Hibernate now issues no `create table`
 One thing to flag: Flyway logs `Using H2 2.4.240 which is newer than the version Flyway has been verified with (2.3.232)`. Harmless for these migrations, but it's a real version-support gap that could bite on more exotic H2 syntax later.
 ```
 
-## claude-opus-5 · boot/005-h2-console · attempt 1 · PASSED
+## claude-opus-5 · boot/005-h2-console · sample 1 · pass
 
 - model: claude-opus-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 126s, tokens: 7688, cost: $0.7346030000000001
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-005-h2-console-claude-opus-5-a1-9c2bdcaf-ab9d-4664-80ba-d42725fb0e92
 
 Agent's closing summary:
@@ -703,10 +723,11 @@ I stopped the app afterward; nothing is left running.
 One note for awareness, not a change I made: this module is on the compile classpath, matching how Spring's migration guide lists it. If you'd rather the console never ship in production artifacts, `<scope>runtime</scope>` plus a profile, or `<optional>true</optional>`, would work — but that's a policy call, and the console is gated behind `spring.h2.console.enabled` (default `false`) either way.
 ```
 
-## claude-sonnet-5 · boot/000-initializr-parity · attempt 1 · PASSED
+## claude-sonnet-5 · boot/000-initializr-parity · sample 1 · pass
 
 - model: claude-sonnet-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 155s, tokens: 9452, cost: $0.7112624999999999
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-000-initializr-parity-claude-sonnet-5-a1-c3de4357-694e-47cf-b221-6b2e2a734e55
 
 Agent's closing summary:
@@ -722,10 +743,11 @@ The bookshelf project is set up and verified end to end:
 Verified: `./mvnw test` passes (Spring Data JPA repositories bootstrap, Hibernate connects to H2), `./mvnw package` builds cleanly, and running the app live, `curl http://localhost:8080/api/books` returned `200` with body `[]`. The app was stopped after verification.
 ```
 
-## claude-sonnet-5 · boot/001-modular-autoconfig · attempt 1 · PASSED
+## claude-sonnet-5 · boot/001-modular-autoconfig · sample 1 · pass
 
 - model: claude-sonnet-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 138s, tokens: 7327, cost: $0.5766045
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-001-modular-autoconfig-claude-sonnet-5-a1-eb4cfec4-a648-4e9d-a108-1468ffccd95e
 
 Agent's closing summary:
@@ -748,10 +770,11 @@ Spring Boot 4 split the monolithic `spring-boot-autoconfigure` jar into per-feat
 No downgrade, no `spring-boot-autoconfigure-classic`, no hand-rolled schema — just the two Boot 4 modules that now own this behavior. Verified: build succeeds, Flyway applies `V1__create_tasks.sql` at startup, `GET /api/tasks` returns the 3 seeded rows, and `/h2-console` serves the login page (302 → 200).
 ```
 
-## claude-sonnet-5 · boot/002-restclient-migration · attempt 1 · PASSED
+## claude-sonnet-5 · boot/002-restclient-migration · sample 1 · pass
 
 - model: claude-sonnet-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 78s, tokens: 5903, cost: $0.49511450000000007
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-002-restclient-migration-claude-sonnet-5-a1-2802b7bf-5f4d-4d32-8bdf-5e0403cc5964
 
 Agent's closing summary:
@@ -771,10 +794,11 @@ Changes:
 Verified: `./mvnw clean compile` is clean, and a live run confirms `GET /api/quotes` returns the three partner quotes (HTTP 200).
 ```
 
-## claude-sonnet-5 · boot/003-jackson3-migration · attempt 1 · FAILED
+## claude-sonnet-5 · boot/003-jackson3-migration · sample 1 · idiom_untested
 
 - model: claude-sonnet-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 196s, tokens: 14241, cost: $1.3329021
+- hidden tests: not run, idiom checks: failed (pre-0.6.0 judge stopped before the tests)
 - failure kind: policy_failure
 - failure reason: required modern Spring mechanism missing from source: tools\.jackson\.databind\.json\.JsonMapper
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-003-jackson3-migration-claude-sonnet-5-a1-b32d1799-2a9e-44c2-8a38-2272a4a268ba
@@ -794,10 +818,11 @@ The Spring Boot 4 upgrade brought Jackson 3, which renamed core classes from `co
 Verified `./mvnw clean compile` passes and exercised all four endpoints live — list, get-by-id, create, and export all emit/accept the exact snake_case, ISO-date contract.
 ```
 
-## claude-sonnet-5 · boot/004-flyway-module · attempt 1 · PASSED
+## claude-sonnet-5 · boot/004-flyway-module · sample 1 · pass
 
 - model: claude-sonnet-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 151s, tokens: 6970, cost: $0.6122524999999999
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-004-flyway-module-claude-sonnet-5-a1-063a6817-e532-4414-a739-733763681909
 
 Agent's closing summary:
@@ -837,10 +862,11 @@ This starter (version-managed by the `spring-boot-starter-parent` BOM, no explic
 - No migration files, schema, code, or properties were touched — schema/data still comes exclusively from `db/migration`, and history is real (Flyway actually executed and recorded it in `flyway_schema_history`).
 ```
 
-## claude-sonnet-5 · boot/005-h2-console · attempt 1 · PASSED
+## claude-sonnet-5 · boot/005-h2-console · sample 1 · pass
 
 - model: claude-sonnet-5 (claude, CLI docker: 2.1.221 (Claude Code))
 - duration: 94s, tokens: 5588, cost: $0.5480081
+- hidden tests: passed, idiom checks: passed
 - workspace (until temp cleanup): /var/folders/bx/4zdlmchj5g9dnt7brcv518m00000gn/T/spring-evals-runs/boot-005-h2-console-claude-sonnet-5-a1-068c8934-5c7b-466b-9210-3d2c8316f855
 
 Agent's closing summary:

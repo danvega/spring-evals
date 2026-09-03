@@ -4,15 +4,15 @@ A benchmark that measures how well AI models and coding agents write real Spring
 
 ## Layout
 
-- `evals/<project>/<nnn>-<name>/` — one eval per directory, suites mirror spring.io/projects. Each eval: `PROMPT.md` (symptom-based task), `project/` (workspace the agent gets), `EVAL/` (hidden tests + optional `checks.json`), `SOLUTION/` (reference fix, CI-only), `eval.yaml` (metadata).
-- `harness/` — plain Java 25 Maven app on the Spring AI Community Agent Client. Entry point is the `./spring-evals` wrapper at repo root.
-- `agents/*.json` — one (CLI, model) pair per file. `dashboard/` — static results page. `docs/` — GETTING_STARTED.md (newcomer path), METHODOLOGY.md (what a row means), AGENT_SETUP.md (platform signup, keys, CLIs), RUNNING.md (cost control and run workflows).
+- `evals/<project>/<nnn>-<name>/`: one eval per directory, suites mirror spring.io/projects. Each eval: `PROMPT.md` (symptom-based task), `project/` (workspace the agent gets), `EVAL/` (hidden tests + optional `checks.json`), `SOLUTION/` (reference fix, CI-only), `eval.yaml` (metadata).
+- `harness/`: plain Java 26 Maven app with no framework dependencies. Each agent CLI is one `AgentCli` implementation under `harness/src/main/java/dev/danvega/springevals/cli/`. Entry point is the `./spring-evals` wrapper at repo root.
+- `agents/*.json`: one (CLI, model) pair per file. `dashboard/`: static results page. `docs/`: GETTING_STARTED.md (newcomer path), METHODOLOGY.md (what a row means), AGENT_SETUP.md (platform signup, keys, CLIs), RUNNING.md (cost control and run workflows).
 
 ## Commands
 
 ```bash
 ./spring-evals list                      # all evals
-./spring-evals validate [evalId...]      # eval gates, no model calls, free
+./spring-evals validate [evalId...]      # eval gates in containers, no model calls, free (needs Docker)
 ./spring-evals doctor [--family x]       # agent CLI readiness, no model calls, free
 ./spring-evals estimate [--agent x]      # cost projection, free
 ./spring-evals report                    # rebuild leaderboard + dashboard data
@@ -46,4 +46,4 @@ Work is done only when the matching verification passes AND an independent revie
 
 ## Host context isolation
 
-Benchmark validity depends on agents not seeing host context. Since harness 0.4.0 the default is docker sandbox mode when Docker is present: agent and judge run in fresh containers from one pinned image, and no host config or credentials reach them beyond the agent config env (plus, for codex only, a seeded auth.json). Host mode is the fallback and enforces per-attempt environment isolation (EnvSandbox) with a self-test before any spend: Claude runs get a fresh empty CLAUDE_CONFIG_DIR and stripped host ANTHROPIC*/CLAUDE* vars (never relax this; authenticate via CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` for subscription billing, or ANTHROPIC_API_KEY for metered API). Fresh workspaces are stripped of agent context files, and `doctor` warns about global context files for the other CLIs in host mode. Details in docs/METHODOLOGY.md under Host context isolation.
+Benchmark validity depends on agents not seeing host context. Every sample runs in Docker, and there is no host execution mode: agent and judge run in fresh containers from one pinned image, and the only host state that reaches the agent is the expanded agent config env (plus, for codex only, a seeded auth.json). Claude runs see an empty CLAUDE_CONFIG_DIR baked into the image, so a host login never applies; they authenticate through CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (subscription) or ANTHROPIC_API_KEY (metered API) declared in the agent config env. Never relax this. Fresh workspaces are stripped of agent context files, and `doctor` judges readiness from what reaches the container, not from host logins or host-installed CLIs. Details in docs/METHODOLOGY.md under Host context isolation.

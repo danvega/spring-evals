@@ -12,8 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.danvega.springevals.cli.AgentCli;
 
 /**
  * Isolation contract, never weaken: the judge runs in a fresh container started
@@ -30,8 +29,6 @@ final class DockerSandbox {
     // Lets the in-container `timeout` fire before the host backstop kills the docker client.
     private static final Duration HOST_GRACE = Duration.ofSeconds(90);
 
-    private static final ObjectMapper JSON = new ObjectMapper();
-
     private DockerSandbox() {
     }
 
@@ -46,18 +43,12 @@ final class DockerSandbox {
         }
     }
 
-    /** An explicit docker request must fail loudly, never degrade silently to host isolation. */
-    static String resolveMode(String requested) {
-        if (requested == null) {
-            return dockerAvailable() ? "docker" : "host";
+    /** Agents and the judge only ever run in containers; there is no host fallback to degrade into. */
+    static void requireDocker() {
+        if (!dockerAvailable()) {
+            throw new IllegalStateException("Docker is required: agents and the judge run in containers, "
+                    + "and `docker info` failed. Start Docker and retry.");
         }
-        if (!requested.equals("docker") && !requested.equals("host")) {
-            throw new IllegalArgumentException("--sandbox must be docker or host, got: " + requested);
-        }
-        if (requested.equals("docker") && !dockerAvailable()) {
-            throw new IllegalStateException("--sandbox docker requested but `docker info` failed; start Docker first");
-        }
-        return requested;
     }
 
     /** Content-addressed: a stale local image can never serve a changed Dockerfile. */
@@ -86,71 +77,15 @@ final class DockerSandbox {
         return image;
     }
 
-    /**
-     * Headless CLI invocations; codex bypasses its own sandbox because it would
-     * leave the bind-mounted workspace read-only (the container is the sandbox).
-     */
-    static List<String> agentCommand(String provider, String model, String prompt) {
-        return switch (provider) {
-            case "claude" -> List.of("claude", "-p", prompt, "--model", model,
-                    "--dangerously-skip-permissions", "--output-format", "json");
-            case "codex" -> List.of("codex", "exec", "--skip-git-repo-check",
-                    "--dangerously-bypass-approvals-and-sandbox", "-m", model, prompt);
-            case "gemini" -> List.of("gemini", "-m", model, "-y", "-p", prompt);
-            case "qwen-code" -> List.of("qwen", "-y", "-m", model, "-p", prompt);
-            default -> throw new IllegalArgumentException(
-                    "unknown provider '%s' (supported: claude, codex, gemini, qwen-code)".formatted(provider));
-        };
-    }
-
-    /** Parsed claude headless JSON; null when the output is not that shape. */
-    record ClaudeHeadlessResult(Double costUsd, Long inputTokens, Long outputTokens, String resultText) {
-    }
-
-    static ClaudeHeadlessResult parseClaudeJson(String output) {
-        if (output == null) {
-            return null;
-        }
-        // The JSON object is printed last; tolerate leading npm/progress noise.
-        int start = output.indexOf('{');
-        if (start < 0) {
-            return null;
-        }
-        try {
-            JsonNode node = JSON.readTree(output.substring(start));
-            if (!node.isObject() || !node.has("result") && !node.has("total_cost_usd")) {
-                return null;
-            }
-            JsonNode usage = node.get("usage");
-            return new ClaudeHeadlessResult(
-                    node.hasNonNull("total_cost_usd") ? node.get("total_cost_usd").asDouble() : null,
-                    usage != null && usage.hasNonNull("input_tokens") ? usage.get("input_tokens").asLong() : null,
-                    usage != null && usage.hasNonNull("output_tokens") ? usage.get("output_tokens").asLong() : null,
-                    node.hasNonNull("result") ? node.get("result").asText() : null);
-        } catch (IOException | RuntimeException e) {
-            return null;
-        }
-    }
-
-    static String cliBinary(String provider) {
-        return switch (provider) {
-            case "claude" -> "claude";
-            case "codex" -> "codex";
-            case "gemini" -> "gemini";
-            case "qwen-code" -> "qwen";
-            default -> provider;
-        };
-    }
-
     /** CLI version as shipped in the image; prefixed so records show the sandbox mode. */
-    static String cliVersion(String provider, String image) {
-        ExecResult result = process(List.of("docker", "run", "--rm", image, cliBinary(provider), "--version"),
+    static String cliVersion(AgentCli cli, String image) {
+        ExecResult result = process(List.of("docker", "run", "--rm", image, cli.binary(), "--version"),
                 Duration.ofMinutes(2));
         String first = result.output() == null ? "" : result.output().strip().lines().findFirst().orElse("");
         return "docker: " + (result.exitCode() == 0 && !first.isBlank() ? first : "unknown");
     }
 
-    /** The container JDK version; docker-mode records must not claim the host JVM. */
+    /** The container JDK version; records must not claim the host JVM. */
     static String javaVersion(String image) {
         ExecResult result = process(List.of("docker", "run", "--rm", image, "sh", "-c",
                 "java -version 2>&1 | head -1"), Duration.ofMinutes(2));
@@ -196,6 +131,7 @@ final class DockerSandbox {
     /**
      * Env goes through a mode-0600 env file deleted right after start, never a
      * visible command line; a write probe fails fast on a host uid mismatch.
+     * host.docker.internal is mapped so local model servers on the host stay reachable.
      */
     static Container start(Path workspace, Map<String, String> env, String image) {
         String name = "spring-evals-" + UUID.randomUUID();
@@ -204,6 +140,7 @@ final class DockerSandbox {
             List<String> command = new ArrayList<>(List.of("docker", "run", "-d", "--name", name,
                     "--label", "spring-evals=1",
                     "--label", "spring-evals-owner-pid=" + ProcessHandle.current().pid(),
+                    "--add-host", "host.docker.internal:host-gateway",
                     "-v", workspace.toAbsolutePath() + ":/workspace",
                     "-w", "/workspace",
                     "--env-file", envFile.toString()));
@@ -290,23 +227,24 @@ final class DockerSandbox {
             return new ExecResult(raw.exitCode(), raw.output(), timedOut, System.currentTimeMillis() - started);
         }
 
-        /** Copies ONLY the host codex credential into the otherwise empty CODEX_HOME. */
-        void seedCodexAuth(Path hostAuthJson) {
-            if (!Files.isRegularFile(hostAuthJson)) {
-                System.out.println("note: " + hostAuthJson + " not found; codex will run unauthenticated");
+        /** Copies ONE host file into the container; a missing file is noted, never faked. */
+        void seed(AgentCli.SeedFile seed) {
+            if (!Files.isRegularFile(seed.hostPath())) {
+                System.out.println("note: " + seed.hostPath() + " not found; nothing seeded at " + seed.containerPath());
                 return;
             }
-            ExecResult cp = process(List.of("docker", "cp", hostAuthJson.toString(),
-                    name + ":/sandbox/codex-home/auth.json"), SHORT_TIMEOUT);
+            ExecResult cp = process(List.of("docker", "cp", seed.hostPath().toString(),
+                    name + ":" + seed.containerPath()), SHORT_TIMEOUT);
             if (cp.exitCode() != 0) {
-                throw new IllegalStateException("could not seed codex auth.json:\n" + tail(cp.output(), 2000));
+                throw new IllegalStateException("could not seed " + seed.containerPath() + ":\n" + tail(cp.output(), 2000));
             }
             // docker cp writes root-owned files; the attempt user must own it.
             ExecResult own = process(List.of("docker", "exec", "-u", "root", name, "sh", "-c",
-                    "chown agent:agent /sandbox/codex-home/auth.json && chmod 600 /sandbox/codex-home/auth.json"),
+                    "chown agent:agent '" + seed.containerPath() + "' && chmod 600 '" + seed.containerPath() + "'"),
                     SHORT_TIMEOUT);
             if (own.exitCode() != 0) {
-                throw new IllegalStateException("could not fix codex auth.json ownership:\n" + tail(own.output(), 2000));
+                throw new IllegalStateException("could not fix ownership of " + seed.containerPath() + ":\n"
+                        + tail(own.output(), 2000));
             }
         }
 
@@ -383,14 +321,14 @@ final class DockerSandbox {
         }
         try (Container container = start(ws, Map.of(), image)) {
             System.out.println("  ✓ container starts; workspace bind mount is writable");
-            for (String provider : List.of("claude", "codex", "gemini", "qwen-code")) {
-                ExecResult version = container.exec(List.of(cliBinary(provider), "--version"), SHORT_TIMEOUT);
+            for (AgentCli cli : AgentCli.all()) {
+                ExecResult version = container.exec(List.of(cli.binary(), "--version"), SHORT_TIMEOUT);
                 if (version.exitCode() == 0 && !version.output().isBlank()) {
-                    System.out.println("  ✓ " + cliBinary(provider) + " --version: "
+                    System.out.println("  ✓ " + cli.binary() + " --version: "
                             + version.output().strip().lines().findFirst().orElse(""));
                 } else {
                     ok = false;
-                    System.out.println("  ✗ " + cliBinary(provider) + " --version failed (exit "
+                    System.out.println("  ✗ " + cli.binary() + " --version failed (exit "
                             + version.exitCode() + ")");
                 }
             }
@@ -419,7 +357,7 @@ final class DockerSandbox {
         }
         System.out.println();
         System.out.println(ok
-                ? "Docker sandbox is ready. Full judge-in-container coverage: ./spring-evals validate --sandbox docker."
+                ? "Docker sandbox is ready. Full judge-in-container coverage: ./spring-evals validate."
                 : "Docker sandbox is NOT ready.");
         return ok;
     }
