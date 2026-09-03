@@ -19,10 +19,18 @@ public class Workspaces {
     private final Path runsDir;
 
     public Workspaces(Path repoRoot) {
+        this(repoRoot, configuredRunsDir());
+    }
+
+    Workspaces(Path repoRoot, Path runsDir) {
+        this.runsDir = runsDir.toAbsolutePath().normalize();
+    }
+
+    private static Path configuredRunsDir() {
         String configured = System.getenv("SPRING_EVALS_RUNS_DIR");
-        this.runsDir = configured == null || configured.isBlank()
+        return configured == null || configured.isBlank()
                 ? Path.of(System.getProperty("java.io.tmpdir"), "spring-evals-runs")
-                : Path.of(configured).toAbsolutePath().normalize();
+                : Path.of(configured);
     }
 
     /** Agent-steering context files; none may exist in a candidate workspace. */
@@ -101,6 +109,8 @@ public class Workspaces {
     /** Destinations are always real files and directories: a link or file in the way is replaced, never followed. */
     static void copyTree(Path source, Path target) {
         try (Stream<Path> paths = Files.walk(source)) {
+            // The destination root and its parents (a fresh runs directory) are the harness's own paths.
+            Files.createDirectories(target);
             for (Path path : paths.toList()) {
                 Path destination = target.resolve(source.relativize(path).toString());
                 if (Files.isDirectory(path)) {
