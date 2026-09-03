@@ -4,8 +4,10 @@
     "spring-boot-h2console"
   ],
   "forbiddenPomPatterns": [
-    "spring-boot-(starter|autoconfigure)-classic",
-    "<dependency>(?=(?:(?!</dependency>).)*<artifactId>\\s*spring-boot-(?:starter-)?flyway\\s*</artifactId>)(?:(?!</dependency>).)*<scope>\\s*test\\s*</scope>",
-    "<dependency>(?=(?:(?!</dependency>).)*<artifactId>\\s*spring-boot-h2console\\s*</artifactId>)(?:(?!</dependency>).)*<scope>\\s*test\\s*</scope>"
+    "spring-boot-(starter|autoconfigure)-classic"
+  ],
+  "requiredRuntimeArtifacts": [
+    "org.springframework.boot:spring-boot-flyway",
+    "org.springframework.boot:spring-boot-h2console"
   ]
 }
