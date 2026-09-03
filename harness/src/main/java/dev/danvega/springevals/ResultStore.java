@@ -13,6 +13,8 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
+import dev.danvega.springevals.cli.Transcript;
+
 /**
  * Append-only run records in results/results.json. New provenance fields stay
  * nullable so legacy records load but never match the content-versioned cache.
@@ -34,7 +36,8 @@ public class ResultStore {
             Long inputTokens, Long outputTokens, Long totalTokens,
             String candidateHash, String agentResponse, String campaignId,
             String outcome, Boolean testsPassed, Boolean idiomatic,
-            Integer agentExitCode, Boolean agentTimedOut) {
+            Integer agentExitCode, Boolean agentTimedOut,
+            String toolchain, String transcriptPath, Transcript transcript, List<String> contaminationFlags) {
 
         /** Pre-0.6.0 judges stopped at a failed idiom check before running tests. */
         public static final String IDIOM_UNTESTED = "idiom_untested";
@@ -90,6 +93,10 @@ public class ResultStore {
         /** Verdict samples are the ones where the agent produced a judged candidate. */
         public boolean isVerdict() {
             return !"agent_error".equals(failureKind) && !"judge_error".equals(failureKind);
+        }
+
+        public boolean flagged() {
+            return contaminationFlags != null && !contaminationFlags.isEmpty();
         }
 
         /** Tests passed, whether or not the idiom held. */

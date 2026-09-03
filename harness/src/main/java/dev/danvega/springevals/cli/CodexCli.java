@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import tools.jackson.databind.JsonNode;
+
 import dev.danvega.springevals.Agents.AgentSpec;
 
 public final class CodexCli implements AgentCli {
@@ -29,14 +31,19 @@ public final class CodexCli implements AgentCli {
 
     @Override
     public String pinnedVersion() {
-        return "0.146.0";
+        return "0.152.1";
     }
 
     /** Codex's own sandbox would leave the bind-mounted workspace read-only; the container is the sandbox. */
     @Override
     public List<String> headlessCommand(String prompt, String model) {
         return List.of("codex", "exec", "--skip-git-repo-check",
-                "--dangerously-bypass-approvals-and-sandbox", "-m", model, prompt);
+                "--dangerously-bypass-approvals-and-sandbox", "--json", "-m", model, prompt);
+    }
+
+    @Override
+    public String transcriptExtension() {
+        return "jsonl";
     }
 
     /** Only the credential is seeded; config.toml and AGENTS.md stay on the host. */
@@ -45,9 +52,54 @@ public final class CodexCli implements AgentCli {
         return List.of(new SeedFile(hostHome.resolve(".codex/auth.json"), CONTAINER_AUTH));
     }
 
+    /** JSONL events: the last agent_message is the response, turn.completed carries usage; cost is never reported. */
     @Override
     public AgentOutput parse(String output, int exitCode) {
-        return new AgentOutput(output, null, null, null);
+        String response = null;
+        Long input = null;
+        Long produced = null;
+        for (JsonNode event : StreamJson.events(output)) {
+            JsonNode item = event.path("item");
+            if ("agent_message".equals(text(item, "type")) && text(item, "text") != null) {
+                response = text(item, "text");
+            }
+            JsonNode usage = event.path("usage");
+            if ("turn.completed".equals(text(event, "type")) && usage.isObject()) {
+                input = usage.hasNonNull("input_tokens") ? usage.get("input_tokens").asLong() : input;
+                produced = usage.hasNonNull("output_tokens") ? usage.get("output_tokens").asLong() : produced;
+            }
+        }
+        return new AgentOutput(response == null ? output : response, null, input, produced);
+    }
+
+    /** Counts completed items: command_execution, file_change (one per changed path), web_search. */
+    @Override
+    public Transcript summarize(String output) {
+        Transcript.Builder summary = new Transcript.Builder();
+        for (JsonNode event : StreamJson.events(output)) {
+            if (!"item.completed".equals(text(event, "type"))) {
+                continue;
+            }
+            JsonNode item = event.path("item");
+            switch (String.valueOf(text(item, "type"))) {
+                case "command_execution" -> summary.command(text(item, "command"));
+                case "file_change" -> {
+                    JsonNode changes = item.path("changes");
+                    int count = changes.isArray() ? changes.size() : 1;
+                    for (int i = 0; i < count; i++) {
+                        summary.fileWritten();
+                    }
+                }
+                case "web_search" -> summary.fetched("https://web-search/");
+                default -> {
+                }
+            }
+        }
+        return summary.build();
+    }
+
+    private static String text(JsonNode node, String field) {
+        return StreamJson.text(node, field);
     }
 
     @Override

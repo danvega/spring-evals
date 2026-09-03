@@ -48,6 +48,7 @@ Metrics:
 - **95% Wilson interval**: makes uncertainty from a small sample count visible
 - **Coverage**: evals with at least one verdict sample versus the full catalog; partial rows are not leaderboard-eligible
 - **Avg duration**, **avg cost**, and **cost per pass**, per sample
+- **Contamination flags**: samples whose transcript referenced the benchmark repository, the eval, or a hidden directory; verdicts are kept and the flag is shown, exclusion is a human call
 
 Rows measure an **agent configuration**: model plus coding-agent CLI, tool policy, and runtime. They are not pure model measurements. See [Benchmark methodology](docs/METHODOLOGY.md) for the controlled-model track design.
 
@@ -157,6 +158,7 @@ What the harness does about it:
 - **Every sample runs in a fresh container.** The agent CLI runs headless in a container built from one pinned image, with no host home directory, no host config files, and no host environment beyond the agent config env. Claude Code sees an empty config directory baked into the image, so host CLAUDE.md, skills, plugins, and MCP servers cannot load. Codex gets only its seeded `auth.json`. Gemini CLI and Qwen Code find no home config at all. There is no host execution mode.
 - **Credentials are declared, never inherited.** Interactive logins do not exist inside the container, so each config declares its credential as a `${VAR}` reference: `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` (subscription billing, the shipped default) or `ANTHROPIC_API_KEY` (metered API with exact per-attempt costs), `GEMINI_API_KEY`, and so on. `doctor` reports the billing source from exactly what reaches the container. See [AGENT_SETUP.md](docs/AGENT_SETUP.md).
 - **The judge runs in a second fresh container**, started only after the agent container is destroyed, so nothing the agent left running or planted can touch judging.
+- **Every session is kept and scanned.** The CLI's own event stream is stored outside the repository, summarized into counts on the row, and scanned for references to this repository, the eval, or its hidden directories. A hit becomes a contamination flag on the row, visible on the leaderboard and in the run log.
 
 The full policy, including residual risks like prompt-level bans, is in [Benchmark methodology](docs/METHODOLOGY.md) under Host context isolation.
 
@@ -208,6 +210,7 @@ Related but not a dependency: **[Agent Bench](https://github.com/markpollack/age
 ## Roadmap
 
 - More evals: modular auto-config, HTTP interface clients, API versioning, resilience, RestTestClient, null safety, Spring Data AOT, security
+- An egress allowlist for the agent container, so contamination is prevented rather than flagged, and a closed-book track on top of it
 - A controlled-model track with one agent loop, tool contract, token budget, and network policy
 - A private rotating holdout catalog, with retired tasks published for community review
 - More deterministic architecture checks, with an LLM judge used only as supplemental qualitative evidence

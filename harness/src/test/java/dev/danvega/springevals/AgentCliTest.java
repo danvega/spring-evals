@@ -41,15 +41,15 @@ class AgentCliTest {
     @Test
     void buildsHeadlessCommandsPerCli() {
         assertEquals(List.of("claude", "-p", "fix it", "--model", "claude-x",
-                "--dangerously-skip-permissions", "--output-format", "json"),
+                "--dangerously-skip-permissions", "--output-format", "stream-json", "--verbose"),
                 AgentCli.forProvider("claude").headlessCommand("fix it", "claude-x"));
         // Codex's own sandbox would leave the bind-mounted workspace read-only.
         assertEquals(List.of("codex", "exec", "--skip-git-repo-check",
-                "--dangerously-bypass-approvals-and-sandbox", "-m", "gpt-x", "fix it"),
+                "--dangerously-bypass-approvals-and-sandbox", "--json", "-m", "gpt-x", "fix it"),
                 AgentCli.forProvider("codex").headlessCommand("fix it", "gpt-x"));
-        assertEquals(List.of("gemini", "-m", "gemini-x", "-y", "-p", "fix it"),
+        assertEquals(List.of("gemini", "-m", "gemini-x", "-y", "--skip-trust", "-o", "stream-json", "-p", "fix it"),
                 AgentCli.forProvider("gemini").headlessCommand("fix it", "gemini-x"));
-        assertEquals(List.of("qwen", "-y", "-m", "grok-x", "-p", "fix it"),
+        assertEquals(List.of("qwen", "-y", "-m", "grok-x", "-o", "stream-json", "-p", "fix it"),
                 AgentCli.forProvider("qwen-code").headlessCommand("fix it", "grok-x"));
     }
 

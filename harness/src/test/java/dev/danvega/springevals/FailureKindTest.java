@@ -34,6 +34,6 @@ class FailureKindTest {
     }
 
     private static Main.AgentRun agentRun(Long durationMs, String error, Integer exitCode, boolean timedOut) {
-        return new Main.AgentRun(durationMs, null, error, null, null, null, null, exitCode, timedOut);
+        return new Main.AgentRun(durationMs, null, error, null, null, null, null, exitCode, timedOut, null, null, java.util.List.of());
     }
 }

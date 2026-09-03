@@ -27,7 +27,8 @@ public class Reports {
 
     private record Row(String agent, String model, int evals, int totalEvals, int samples, boolean eligible,
             double coverage, double passRate, double functionalRate, double ciLower, double ciUpper,
-            Long avgTokens, Double avgDurationS, Double avgCostUsd, Double costPerPassUsd, Double totalCostUsd) {
+            Long avgTokens, Double avgDurationS, Double avgCostUsd, Double costPerPassUsd, Double totalCostUsd,
+            int flaggedSamples) {
     }
 
     private record Cell(int passed, int functional, int samples) {
@@ -117,6 +118,16 @@ public class Reports {
         table.append("Pass rate is passes over verdict samples. Functional counts samples whose hidden tests passed, "
                 + "with or without the idiom. Only full-coverage rows are leaderboard-eligible; partial rows are "
                 + "shown for diagnostics.\n");
+        int flagged = rows.stream().mapToInt(Row::flaggedSamples).sum();
+        if (flagged > 0) {
+            table.append(("\n%d sample(s) carry contamination flags (the transcript referenced the benchmark "
+                    + "repository, the eval, or a hidden directory). Verdicts are kept; see the run logs and decide "
+                    + "whether to exclude them: ").formatted(flagged))
+                    .append(rows.stream().filter(r -> r.flaggedSamples() > 0)
+                            .map(r -> r.agent() + " (" + r.flaggedSamples() + ")")
+                            .collect(java.util.stream.Collectors.joining(", ")))
+                    .append(".\n");
+        }
         if (!infraOnly.isEmpty()) {
             table.append("\nNo verdicts (infrastructure failed before the model saw the task):\n");
             for (var entry : infraOnly.entrySet()) {
@@ -204,7 +215,8 @@ public class Reports {
                         : Math.round((double) tokens.stream().mapToLong(Long::longValue).sum() / mine.size()),
                 mine.isEmpty() ? null : durationMs / 1000.0 / mine.size(),
                 totalCost == null || mine.isEmpty() ? null : totalCost / mine.size(),
-                totalCost == null || all.passed() == 0 ? null : totalCost / all.passed(), totalCost);
+                totalCost == null || all.passed() == 0 ? null : totalCost / all.passed(), totalCost,
+                (int) mine.stream().filter(RunRecord::flagged).count());
     }
 
     private static Cell cell(List<RunRecord> records) {
@@ -360,6 +372,7 @@ public class Reports {
             run.put("samples", records.size());
             run.put("passed", records.stream().filter(RunRecord::passed).count());
             run.put("functional", records.stream().filter(r -> r.isVerdict() && r.functional()).count());
+            run.put("flagged", records.stream().filter(RunRecord::flagged).count());
             run.put("recordedCostUsd", records.stream().map(RunRecord::costUsd).filter(c -> c != null)
                     .mapToDouble(Double::doubleValue).sum());
             run.put("benchmarkVersion", records.stream().map(RunRecord::benchmarkVersion)
@@ -383,6 +396,8 @@ public class Reports {
                 item.put("idiomatic", record.effectiveIdiomatic());
                 item.put("agentExitCode", record.agentExitCode());
                 item.put("agentTimedOut", record.agentTimedOut());
+                item.put("transcript", record.transcript());
+                item.put("contaminationFlags", record.contaminationFlags());
                 item.put("failureKind", record.failureKind());
                 item.put("durationMs", record.agentDurationMs());
                 item.put("costUsd", record.costUsd());
@@ -418,11 +433,14 @@ public class Reports {
                 long passed = records.stream().filter(RunRecord::passed).count();
                 long functionalOnly = records.stream()
                         .filter(r -> "functional_only".equals(r.effectiveOutcome())).count();
+                long flaggedSamples = records.stream().filter(RunRecord::flagged).count();
                 log.append("# Run: ").append(entry.getKey()).append("\n\n");
                 log.append("Started ").append(started).append(". ")
                         .append(passed).append(" of ").append(records.size()).append(" samples passed")
                         .append(functionalOnly > 0 ? ", " + functionalOnly + " functional only" : "")
-                        .append(". Harness ").append(records.getFirst().benchmarkVersion()).append(".\n");
+                        .append(". Harness ").append(records.getFirst().benchmarkVersion()).append(".")
+                        .append(flaggedSamples > 0 ? " " + flaggedSamples + " sample(s) carry contamination flags." : "")
+                        .append("\n");
                 Path notes = runsDir.resolve(entry.getKey() + ".notes.md");
                 if (Files.exists(notes)) {
                     log.append("\n## Findings\n\n").append(Files.readString(notes).strip()).append('\n');
@@ -448,6 +466,22 @@ public class Reports {
                             || Boolean.TRUE.equals(r.agentTimedOut())) {
                         log.append("- agent CLI: exit ").append(r.agentExitCode())
                                 .append(Boolean.TRUE.equals(r.agentTimedOut()) ? ", timed out" : "").append("\n");
+                    }
+                    if (r.transcript() != null) {
+                        log.append("- transcript: ").append(r.transcript().commands()).append(" commands, ")
+                                .append(r.transcript().filesWritten()).append(" files written, ")
+                                .append(r.transcript().urlsFetched()).append(" URLs fetched")
+                                .append(r.transcript().hosts().isEmpty() ? ""
+                                        : " (hosts: " + String.join(", ", r.transcript().hosts()) + ")")
+                                .append(r.transcriptPath() == null ? "" : "; raw at " + r.transcriptPath())
+                                .append("\n");
+                    }
+                    if (r.flagged()) {
+                        log.append("- CONTAMINATION FLAGS (verdict kept, exclusion is a human call): ")
+                                .append(String.join("; ", r.contaminationFlags())).append("\n");
+                    }
+                    if (r.toolchain() != null) {
+                        log.append("- toolchain: ").append(r.toolchain()).append("\n");
                     }
                     if (!r.passed()) {
                         log.append("- failure kind: ").append(r.failureKind() == null ? "unknown" : r.failureKind())

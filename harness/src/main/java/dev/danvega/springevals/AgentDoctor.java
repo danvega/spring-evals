@@ -146,7 +146,7 @@ final class AgentDoctor {
                     "estCostPerAttemptUsd is missing; paid-run cost protection will refuse this config"));
         } else {
             findings.add(Finding.ready(
-                    "configured estimate: $%.2f per attempt".formatted(spec.estCostPerAttemptUsd())));
+                    "configured estimate: $%.2f per sample".formatted(spec.estCostPerAttemptUsd())));
         }
 
         boolean missingReferences = findings.stream().anyMatch(f -> f.level() == Level.BLOCKED

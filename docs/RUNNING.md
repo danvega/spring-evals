@@ -85,9 +85,10 @@ Recorded spend appears in the report output, `results/leaderboard.md`, and the d
 ## After a run
 
 1. `./spring-evals report` refreshes `results/leaderboard.md`, `dashboard/data.json`, and a per-run log at `results/runs/<run-name>.md` with per-sample detail (outcome, tests, idiom) and each agent's closing summary.
-2. Write a plain-language findings summary to `results/runs/<run-name>.notes.md`: what the run tested, real verdicts versus infrastructure failures, and what to fix. Re-run `report` and it merges into the run log and the dashboard's run drill-down.
-3. `./spring-evals serve` and open http://localhost:4173. The run appears in the Runs section by name.
-4. Check provider consoles for actual spend on API-billed agents, and tune `estCostPerAttemptUsd` in agent configs as real numbers come in.
+2. Write a plain-language findings summary to `results/runs/<run-name>.notes.md`: what the run tested, real verdicts versus infrastructure failures, what to fix, and what you decided about any contamination-flagged samples. Re-run `report` and it merges into the run log and the dashboard's run drill-down.
+3. Read transcripts where the outcome surprises you. Each run log line "transcript:" gives the counts and the path; raw transcripts live under `$TMPDIR/spring-evals-runs/transcripts/<run-name>/<agent>/` (override the root with `SPRING_EVALS_RUNS_DIR`). They are outside the repository and survive until the OS cleans the temp directory, so copy the ones worth keeping.
+4. `./spring-evals serve` and open http://localhost:4173. The run appears in the Runs section by name.
+5. Check provider consoles for actual spend on API-billed agents, and tune `estCostPerAttemptUsd` in agent configs as real numbers come in.
 
 ## New model day
 

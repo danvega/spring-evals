@@ -5,13 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 import dev.danvega.springevals.Agents.AgentSpec;
 
 public final class ClaudeCli implements AgentCli {
-
-    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     @Override
     public String id() {
@@ -30,43 +27,67 @@ public final class ClaudeCli implements AgentCli {
 
     @Override
     public String pinnedVersion() {
-        return "2.1.221";
+        return "2.1.259";
     }
 
     @Override
     public List<String> headlessCommand(String prompt, String model) {
+        // stream-json needs --verbose; every event lands in the transcript and the terminal result event carries the totals.
         return List.of("claude", "-p", prompt, "--model", model,
-                "--dangerously-skip-permissions", "--output-format", "json");
+                "--dangerously-skip-permissions", "--output-format", "stream-json", "--verbose");
     }
 
-    /** The JSON object is printed last; leading npm or progress noise is tolerated. */
+    @Override
+    public String transcriptExtension() {
+        return "jsonl";
+    }
+
+    /** The terminal `result` event is authoritative; leading noise and the plain-json shape are tolerated. */
     @Override
     public AgentOutput parse(String output, int exitCode) {
         if (output == null) {
             return new AgentOutput(null, null, null, null);
         }
-        int start = output.indexOf('{');
-        if (start < 0) {
+        JsonNode node = resultEvent(output);
+        if (node == null) {
             return new AgentOutput(output, null, null, null);
         }
-        try {
-            JsonNode node = JSON.readTree(output.substring(start));
-            if (!node.isObject() || !node.has("result") && !node.has("total_cost_usd")) {
-                return new AgentOutput(output, null, null, null);
+        JsonNode usage = node.get("usage");
+        // A non-text result (Jackson 3 asString() throws on objects) must never cost the numbers.
+        JsonNode result = node.get("result");
+        String text = result == null || result.isNull() ? output
+                : result.isString() ? result.asString() : result.toString();
+        return new AgentOutput(
+                text,
+                node.hasNonNull("total_cost_usd") ? node.get("total_cost_usd").asDouble() : null,
+                usage != null && usage.hasNonNull("input_tokens") ? usage.get("input_tokens").asLong() : null,
+                usage != null && usage.hasNonNull("output_tokens") ? usage.get("output_tokens").asLong() : null);
+    }
+
+    private static JsonNode resultEvent(String output) {
+        JsonNode last = null;
+        for (JsonNode event : StreamJson.events(output)) {
+            if (event.has("result") || event.has("total_cost_usd")) {
+                last = event;
             }
-            JsonNode usage = node.get("usage");
-            // A non-text result (Jackson 3 asString() throws on objects) must never cost the numbers.
-            JsonNode result = node.get("result");
-            String text = result == null || result.isNull() ? output
-                    : result.isString() ? result.asString() : result.toString();
-            return new AgentOutput(
-                    text,
-                    node.hasNonNull("total_cost_usd") ? node.get("total_cost_usd").asDouble() : null,
-                    usage != null && usage.hasNonNull("input_tokens") ? usage.get("input_tokens").asLong() : null,
-                    usage != null && usage.hasNonNull("output_tokens") ? usage.get("output_tokens").asLong() : null);
-        } catch (RuntimeException e) {
-            return new AgentOutput(output, null, null, null);
         }
+        if (last != null) {
+            return last;
+        }
+        JsonNode node = StreamJson.object(output);
+        return node != null && (node.has("result") || node.has("total_cost_usd")) ? node : null;
+    }
+
+    static final Map<String, StreamJson.Kind> TOOLS = Map.of(
+            "Bash", StreamJson.Kind.COMMAND,
+            "Write", StreamJson.Kind.WRITE, "Edit", StreamJson.Kind.WRITE,
+            "MultiEdit", StreamJson.Kind.WRITE, "NotebookEdit", StreamJson.Kind.WRITE,
+            "WebFetch", StreamJson.Kind.FETCH);
+
+    /** Counts assistant tool_use blocks: Bash commands, file writes, and fetched URLs. */
+    @Override
+    public Transcript summarize(String output) {
+        return StreamJson.summarize(StreamJson.events(output), TOOLS);
     }
 
     /** CLAUDE_CONFIG_DIR in the image is empty, so a host login never applies; the config env must carry the credential. */

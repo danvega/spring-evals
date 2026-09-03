@@ -45,17 +45,18 @@ public class MavenJudge {
 
     private static final List<Pattern> FORBIDDEN_BUILD_CONFIG = List.of(
             Pattern.compile("maven\\.test\\.skip", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("<skipTests>\\s*true\\s*</skipTests>", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("<skip>\\s*true\\s*</skip>", Pattern.CASE_INSENSITIVE),
+            // Attributes such as combine.self="override" must not hide a tag from these patterns.
+            Pattern.compile("<skipTests[^>]*>\\s*true\\s*</skipTests>", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("<skip[^>]*>\\s*true\\s*</skip>", Pattern.CASE_INSENSITIVE),
             Pattern.compile("<testSourceDirectory>", Pattern.CASE_INSENSITIVE),
             Pattern.compile("<testClassesDirectory>", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("<(?:excludes|includes)>", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("<(?:excludes|includes)[\\s>]", Pattern.CASE_INSENSITIVE),
             Pattern.compile("maven\\.test\\.failure\\.ignore", Pattern.CASE_INSENSITIVE),
             Pattern.compile("testFailureIgnore", Pattern.CASE_INSENSITIVE),
             // Redirected reports would let pre-seeded surefire XML survive clean.
             Pattern.compile("reportsDirectory", Pattern.CASE_INSENSITIVE),
             // Any dependency-plugin configuration can override the judge's classpath resolution flags.
-            Pattern.compile("(?s)maven-dependency-plugin(?:(?!</plugin>).)*?<configuration>", Pattern.CASE_INSENSITIVE));
+            Pattern.compile("(?s)maven-dependency-plugin(?:(?!</plugin>).)*?<configuration[\\s>]", Pattern.CASE_INSENSITIVE));
 
     /** Direct children of any build element that relocate outputs, so clean cannot be trusted. */
     private static final java.util.Set<String> BUILD_REDIRECTS = java.util.Set.of(
@@ -187,6 +188,10 @@ public class MavenJudge {
             return Judgment.policyFailure("candidate build configuration can suppress or redirect hidden tests: "
                     + redirect);
         }
+        String model = pomModelEscape(readPom(workspace), workspace);
+        if (model != null) {
+            return Judgment.policyFailure("candidate build configuration escapes the judged pom: " + model);
+        }
         if (checks == null) {
             return null;
         }
@@ -238,6 +243,99 @@ public class MavenJudge {
                 }
             }
             return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Everything the judge checks must sit in the one root pom, resolved from
+     * Central with the literal plugin names it names. A workspace-local parent,
+     * a second module, an interpolated plugin coordinate, or a custom repository
+     * or build extension would carry configuration the checks never see.
+     */
+    static String pomModelEscape(String xml, Path workspace) throws IOException {
+        org.w3c.dom.Document document = parseSecure(xml);
+        if (document == null) {
+            return null;
+        }
+        for (String forbidden : List.of("modules", "repositories", "pluginRepositories")) {
+            if (document.getElementsByTagName(forbidden).getLength() > 0) {
+                return "<" + forbidden + ">";
+            }
+        }
+        var builds = document.getElementsByTagName("build");
+        for (int i = 0; i < builds.getLength(); i++) {
+            if (directChild(builds.item(i), "extensions") != null) {
+                return "<build><extensions>";
+            }
+        }
+        var plugins = document.getElementsByTagName("plugin");
+        for (int i = 0; i < plugins.getLength(); i++) {
+            for (String coordinate : List.of("groupId", "artifactId")) {
+                org.w3c.dom.Node value = directChild(plugins.item(i), coordinate);
+                if (value != null && value.getTextContent().contains("${")) {
+                    return "<plugin><" + coordinate + "> with a property reference";
+                }
+            }
+        }
+        var parents = document.getElementsByTagName("parent");
+        for (int i = 0; i < parents.getLength(); i++) {
+            for (String coordinate : List.of("groupId", "artifactId", "version", "relativePath")) {
+                org.w3c.dom.Node value = directChild(parents.item(i), coordinate);
+                if (value != null && value.getTextContent().contains("${")) {
+                    return "<parent><" + coordinate + "> with a property reference";
+                }
+            }
+            org.w3c.dom.Node relative = directChild(parents.item(i), "relativePath");
+            String path = relative == null ? "../pom.xml" : relative.getTextContent().strip();
+            if (!path.isEmpty()) {
+                Path root = workspace.toAbsolutePath().normalize();
+                Path target = root.resolve(path).normalize();
+                Path candidate = Files.isDirectory(target) ? target.resolve("pom.xml") : target;
+                if (candidate.startsWith(root) && Files.isRegularFile(candidate)) {
+                    return "<parent> resolved inside the workspace (" + root.relativize(candidate) + ")";
+                }
+            }
+        }
+        Path root = workspace.toAbsolutePath().normalize();
+        try (var paths = Files.walk(root)) {
+            List<Path> extraPoms = paths
+                    .filter(path -> path.getFileName().toString().equals("pom.xml"))
+                    .filter(path -> !path.equals(root.resolve("pom.xml")))
+                    .filter(path -> !root.relativize(path).toString().startsWith("target/")
+                            && !root.relativize(path).toString().contains("/target/"))
+                    .toList();
+            if (!extraPoms.isEmpty()) {
+                return "a second pom.xml in the workspace (" + root.relativize(extraPoms.getFirst()) + ")";
+            }
+        }
+        return null;
+    }
+
+    private static org.w3c.dom.Node directChild(org.w3c.dom.Node parent, String name) {
+        var children = parent.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            org.w3c.dom.Node child = children.item(i);
+            String local = child.getLocalName() == null ? child.getNodeName() : child.getLocalName();
+            if (child.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE && name.equals(local)) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    /** External entities and DTDs stay off; malformed XML yields null and Maven rejects it anyway. */
+    private static org.w3c.dom.Document parseSecure(String xml) {
+        try {
+            var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+            factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setXIncludeAware(false);
+            factory.setExpandEntityReferences(false);
+            return factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(new java.io.StringReader(xml)));
         } catch (Exception e) {
             return null;
         }

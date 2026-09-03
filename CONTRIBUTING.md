@@ -112,11 +112,11 @@ The benchmark version string (for example `0.3.0+11b0497585a6`) is part of resul
 
 - **Results with the same full version string are comparable.** That is what the version means. Nothing else.
 - **Bumps happen only in harness batches that change measurement behavior.** Isolation, judging, scoring, workspace handling. Exactly one bump per batch.
-- **Never bump for docs, dashboard, or eval-content changes.** Eval edits already rotate that eval's own content hash. Docs and dashboard are not part of measurement.
-- **Do not touch the hashed harness files outside a declared bump batch.** The hash suffix covers `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `DockerSandbox.java`, `RunScheduler.java`, `Judgment.java`, `JavaComments.java`, `RuntimeArtifacts.java`, every file under `cli/` (one `AgentCli` implementation per agent CLI), `harness/docker/Dockerfile`, `harness/pom.xml`, and `spring-evals`. A changed suffix under the same prefix means undeclared measurement drift, and the 0.2.0 era shows why that hurts.
+- **Never bump for docs, dashboard, eval-content, or toolchain changes.** Eval edits already rotate that eval's own content hash. Docs and dashboard are not part of measurement. The Dockerfile (JDK, Node, CLI pins) is toolchain: bumping a pin is routine, each row records the toolchain it ran on, and the affected agents' rows are rebuilt on their next run.
+- **Do not touch the hashed harness files outside a declared bump batch.** The hash suffix covers `Main.java`, `Agents.java`, `Workspaces.java`, `MavenJudge.java`, `EvalDefinition.java`, `DockerSandbox.java`, `RunScheduler.java`, `Judgment.java`, `JavaComments.java`, `RuntimeArtifacts.java`, every file under `cli/` (one `AgentCli` implementation per agent CLI), `harness/pom.xml`, and `spring-evals`. A changed suffix under the same prefix means undeclared measurement drift, and the 0.2.0 era shows why that hurts.
 - **Every bump adds its row to [docs/VERSIONS.md](docs/VERSIONS.md) in the same commit** that changes the constant in `ContentHashes.java`.
 
-Current: 0.5.0 (parallel lanes, selection config, pinned fixtures). The measurement core is now frozen: a version bump requires a measurement-correctness reason, and 1.0.0 is declared only after the full matrix has run at least twice under one unchanged version (minor versions are unbounded, so there is no pressure to ever reach it).
+Current: 0.6.0 (outcome model, samples, alternatives gate, transcripts, docker only). The measurement core is frozen again: a version bump requires a measurement-correctness reason, and 1.0.0 is declared only after the full matrix has run at least twice under one unchanged version (minor versions are unbounded, so there is no pressure to ever reach it). Toolchain refreshes do not count as changes for that rule.
 
 ## Questions
 

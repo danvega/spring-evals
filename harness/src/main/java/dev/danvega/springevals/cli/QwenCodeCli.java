@@ -25,17 +25,34 @@ public final class QwenCodeCli implements AgentCli {
 
     @Override
     public String pinnedVersion() {
-        return "0.21.5";
+        return "0.22.3";
     }
 
     @Override
     public List<String> headlessCommand(String prompt, String model) {
-        return List.of("qwen", "-y", "-m", model, "-p", prompt);
+        return List.of("qwen", "-y", "-m", model, "-o", "stream-json", "-p", prompt);
     }
 
     @Override
+    public String transcriptExtension() {
+        return "jsonl";
+    }
+
+    /** Qwen Code emits the Claude Code stream shape (system/init, assistant, result) with its own tool names. */
+    static final Map<String, StreamJson.Kind> TOOLS = Map.of(
+            "run_shell_command", StreamJson.Kind.COMMAND,
+            "write_file", StreamJson.Kind.WRITE, "edit", StreamJson.Kind.WRITE,
+            "replace", StreamJson.Kind.WRITE, "notebook_edit", StreamJson.Kind.WRITE,
+            "web_fetch", StreamJson.Kind.FETCH);
+
+    @Override
     public AgentOutput parse(String output, int exitCode) {
-        return new AgentOutput(output, null, null, null);
+        return GeminiCli.parseStream(output);
+    }
+
+    @Override
+    public Transcript summarize(String output) {
+        return StreamJson.summarize(StreamJson.events(output), TOOLS);
     }
 
     /** Reached only without OPENAI_BASE_URL; endpoint credentials are checked generically. */

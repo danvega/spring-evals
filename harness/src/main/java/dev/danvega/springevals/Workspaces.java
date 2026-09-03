@@ -29,6 +29,11 @@ public class Workspaces {
             "CLAUDE.md", "AGENTS.md", "GEMINI.md", "QWEN.md", ".claude", ".mcp.json",
             ".cursorrules", ".cursor", ".github/copilot-instructions.md");
 
+    /** Transcripts sit beside the workspaces, outside the repository; results record only the path and counts. */
+    public Path transcriptsDir() {
+        return runsDir.resolve("transcripts");
+    }
+
     public Path freshCopy(EvalDefinition eval, String label) {
         Path ws = runsDir.resolve(eval.id().replace('/', '-') + "-" + label + "-" + UUID.randomUUID());
         copyTree(eval.projectDir(), ws);

@@ -155,7 +155,22 @@ const slot = name => document.querySelector(`[data-slot="${name}"]`);
 let DATA = null;
 
 function agentCell(a) {
-  return `${a.agent}${a.eligible === false ? ' <span class="text-xs text-amber-600 dark:text-amber-400">partial</span>' : ''}`;
+  const flagged = a.flaggedSamples ? ` <span class="text-xs text-amber-600 dark:text-amber-400" title="transcripts referenced the benchmark repository, the eval, or a hidden directory; verdicts kept, exclusion is a human call">⚠ ${a.flaggedSamples} flagged</span>` : "";
+  return `${a.agent}${a.eligible === false ? ' <span class="text-xs text-amber-600 dark:text-amber-400">partial</span>' : ''}${flagged}`;
+}
+
+function transcriptMeta(d) {
+  const t = d.transcript;
+  if (!t) return "";
+  const hosts = (t.hosts || []).length ? ` (${t.hosts.join(", ")})` : "";
+  return ` · ${t.commands ?? 0} cmds, ${t.filesWritten ?? 0} writes, ${t.urlsFetched ?? 0} fetches${hosts}`;
+}
+
+function flagsMeta(d) {
+  const flags = d.contaminationFlags || [];
+  if (!flags.length) return "";
+  const escape = text => String(text).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  return `<p class="mt-1 text-xs text-amber-600 dark:text-amber-400">⚠ contamination flags: ${flags.map(escape).join("; ")}</p>`;
 }
 
 const passRate = a => a.passRate ?? a.successRate ?? 0;
@@ -392,7 +407,8 @@ function renderRuns(data) {
       <li class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
           <p class="${S.evalTitle}">${d.agent} · ${d.eval}</p>
-          <p class="${S.evalMeta}">sample ${d.sample ?? d.attempt}${d.testsPassed != null ? " · tests " + (d.testsPassed ? "passed" : "failed") : ""}${d.idiomatic != null ? " · idiom " + (d.idiomatic ? "held" : "missed") : ""}${outcomeOf(d) === "idiom_untested" ? " · tests never ran (pre-0.6.0 judge)" : ""}${d.agentTimedOut ? " · agent timed out" : d.agentExitCode ? " · agent exit " + d.agentExitCode : ""}</p>
+          <p class="${S.evalMeta}">sample ${d.sample ?? d.attempt}${d.testsPassed != null ? " · tests " + (d.testsPassed ? "passed" : "failed") : ""}${d.idiomatic != null ? " · idiom " + (d.idiomatic ? "held" : "missed") : ""}${outcomeOf(d) === "idiom_untested" ? " · tests never ran (pre-0.6.0 judge)" : ""}${d.agentTimedOut ? " · agent timed out" : d.agentExitCode ? " · agent exit " + d.agentExitCode : ""}${transcriptMeta(d)}</p>
+          ${flagsMeta(d)}
         </div>
         <div class="flex shrink-0 items-center gap-3 text-sm text-zinc-600 tabular-nums dark:text-neutral-400">
           <span class="${outcomeOf(d) === "pass" ? S.good : outcomeOf(d) === "functional_only" ? S.rate : S.bad}">${outcomeOf(d)}</span>

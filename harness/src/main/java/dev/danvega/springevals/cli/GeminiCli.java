@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import tools.jackson.databind.JsonNode;
+
 import dev.danvega.springevals.Agents.AgentSpec;
 
 public final class GeminiCli implements AgentCli {
@@ -25,17 +27,79 @@ public final class GeminiCli implements AgentCli {
 
     @Override
     public String pinnedVersion() {
-        return "0.1.13";
+        return "0.58.0";
     }
 
     @Override
     public List<String> headlessCommand(String prompt, String model) {
-        return List.of("gemini", "-m", model, "-y", "-p", prompt);
+        // --skip-trust: an untrusted folder would disable tools for a headless run.
+        return List.of("gemini", "-m", model, "-y", "--skip-trust", "-o", "stream-json", "-p", prompt);
+    }
+
+    @Override
+    public String transcriptExtension() {
+        return "jsonl";
     }
 
     @Override
     public AgentOutput parse(String output, int exitCode) {
-        return new AgentOutput(output, null, null, null);
+        return parseStream(output);
+    }
+
+    @Override
+    public Transcript summarize(String output) {
+        return StreamJson.summarize(StreamJson.events(output), QwenCodeCli.TOOLS);
+    }
+
+    /**
+     * Two stream shapes are tolerated: the Claude-style `result` event with
+     * `result` and `usage`, and the flat Gemini style where assistant text
+     * arrives as `message` events and the `result` event carries `stats`.
+     * Neither CLI reports dollars.
+     */
+    static AgentOutput parseStream(String output) {
+        String response = null;
+        Long input = null;
+        Long produced = null;
+        for (JsonNode event : StreamJson.events(output)) {
+            String type = StreamJson.text(event, "type");
+            if ("message".equals(type) && "assistant".equals(StreamJson.text(event, "role"))
+                    && StreamJson.text(event, "content") != null) {
+                response = StreamJson.text(event, "content");
+            }
+            if ("result".equals(type)) {
+                String text = StreamJson.text(event, "result");
+                if (text == null) {
+                    text = StreamJson.text(event, "response");
+                }
+                if (text != null) {
+                    response = text;
+                }
+                JsonNode usage = event.path("usage");
+                if (usage.isObject()) {
+                    input = StreamJson.integer(usage, "input_tokens");
+                    produced = StreamJson.integer(usage, "output_tokens");
+                }
+                JsonNode models = event.path("stats").path("models");
+                if (models.isObject()) {
+                    long prompt = 0;
+                    long candidates = 0;
+                    for (JsonNode model : models) {
+                        Long p = StreamJson.integer(model.path("tokens"), "prompt");
+                        Long c = StreamJson.integer(model.path("tokens"), "candidates");
+                        prompt += p == null ? 0 : p;
+                        candidates += c == null ? 0 : c;
+                    }
+                    input = prompt;
+                    produced = candidates;
+                }
+            }
+        }
+        if (response == null) {
+            JsonNode single = StreamJson.object(output);
+            response = single == null ? null : StreamJson.text(single, "response");
+        }
+        return new AgentOutput(response == null ? output : response, null, input, produced);
     }
 
     /** The image has no ~/.gemini, so a Google sign-in never applies; only an API key in the config env works. */

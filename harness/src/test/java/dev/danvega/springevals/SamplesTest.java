@@ -43,7 +43,7 @@ class SamplesTest {
         return new RunRecord("a", "m", "boot/000-example", "boot", sample, "pass".equals(outcome), 1000L, null,
                 "/tmp/ws", "2026-09-02T00:00:0" + sample + "Z", "run", "claude", "agent", null, null, null,
                 failureKind, null, null, null, null, null, null, 3, null, null, null, null, null, "c",
-                outcome, null, null, null, null);
+                outcome, null, null, null, null, null, null, null, null);
     }
 
     @Test

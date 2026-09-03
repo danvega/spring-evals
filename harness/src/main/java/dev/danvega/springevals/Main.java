@@ -1,5 +1,6 @@
 package dev.danvega.springevals;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import dev.danvega.springevals.Agents.AgentSpec;
 import dev.danvega.springevals.ResultStore.RunRecord;
 import dev.danvega.springevals.cli.AgentCli;
+import dev.danvega.springevals.cli.Transcript;
 
 /** Entry point behind ./spring-evals; every agent and every judge runs in a fresh container. */
 public class Main {
@@ -119,11 +121,13 @@ public class Main {
         // The full probe is opt-in: a first-use image build takes minutes a plain doctor call must not trigger.
         boolean probe = opts.containsKey("docker");
         boolean dockerCheckFailed = false;
+        boolean json = opts.containsKey("json");
         if (probe) {
             List<EvalDefinition> all = catalog.all();
             dockerCheckFailed = !DockerSandbox.selfCheck(root, all.isEmpty() ? null : all.get(0).projectDir());
             System.out.println();
-        } else {
+        } else if (!json) {
+            // --json keeps stdout a single JSON document; the docker status is inside it.
             printDockerStatus();
         }
         List<String> names;
@@ -154,7 +158,13 @@ public class Main {
         java.util.Set<String> excluded = specs.stream().map(AgentSpec::name)
                 .filter(name -> !selection.enabled(name))
                 .collect(java.util.stream.Collectors.toSet());
-        int result = specs.isEmpty() ? 0 : new AgentDoctor().print(specs, excluded);
+        int result;
+        if (json) {
+            new AgentDoctor().printJson(specs, excluded);
+            result = 0;
+        } else {
+            result = specs.isEmpty() ? 0 : new AgentDoctor().print(specs, excluded);
+        }
         if (invalid > 0) {
             System.out.println("Additionally, " + invalid + " agent config file(s) could not be parsed.");
         }
@@ -334,7 +344,7 @@ public class Main {
         String campaignId = resolveRunName(opts.get("run-name"), loaded);
         System.out.println("Run name: " + campaignId);
 
-        RunContext ctx = new RunContext(image, targets, samples, force, paid, benchmarkVersion(),
+        RunContext ctx = new RunContext(image, toolchain(image), targets, samples, force, paid, benchmarkVersion(),
                 recordedJavaVersion, campaignId, new RunScheduler.CostReserver(costCap),
                 new RunScheduler.ResultsLedger(loaded, resultStore::save),
                 new java.util.concurrent.ConcurrentHashMap<>(),
@@ -379,8 +389,8 @@ public class Main {
         };
     }
 
-    private record RunContext(String image, List<EvalDefinition> targets, int samples, boolean force,
-            boolean paid, String benchmarkVersion, String recordedJavaVersion, String campaignId,
+    private record RunContext(String image, String toolchain, List<EvalDefinition> targets, int samples,
+            boolean force, boolean paid, String benchmarkVersion, String recordedJavaVersion, String campaignId,
             RunScheduler.CostReserver reserver, RunScheduler.ResultsLedger ledger,
             Map<String, String> cliVersions, java.util.concurrent.atomic.AtomicBoolean stopped) {
     }
@@ -456,7 +466,7 @@ public class Main {
                     agentContainer.seed(seed);
                 }
                 log.accept("running agent CLI in container " + agentContainer.name() + "...");
-                agentRun = runAgentInContainer(agentContainer, cli, spec, eval, log);
+                agentRun = runAgentInContainer(agentContainer, cli, spec, eval, ctx.campaignId(), sample, log);
             }
             String candidateHash = ContentHashes.candidate(ws);
             boolean untouched = baselineHash.equals(candidateHash);
@@ -486,7 +496,8 @@ public class Main {
                     agentRun.inputTokens(), agentRun.outputTokens(), agentRun.totalTokens(),
                     candidateHash, agentRun.responseText(), ctx.campaignId(),
                     outcome, agentError ? null : verdict.testsPassed(), agentError ? null : verdict.idiomatic(),
-                    agentRun.exitCode(), agentRun.timedOut()));
+                    agentRun.exitCode(), agentRun.timedOut(),
+                    ctx.toolchain(), agentRun.transcriptPath(), agentRun.transcript(), agentRun.contaminationFlags()));
             log.accept(switch (outcome) {
                 case "pass" -> "✓ pass";
                 case "functional_only" -> "~ functional_only: " + verdict.reasoning();
@@ -497,7 +508,15 @@ public class Main {
 
     record AgentRun(Long durationMs, Double costUsd, String error,
             Long inputTokens, Long outputTokens, Long totalTokens, String responseText,
-            Integer exitCode, Boolean timedOut) {
+            Integer exitCode, Boolean timedOut, String transcriptPath, Transcript transcript,
+            List<String> contaminationFlags) {
+    }
+
+    /** Image tag plus every CLI pin: the toolchain a row ran on, recorded, never part of identity. */
+    static String toolchain(String image) {
+        return image + "; " + AgentCli.all().stream()
+                .map(cli -> cli.npmPackage() + "@" + cli.pinnedVersion())
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     /** Only verdict samples fill a cell; a rerun tops it up by appending, never by replacing. */
@@ -513,7 +532,7 @@ public class Main {
 
     /** Headless CLI run inside the agent container; only claude reports cost and tokens, others record null. */
     private AgentRun runAgentInContainer(DockerSandbox.Container container, AgentCli cli, AgentSpec spec,
-            EvalDefinition eval, java.util.function.Consumer<String> log) {
+            EvalDefinition eval, String campaignId, int sample, java.util.function.Consumer<String> log) {
         String prompt;
         try {
             prompt = Files.readString(eval.promptFile());
@@ -529,13 +548,37 @@ public class Main {
             AgentCli.AgentOutput parsed = cli.parse(result.output(), result.exitCode());
             Long total = parsed.inputTokens() == null || parsed.outputTokens() == null ? null
                     : parsed.inputTokens() + parsed.outputTokens();
+            String transcriptPath = storeTranscript(cli, spec, eval, campaignId, sample, result.output(), log);
+            Transcript transcript = cli.summarize(result.output());
+            List<String> flags = Contamination.scan(result.output(), eval);
+            if (!flags.isEmpty()) {
+                log.accept("! contamination flags: " + String.join("; ", flags));
+            }
             return new AgentRun(result.durationMs(), parsed.costUsd(), error, parsed.inputTokens(),
                     parsed.outputTokens(), total, truncate(parsed.responseText()), result.exitCode(),
-                    result.timedOut());
+                    result.timedOut(), transcriptPath, transcript, flags);
         } catch (RuntimeException e) {
             log.accept("agent execution failed: " + e.getMessage());
             return new AgentRun(null, null, e.getClass().getSimpleName() + ": " + e.getMessage(),
-                    null, null, null, null, null, null);
+                    null, null, null, null, null, null, null, null, List.of());
+        }
+    }
+
+    /** The raw session stays outside the repository; a failure to store it is logged, never scored. */
+    private String storeTranscript(AgentCli cli, AgentSpec spec, EvalDefinition eval, String campaignId, int sample,
+            String output, java.util.function.Consumer<String> log) {
+        if (output == null) {
+            return null;
+        }
+        Path file = workspaces.transcriptsDir().resolve(campaignId).resolve(spec.name())
+                .resolve(eval.id().replace('/', '-') + "-s" + sample + "." + cli.transcriptExtension());
+        try {
+            Files.createDirectories(file.getParent());
+            Files.writeString(file, output);
+            return file.toString();
+        } catch (IOException e) {
+            log.accept("could not store the transcript at " + file + ": " + e.getMessage());
+            return null;
         }
     }
 

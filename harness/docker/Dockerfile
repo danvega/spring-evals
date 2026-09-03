@@ -1,4 +1,5 @@
-# Part of the measurement content hash: changing this file is a measurement change.
+# Toolchain, not measurement identity: the image tag is content-addressed from this file,
+# and each row records the tag plus the CLI pins as its toolchain.
 # The nodesource setup script is the one non-pinned input.
 FROM eclipse-temurin:26-jdk@sha256:c0fe66ea21e972724000cf402f8081c7841d960839f69cb0754f40b40f74b2cc
 
@@ -9,10 +10,10 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g \
-    @anthropic-ai/claude-code@2.1.221 \
-    @openai/codex@0.146.0 \
-    @google/gemini-cli@0.1.13 \
-    @qwen-code/qwen-code@0.21.5
+    @anthropic-ai/claude-code@2.1.259 \
+    @openai/codex@0.152.1 \
+    @google/gemini-cli@0.58.0 \
+    @qwen-code/qwen-code@0.22.3
 
 # Non-root: Claude Code refuses --dangerously-skip-permissions under root.
 # /sandbox holds empty per-container config dirs; /opt/m2-cache is the read-only

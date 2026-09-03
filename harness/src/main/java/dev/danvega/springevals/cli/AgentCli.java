@@ -42,6 +42,19 @@ public interface AgentCli {
      */
     List<Finding> doctor(AgentSpec spec, Map<String, String> containerEnv, HostProbe host);
 
+    /**
+     * Counts derived from the CLI's own event stream. Unknown shapes count
+     * nothing; the summary never fails an attempt and never copies content.
+     */
+    default Transcript summarize(String output) {
+        return Transcript.empty();
+    }
+
+    /** File extension for the stored transcript: jsonl for event streams, log for raw output. */
+    default String transcriptExtension() {
+        return "log";
+    }
+
     /** Attempts in one lane run serially because provider rate limits apply per account. */
     default String lane() {
         return id();
