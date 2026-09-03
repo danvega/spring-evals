@@ -40,10 +40,10 @@ final class ContentHashes {
                 java.resolve("DockerSandbox.java"), java.resolve("RunScheduler.java"),
                 java.resolve("Judgment.java"), java.resolve("JavaComments.java"),
                 java.resolve("RuntimeArtifacts.java"), java.resolve("cli"),
-                repoRoot.resolve("harness/docker/Dockerfile"),
                 repoRoot.resolve("harness/pom.xml"), repoRoot.resolve("spring-evals")));
-        // Bump the prefix only in a batch that changes measurement behavior; see docs/VERSIONS.md.
-        return "0.5.0+" + hash.substring(0, 12);
+        // The Dockerfile is toolchain, recorded per row, not identity; see docs/VERSIONS.md.
+        // Bump the prefix only in a batch that changes measurement behavior.
+        return "0.6.0+" + hash.substring(0, 12);
     }
 
     static String tree(List<Path> roots) {
