@@ -19,3 +19,15 @@ description: >
   attribute on a request mapping (or a version request predicate in a
   router function) and rejects @RequestHeader; header parsing by hand
   passes the tests but records functional_only.
+  Known limitation: the forbidden patterns ban the spellings that read the
+  version header by hand, because a required pattern over the whole source
+  tree cannot express that the endpoint under test is the one served by a
+  versioned mapping. A leftover versioned mapping elsewhere otherwise lets
+  hand-parsed header code pass, which the prompt forbids. The cost is that a
+  custom ApiVersionResolver is rejected, since its interface method takes an
+  HttpServletRequest and a regex cannot tell a registered resolver from
+  branching in a controller. Accepted deliberately: for a plain request
+  header the built-in configurer is the documented one-line route, so the
+  resolver is an unlikely answer here, and a false pass on an explicitly
+  forbidden solution is worse than a false miss on an exotic one.
+
