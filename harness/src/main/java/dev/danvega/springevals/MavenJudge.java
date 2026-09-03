@@ -176,6 +176,24 @@ public class MavenJudge {
 
     /** Test suppression and pinned-fixture edits make the build untrustworthy, so nothing else runs. */
     private Judgment checkIntegrity(EvalDefinition eval, Path workspace, SourceChecks checks) throws IOException {
+        // A symlinked pom dangles on the host while Maven follows it in the container, so no link is allowed anywhere.
+        String link = symbolicLink(workspace);
+        if (link != null) {
+            return Judgment.policyFailure("symbolic link in workspace: " + link);
+        }
+        for (String required : List.of("pom.xml", "mvnw")) {
+            Path file = workspace.resolve(required);
+            if (Files.exists(file, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                    && !Files.isRegularFile(file, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                return Judgment.policyFailure(required + " is not a regular file");
+            }
+        }
+        if (!Files.isRegularFile(workspace.resolve("pom.xml"))) {
+            return Judgment.policyFailure("pom.xml is missing");
+        }
+        if (parseSecure(readPom(workspace)) == null) {
+            return Judgment.policyFailure("pom.xml is not well-formed XML");
+        }
         String pomText = pomPolicyText(readPom(workspace));
         for (Pattern pattern : FORBIDDEN_BUILD_CONFIG) {
             if (pattern.matcher(pomText).find()) {
@@ -253,11 +271,14 @@ public class MavenJudge {
      * Central with the literal plugin names it names. A workspace-local parent,
      * a second module, an interpolated plugin coordinate, or a custom repository
      * or build extension would carry configuration the checks never see.
+     * Element names are matched anywhere in the document on purpose: a
+     * repositories or parent element nested inside some plugin configuration is
+     * refused too, because over-strict is cheaper than a missed escape.
      */
     static String pomModelEscape(String xml, Path workspace) throws IOException {
         org.w3c.dom.Document document = parseSecure(xml);
         if (document == null) {
-            return null;
+            return "pom.xml is not well-formed XML";
         }
         for (String forbidden : List.of("modules", "repositories", "pluginRepositories")) {
             if (document.getElementsByTagName(forbidden).getLength() > 0) {
@@ -311,6 +332,16 @@ public class MavenJudge {
             }
         }
         return null;
+    }
+
+    /** First symbolic link anywhere under the workspace, relative, or null. Links are never followed. */
+    static String symbolicLink(Path workspace) throws IOException {
+        Path root = workspace.toAbsolutePath().normalize();
+        try (var paths = Files.walk(root)) {
+            return paths.filter(Files::isSymbolicLink)
+                    .map(path -> root.relativize(path).toString())
+                    .findFirst().orElse(null);
+        }
     }
 
     private static org.w3c.dom.Node directChild(org.w3c.dom.Node parent, String name) {

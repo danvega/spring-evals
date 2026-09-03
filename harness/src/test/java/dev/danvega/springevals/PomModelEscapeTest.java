@@ -135,6 +135,42 @@ class PomModelEscapeTest {
         assertNotNull(new MavenJudge().validatePolicy(eval(), workspace));
     }
 
+    @Test
+    void symlinkedPomIsRefusedBeforeAnyPomCheck() throws Exception {
+        Files.writeString(workspace.resolve("build.xml"), pom(""));
+        Files.createSymbolicLink(workspace.resolve("pom.xml"), workspace.resolve("build.xml"));
+        Judgment verdict = new MavenJudge().validatePolicy(eval(), workspace);
+        assertNotNull(verdict);
+        assertTrue(verdict.reasoning().contains("symbolic link"), verdict.reasoning());
+    }
+
+    @Test
+    void symlinkAnywhereElseInTheWorkspaceIsRefused() throws Exception {
+        Files.writeString(workspace.resolve("pom.xml"), pom(""));
+        Files.createDirectories(workspace.resolve("src/main/java"));
+        Files.writeString(workspace.resolve("real.java"), "class A {}");
+        Files.createSymbolicLink(workspace.resolve("src/main/java/A.java"), workspace.resolve("real.java"));
+        Judgment verdict = new MavenJudge().validatePolicy(eval(), workspace);
+        assertNotNull(verdict);
+        assertTrue(verdict.reasoning().contains("symbolic link in workspace: src/main/java/A.java"), verdict.reasoning());
+    }
+
+    @Test
+    void unparseablePomIsAPolicyFailureNotASkippedWalk() throws Exception {
+        Files.writeString(workspace.resolve("pom.xml"), "<project><build>");
+        Judgment verdict = new MavenJudge().validatePolicy(eval(), workspace);
+        assertNotNull(verdict);
+        assertTrue(verdict.reasoning().contains("well-formed"), verdict.reasoning());
+        assertNotNull(MavenJudge.pomModelEscape("<project><build>", workspace));
+    }
+
+    @Test
+    void missingPomIsAPolicyFailure() throws Exception {
+        Judgment verdict = new MavenJudge().validatePolicy(eval(), workspace);
+        assertNotNull(verdict);
+        assertTrue(verdict.reasoning().contains("pom.xml is missing"), verdict.reasoning());
+    }
+
     private EvalDefinition eval() throws Exception {
         Path evalDir = Files.createDirectories(workspace.resolveSibling(workspace.getFileName() + "-eval"));
         Files.createDirectories(evalDir.resolve("project"));

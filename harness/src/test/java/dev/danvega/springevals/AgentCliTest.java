@@ -73,7 +73,7 @@ class AgentCliTest {
         assertEquals("Fixed the bean.", parsed.responseText());
 
         var plain = new ClaudeCli().parse("Not logged in · Please run /login", 1);
-        assertEquals("Not logged in · Please run /login", plain.responseText());
+        assertNull(plain.responseText());
         assertNull(plain.costUsd());
         assertNull(new ClaudeCli().parse(null, 1).responseText());
         assertNull(new ClaudeCli().parse("{\"unrelated\":true}", 0).costUsd());

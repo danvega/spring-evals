@@ -52,7 +52,7 @@ public final class CodexCli implements AgentCli {
         return List.of(new SeedFile(hostHome.resolve(".codex/auth.json"), CONTAINER_AUTH));
     }
 
-    /** JSONL events: the last agent_message is the response, turn.completed carries usage; cost is never reported. */
+    /** JSONL events: the last agent_message is the response (null without one), turn.completed carries usage; cost is never reported. */
     @Override
     public AgentOutput parse(String output, int exitCode) {
         String response = null;
@@ -69,7 +69,7 @@ public final class CodexCli implements AgentCli {
                 produced = usage.hasNonNull("output_tokens") ? usage.get("output_tokens").asLong() : produced;
             }
         }
-        return new AgentOutput(response == null ? output : response, null, input, produced);
+        return new AgentOutput(response, null, input, produced);
     }
 
     /** Counts completed items: command_execution, file_change (one per changed path), web_search. */

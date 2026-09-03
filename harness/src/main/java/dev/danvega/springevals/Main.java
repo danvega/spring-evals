@@ -457,7 +457,7 @@ public class Main {
             Path ws = workspaces.freshCopy(eval, spec.name() + "-s" + sample);
             String baselineHash = ContentHashes.candidate(ws);
 
-            AgentRun agentRun;
+            AgentSession session;
             // The agent container is destroyed before hidden tests are injected, so
             // nothing it left running or wrote outside the workspace touches judging.
             try (DockerSandbox.Container agentContainer = DockerSandbox.start(ws,
@@ -466,8 +466,10 @@ public class Main {
                     agentContainer.seed(seed);
                 }
                 log.accept("running agent CLI in container " + agentContainer.name() + "...");
-                agentRun = runAgentInContainer(agentContainer, cli, spec, eval, ctx.campaignId(), sample, log);
+                session = runAgentInContainer(agentContainer, cli, spec, eval, log);
             }
+            // Stored, summarized, and scanned only once the container is gone; the raw stream never enters results.
+            AgentRun agentRun = captureTranscript(session, cli, spec, eval, ctx.campaignId(), sample, log);
             String candidateHash = ContentHashes.candidate(ws);
             boolean untouched = baselineHash.equals(candidateHash);
             log.accept("injecting hidden tests, judging with ./mvnw clean test in a fresh container...");
@@ -512,6 +514,10 @@ public class Main {
             List<String> contaminationFlags) {
     }
 
+    /** What the container returned: the parsed run plus the raw stream, which lives only until it is stored. */
+    record AgentSession(AgentRun run, String rawOutput) {
+    }
+
     /** Image tag plus every CLI pin: the toolchain a row ran on, recorded, never part of identity. */
     static String toolchain(String image) {
         return image + "; " + AgentCli.all().stream()
@@ -531,8 +537,8 @@ public class Main {
     }
 
     /** Headless CLI run inside the agent container; only claude reports cost and tokens, others record null. */
-    private AgentRun runAgentInContainer(DockerSandbox.Container container, AgentCli cli, AgentSpec spec,
-            EvalDefinition eval, String campaignId, int sample, java.util.function.Consumer<String> log) {
+    private AgentSession runAgentInContainer(DockerSandbox.Container container, AgentCli cli, AgentSpec spec,
+            EvalDefinition eval, java.util.function.Consumer<String> log) {
         String prompt;
         try {
             prompt = Files.readString(eval.promptFile());
@@ -548,20 +554,31 @@ public class Main {
             AgentCli.AgentOutput parsed = cli.parse(result.output(), result.exitCode());
             Long total = parsed.inputTokens() == null || parsed.outputTokens() == null ? null
                     : parsed.inputTokens() + parsed.outputTokens();
-            String transcriptPath = storeTranscript(cli, spec, eval, campaignId, sample, result.output(), log);
-            Transcript transcript = cli.summarize(result.output());
-            List<String> flags = Contamination.scan(result.output(), eval);
-            if (!flags.isEmpty()) {
-                log.accept("! contamination flags: " + String.join("; ", flags));
-            }
-            return new AgentRun(result.durationMs(), parsed.costUsd(), error, parsed.inputTokens(),
+            return new AgentSession(new AgentRun(result.durationMs(), parsed.costUsd(), error, parsed.inputTokens(),
                     parsed.outputTokens(), total, truncate(parsed.responseText()), result.exitCode(),
-                    result.timedOut(), transcriptPath, transcript, flags);
+                    result.timedOut(), null, null, List.of()), result.output());
         } catch (RuntimeException e) {
             log.accept("agent execution failed: " + e.getMessage());
-            return new AgentRun(null, null, e.getClass().getSimpleName() + ": " + e.getMessage(),
-                    null, null, null, null, null, null, null, null, List.of());
+            return new AgentSession(new AgentRun(null, null, e.getClass().getSimpleName() + ": " + e.getMessage(),
+                    null, null, null, null, null, null, null, null, List.of()), null);
         }
+    }
+
+    private AgentRun captureTranscript(AgentSession session, AgentCli cli, AgentSpec spec, EvalDefinition eval,
+            String campaignId, int sample, java.util.function.Consumer<String> log) {
+        AgentRun run = session.run();
+        String output = session.rawOutput();
+        String transcriptPath = storeTranscript(cli, spec, eval, campaignId, sample, output, log);
+        Transcript transcript = output == null ? null : cli.summarize(output);
+        List<String> flags = Contamination.scan(output, eval);
+        if (!flags.isEmpty()) {
+            log.accept("! contamination flags: " + String.join("; ", flags));
+        }
+        String response = run.responseText() != null ? run.responseText()
+                : output == null ? null
+                : "no final response in the stream; transcript at " + (transcriptPath == null ? "(not stored)" : transcriptPath);
+        return new AgentRun(run.durationMs(), run.costUsd(), run.error(), run.inputTokens(), run.outputTokens(),
+                run.totalTokens(), response, run.exitCode(), run.timedOut(), transcriptPath, transcript, flags);
     }
 
     /** The raw session stays outside the repository; a failure to store it is logged, never scored. */

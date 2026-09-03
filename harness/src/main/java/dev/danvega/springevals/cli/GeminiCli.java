@@ -55,7 +55,7 @@ public final class GeminiCli implements AgentCli {
      * Two stream shapes are tolerated: the Claude-style `result` event with
      * `result` and `usage`, and the flat Gemini style where assistant text
      * arrives as `message` events and the `result` event carries `stats`.
-     * Neither CLI reports dollars.
+     * Neither CLI reports dollars, and raw stream text is never the response.
      */
     static AgentOutput parseStream(String output) {
         String response = null;
@@ -99,7 +99,7 @@ public final class GeminiCli implements AgentCli {
             JsonNode single = StreamJson.object(output);
             response = single == null ? null : StreamJson.text(single, "response");
         }
-        return new AgentOutput(response == null ? output : response, null, input, produced);
+        return new AgentOutput(response, null, input, produced);
     }
 
     /** The image has no ~/.gemini, so a Google sign-in never applies; only an API key in the config env works. */

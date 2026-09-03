@@ -50,12 +50,13 @@ public final class ClaudeCli implements AgentCli {
         }
         JsonNode node = resultEvent(output);
         if (node == null) {
-            return new AgentOutput(output, null, null, null);
+            return new AgentOutput(null, null, null, null);
         }
         JsonNode usage = node.get("usage");
         // A non-text result (Jackson 3 asString() throws on objects) must never cost the numbers.
         JsonNode result = node.get("result");
-        String text = result == null || result.isNull() ? output
+        // Raw stream text never becomes the recorded response; the transcript file holds it.
+        String text = result == null || result.isNull() ? null
                 : result.isString() ? result.asString() : result.toString();
         return new AgentOutput(
                 text,

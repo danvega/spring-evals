@@ -115,7 +115,8 @@ class TranscriptTest {
     void unknownShapesCountNothing() {
         assertEquals(Transcript.empty(), new ClaudeCli().summarize("plain text, no events"));
         assertEquals(Transcript.empty(), new CodexCli().summarize(null));
-        assertEquals("plain text", new CodexCli().parse("plain text", 1).responseText());
+        assertNull(new CodexCli().parse("plain text", 1).responseText());
+        assertNull(new ClaudeCli().parse("Not logged in", 1).responseText());
     }
 
     @Test

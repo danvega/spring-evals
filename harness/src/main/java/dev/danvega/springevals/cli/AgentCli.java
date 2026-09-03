@@ -33,7 +33,7 @@ public interface AgentCli {
         return List.of();
     }
 
-    /** The CLI's combined stdout and stderr; null fields where the CLI exposes nothing headlessly. */
+    /** The CLI's combined stdout and stderr; null fields where the CLI exposes nothing headlessly, including the response when no final message was found (the transcript keeps the raw stream). */
     AgentOutput parse(String output, int exitCode);
 
     /**
