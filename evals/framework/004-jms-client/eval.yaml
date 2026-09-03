@@ -5,7 +5,7 @@ category: messaging
 type: fix
 difficulty: medium
 baseline_failure: test_failure
-boot_version: 4.1.0
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   Spring Framework 7 introduced JmsClient, the fluent front door for JMS
@@ -16,8 +16,12 @@ description: >
   diagnose the silent QoS drop and migrate the messaging layer to
   JmsClient with per-send QoS and a single request-reply confirmation
   call, against an embedded Artemis broker. Hidden tests place orders
-  through the REST API and read the event back with a raw JMS consumer to
-  assert the delivered QoS headers. Mechanism checks require JmsClient
-  and forbid template or raw-producer fallbacks, because
-  setExplicitQosEnabled(true) alone would pass the behavioral tests
-  without any migration.
+  through the REST API, read the event back with a raw JMS consumer to
+  assert the delivered QoS headers, and stand in for the confirmation
+  processor once to check that the request carries its own temporary
+  reply destination. That rules out a send plus a separate receive on a
+  fixed reply queue and an in-process shortcut. Mechanism checks require
+  JmsClient in the sources and Spring JMS plus the Artemis client on the
+  runtime classpath, and forbid template or raw-producer fallbacks,
+  because setExplicitQosEnabled(true) alone would pass the behavioral
+  tests without any migration.

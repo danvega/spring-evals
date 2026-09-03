@@ -12,6 +12,7 @@ Requirements:
 - Urgent order events must actually reach the broker with priority 9, a five minute time to live, and non-persistent delivery.
 - Normal order events keep broker defaults: default priority, no expiration, persistent.
 - The confirmation wait stays synchronous with a bounded timeout. A missing reply must not hang the request thread.
+- Each confirmation request carries its own reply destination, so concurrent orders can never pick up each other's confirmation. The shared reply queue goes away with the old code.
 - Keep the REST contract of `POST /api/orders` exactly as it is. The confirmation text in the response keeps its current format; for order `ORD-1` the response carries `CONFIRMED-ORD-1`.
 - Keep the queue names `orders.events` and `orders.confirmations`, and keep the event payload format. Downstream consumers parse it.
 - The old template-based messaging must be gone when you are done. Review already rejected patching it with configuration flags, and dropping to the raw JMS producer API is not modernization either.
