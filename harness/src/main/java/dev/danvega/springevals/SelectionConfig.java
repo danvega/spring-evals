@@ -1,15 +1,13 @@
 package dev.danvega.springevals;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Gitignored local selection (which agents commands pick up); it never changes
@@ -31,8 +29,8 @@ final class SelectionConfig {
         if (!Files.exists(file)) {
             return new SelectionConfig(null);
         }
-        try {
-            JsonNode node = new ObjectMapper().readTree(file.toFile());
+        {
+            JsonNode node = JsonMapper.builder().build().readTree(file.toFile());
             if (!node.has("enabledAgents")) {
                 return new SelectionConfig(null);
             }
@@ -40,7 +38,7 @@ final class SelectionConfig {
                 throw new IllegalArgumentException(FILE_NAME + ": enabledAgents must be an array of agent names");
             }
             Set<String> names = new LinkedHashSet<>();
-            node.get("enabledAgents").forEach(name -> names.add(name.asText()));
+            node.get("enabledAgents").forEach(name -> names.add(name.asString()));
             // A typo would silently drop an agent from every selection; refuse instead.
             for (String name : names) {
                 if (!knownAgents.contains(name)) {
@@ -49,8 +47,6 @@ final class SelectionConfig {
                 }
             }
             return new SelectionConfig(Set.copyOf(names));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
     }
 

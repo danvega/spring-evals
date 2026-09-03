@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Deterministic verdict tier; JUDGE_COMMAND is the single source of the judged build command. */
 public class MavenJudge {
@@ -39,7 +41,10 @@ public class MavenJudge {
             Pattern.compile("maven\\.test\\.failure\\.ignore", Pattern.CASE_INSENSITIVE),
             Pattern.compile("testFailureIgnore", Pattern.CASE_INSENSITIVE));
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    // A misspelled key in checks.json must fail the judge, never silently drop a check.
+    private final JsonMapper mapper = JsonMapper.builder()
+            .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
     public Judgment judge(EvalDefinition eval, Path workspace, BuildRunner runner) {
         return judge(eval, workspace, true, runner);
@@ -114,7 +119,7 @@ public class MavenJudge {
                 return sourceResult;
             }
             return checkPatterns("pom", pomText, checks.requiredPomPatterns(), checks.forbiddenPomPatterns());
-        } catch (IOException e) {
+        } catch (IOException | JacksonException e) {
             return Judgment.error("could not apply trusted candidate policy", e);
         }
     }

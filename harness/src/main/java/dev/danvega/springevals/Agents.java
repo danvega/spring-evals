@@ -7,8 +7,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.danvega.springevals.cli.AgentCli;
 
@@ -23,7 +23,7 @@ public class Agents {
     }
 
     private final Path agentsDir;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final JsonMapper mapper = JsonMapper.builder().build();
 
     public Agents(Path repoRoot) {
         this.agentsDir = repoRoot.resolve("agents");
@@ -34,23 +34,21 @@ public class Agents {
         if (!Files.exists(file)) {
             throw new IllegalArgumentException("agent config not found: " + file);
         }
-        try {
+        {
             JsonNode node = mapper.readTree(file.toFile());
             Map<String, String> env = new java.util.HashMap<>();
             if (node.has("env")) {
                 node.get("env").properties()
-                        .forEach(entry -> env.put(entry.getKey(), entry.getValue().asText()));
+                        .forEach(entry -> env.put(entry.getKey(), entry.getValue().asString()));
             }
             if (!node.hasNonNull("name") || !node.hasNonNull("provider") || !node.hasNonNull("model")) {
                 throw new IllegalArgumentException("agent config requires name, provider, and model: " + file);
             }
-            AgentSpec spec = new AgentSpec(node.get("name").asText(), node.get("provider").asText(),
-                    node.get("model").asText(), Map.copyOf(env),
+            AgentSpec spec = new AgentSpec(node.get("name").asString(), node.get("provider").asString(),
+                    node.get("model").asString(), Map.copyOf(env),
                     node.has("estCostPerAttemptUsd") ? node.get("estCostPerAttemptUsd").asDouble() : null);
             validate(file, spec);
             return spec;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
     }
 

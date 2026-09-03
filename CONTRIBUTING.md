@@ -81,7 +81,7 @@ Keep policies narrow and accept every reasonable framework-native solution. They
 ./spring-evals validate boot/001-my-eval-name
 ```
 
-This runs both gates. It needs a JDK 25+ and a running Docker daemon. The first run builds the benchmark image and downloads Maven dependencies, so give it several minutes.
+This runs both gates. It needs a JDK 26+ and a running Docker daemon. The first run builds the benchmark image and downloads Maven dependencies, so give it several minutes.
 
 If you have an agent CLI installed, also do a smoke run:
 

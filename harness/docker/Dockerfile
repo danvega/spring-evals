@@ -1,6 +1,6 @@
 # Part of the measurement content hash: changing this file is a measurement change.
 # The nodesource setup script is the one non-pinned input.
-FROM eclipse-temurin:25-jdk@sha256:12e44624adee6808a36d962717e1656e0afeeeff5a100f9cb00e0136513558f0
+FROM eclipse-temurin:26-jdk@sha256:c0fe66ea21e972724000cf402f8081c7841d960839f69cb0754f40b40f74b2cc
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl git gnupg procps unzip zip \

@@ -1,18 +1,17 @@
 package dev.danvega.springevals.cli;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.danvega.springevals.Agents.AgentSpec;
 
 public final class ClaudeCli implements AgentCli {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     @Override
     public String id() {
@@ -57,11 +56,11 @@ public final class ClaudeCli implements AgentCli {
             }
             JsonNode usage = node.get("usage");
             return new AgentOutput(
-                    node.hasNonNull("result") ? node.get("result").asText() : output,
+                    node.hasNonNull("result") ? node.get("result").asString() : output,
                     node.hasNonNull("total_cost_usd") ? node.get("total_cost_usd").asDouble() : null,
                     usage != null && usage.hasNonNull("input_tokens") ? usage.get("input_tokens").asLong() : null,
                     usage != null && usage.hasNonNull("output_tokens") ? usage.get("output_tokens").asLong() : null);
-        } catch (IOException | RuntimeException e) {
+        } catch (RuntimeException e) {
             return new AgentOutput(output, null, null, null);
         }
     }

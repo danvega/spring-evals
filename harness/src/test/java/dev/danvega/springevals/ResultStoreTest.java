@@ -22,7 +22,8 @@ class ResultStoreTest {
                 [{
                   "agent":"old-agent","model":"old-model","eval":"boot/000-example",
                   "project":"boot","attempt":1,"passed":true,"agentDurationMs":1000,
-                  "costUsd":0.1,"workspace":"/tmp/old","timestamp":"2026-01-01T00:00:00Z"
+                  "costUsd":0.1,"workspace":"/tmp/old","timestamp":"2026-01-01T00:00:00Z",
+                  "fieldFromAFutureHarness":"ignored"
                 }]
                 """);
 
@@ -30,5 +31,6 @@ class ResultStoreTest {
 
         assertEquals("old-agent", record.agent());
         assertNull(record.evalHash(), "legacy records must not match a content-versioned cache key");
+        assertEquals(0.1, record.costUsd(), "a record carrying a field this harness does not know must still load");
     }
 }

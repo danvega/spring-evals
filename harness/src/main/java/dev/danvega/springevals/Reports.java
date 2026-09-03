@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import dev.danvega.springevals.ResultStore.RunRecord;
 
@@ -27,7 +27,7 @@ public class Reports {
 
     private final Path repoRoot;
     private final EvalCatalog catalog;
-    private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private final JsonMapper mapper = JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
 
     public Reports(Path repoRoot, EvalCatalog catalog) {
         this.repoRoot = repoRoot;
@@ -287,12 +287,8 @@ public class Reports {
             entry.put("pilot", Boolean.parseBoolean(eval.meta().getOrDefault("pilot", "false")));
             return entry;
         }).toList());
-        try {
-            mapper.writeValue(dashboard.resolve("data.json").toFile(), data);
-            System.out.println("wrote dashboard/data.json");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        mapper.writeValue(dashboard.resolve("data.json").toFile(), data);
+        System.out.println("wrote dashboard/data.json");
     }
 
     /** API-price stand-in (attempts x configured estimate) when CLIs report no dollars. */

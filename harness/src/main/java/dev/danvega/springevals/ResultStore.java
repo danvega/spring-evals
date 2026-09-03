@@ -7,10 +7,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Append-only run records in results/results.json. New provenance fields stay
@@ -28,9 +28,11 @@ public class ResultStore {
     }
 
     private final Path resultsFile;
-    private final ObjectMapper mapper = new ObjectMapper()
+    // Fields added by later harness versions must not break loading records written by earlier ones.
+    private final JsonMapper mapper = JsonMapper.builder()
             .enable(SerializationFeature.INDENT_OUTPUT)
-            .setSerializationInclusion(JsonInclude.Include.ALWAYS);
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
     public ResultStore(Path repoRoot) {
         this.resultsFile = repoRoot.resolve("results").resolve("results.json");
@@ -40,12 +42,8 @@ public class ResultStore {
         if (!Files.exists(resultsFile)) {
             return new ArrayList<>();
         }
-        try {
-            return mapper.readValue(resultsFile.toFile(), new TypeReference<List<RunRecord>>() {
-            });
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return mapper.readValue(resultsFile.toFile(), new TypeReference<List<RunRecord>>() {
+        });
     }
 
     public void save(List<RunRecord> records) {
