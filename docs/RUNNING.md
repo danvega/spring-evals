@@ -139,7 +139,7 @@ JSON
 
 # 3. cheap first pass, then the full treatment if it earns it
 ./spring-evals run --agent new-hotness --pilot --samples 1 --allow-paid-run --max-total-cost 5
-./spring-evals run --agent new-hotness --allow-paid-run --max-total-cost 40
+./spring-evals run --agent new-hotness --allow-paid-run --max-total-cost 60
 
 # 4. refresh the leaderboard and dashboard
 ./spring-evals report

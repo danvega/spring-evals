@@ -14,7 +14,7 @@ A leaderboard, a per-project heatmap, and a log for every run. `./spring-evals r
 
 Here is the honest state of the numbers. Harness 0.6.0 reworked the judge and the scoring (the details are in [docs/VERSIONS.md](docs/VERSIONS.md)), and the leaderboard cohort is keyed on the harness version. So the 0.6.0 cohort is empty until the first campaign runs under it. The last real run is [lazy-cache-39](results/runs/lazy-cache-39.md) from 2026-08-06: the Claude family on the six Boot evals, one sample each, 24 samples, 17 passed, under harness 0.5.0 and the old judge. One of its six evals, boot/003, was later found to have been judged by a defective check, so read that run as five evals. It stays in run history and in the dashboard's run drill-down. It is not on the leaderboard.
 
-The screenshots below predate 0.6.0 and show the old leaderboard columns. The current dashboard shows the pass rate with its 95% interval and the functional rate beside it.
+The screenshots below are from an earlier run in August 2026, not from lazy-cache-39. The catalog held ten evals then, and they show the old leaderboard columns. The current dashboard shows the pass rate with its 95% interval and the functional rate beside it.
 
 ![Leaderboard from a pre-0.6.0 run: the old per-agent pass columns with confidence intervals, tokens, and cost](docs/images/dashboard-leaderboard.png)
 
