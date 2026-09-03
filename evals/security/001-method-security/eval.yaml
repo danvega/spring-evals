@@ -5,7 +5,7 @@ category: security
 type: fix
 difficulty: medium
 baseline_failure: test_failure
-boot_version: 4.1.0
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   A document management app guards its admin-only operations (delete
@@ -16,8 +16,13 @@ description: >
   @EnableMethodSecurity plus @PreAuthorize (or an equivalent method
   security annotation) on the service methods. The trap is fixing the
   symptom instead of the class of bug: adding a role check inside the
-  bulk endpoint makes the web tests pass but leaves the service open,
-  which a hidden direct-invocation test catches by asserting
-  AccessDeniedException under a USER security context. Hand-rolled
-  checks that read the security context inside business code are
-  forbidden by prompt constraint and mechanism checks.
+  bulk endpoint, or a URL rule for its path, makes the web tests pass but
+  leaves the service open, which a hidden direct-invocation test catches
+  by asserting AccessDeniedException under a USER security context.
+  Those shapes fail the hidden tests outright, so they are not shipped as
+  workarounds. The mechanism checks require the current method security
+  enabler and forbid hand-rolled checks that read the security context
+  (in the service or in a custom aspect) and the deprecated
+  @EnableGlobalMethodSecurity route; both are stated in the prompt and
+  proven by the WORKAROUNDS fixtures. ALTERNATIVES prove that @Secured,
+  @RolesAllowed, and a class-level hasAuthority form all pass the checks.
