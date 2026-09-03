@@ -24,7 +24,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # enablement creates the Pages site on first run, so a fresh clone or a
+      # fork does not have to enable it by hand before this workflow can pass.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dashboard
