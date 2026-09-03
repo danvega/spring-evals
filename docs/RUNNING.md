@@ -70,11 +70,14 @@ Superseded content-addressed `spring-evals-bench` images accumulate as the Docke
 
 ## A cost-control playbook
 
-- Start with `--pilot --samples 1`, then expand only the rows that earn it.
+- Pick a cheap model before you cut anything else. Model choice dominates every other lever: one pass over the catalog is about $0.80 on Gemini 3.5 Flash Lite and about $23 on Opus 5, for the same evals through the same judge. The fast tiers (`gemini-3-5-flash-lite`, `gemini-3-8-flash`, `claude-haiku-4-5`, `codex-gpt-5-6-luna`) all sit under $2.50 for a full pass.
+- Start with `--pilot --samples 1`, then expand only the rows that earn it. The pilot is three evals spanning a config fix, a hard data problem, and a build task, so it exercises the pipeline without paying for the whole catalog.
+- Local models through Ollama cost nothing. If you only want to know whether the harness works on your machine, that is the cheapest way to find out.
 - Smoke-test a new agent with `--difficulty easy` before a full run.
 - Scope with `--eval` or `--project` while iterating on anything.
 - Samples multiply spend linearly. One sample per cell is a smoke test; three is the leaderboard default because a single pass or fail per cell is a coin flip.
-- Per-sample budget caps cannot be passed to a headless CLI inside a container. The campaign cap works from per-sample estimates plus claude-reported actual costs. Set per-model limits in provider dashboards as the real backstop.
+- The campaign cap cannot stop one runaway sample. It reserves each sample's estimate before starting it and halts before the cap would be breached, but a sample that costs far more than its estimate is already paid for by the time the harness sees the number, and the overrun is absorbed against the cap. Per-sample budget caps cannot be passed to a headless CLI inside a container, so a provider-side spend limit is the only hard ceiling. Set one.
+- The figures in `estCostPerAttemptUsd` are planning guesses, not measurements, and no run under the current harness has tested them. After your first real run, replace them with what the run actually recorded, and every later projection becomes trustworthy.
 - Every eval project builds with `-ntp`, so agents do not burn tokens reading Maven download logs.
 
 ## Memoization and when you pay again

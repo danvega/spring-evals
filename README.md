@@ -86,13 +86,27 @@ The CLIs live in the benchmark image, so nothing is installed on your machine. [
 
 ## Cost
 
-Scored runs spend real money. Paid execution refuses to start without `--allow-paid-run` and `--max-total-cost`, and `estimate` is free:
+Most of what this project does is free, and a full scored run costs less than a coffee. Only a cross-model campaign is expensive.
+
+| What you run | Cost | What you get |
+|---|---|---|
+| `./spring-evals validate` | free | All 16 evals judged end to end, proving the benchmark is honest |
+| Pilot, three evals, fast model | about $0.15 | The whole paid pipeline, start to finish |
+| **Full catalog, one fast model** | **about $0.80** | **A real leaderboard row across every eval** |
+| Full catalog, three samples | about $2.40 | That row with a meaningful confidence interval |
+| All 16 agents, three samples | about $524 | Cross-model numbers worth publishing |
+
+The cheap rows are not a reduced mode. They run the same evals through the same judge. The only difference is which model does the work: Gemini 3.5 Flash Lite costs $0.05 a sample where Opus 5 costs $1.45. Start there, and spend on a frontier model once you want its number specifically.
+
+Local models through Ollama cost nothing at all. The [agent setup guide](docs/AGENT_SETUP.md) has the one JSON file it takes.
+
+Two guards, and one thing they do not cover. Paid execution refuses to start without `--allow-paid-run` and `--max-total-cost`, and `estimate` takes the same selectors as `run` so you always see the projection first:
 
 ```bash
-./spring-evals estimate --all-agents --samples 1
+./spring-evals estimate --agent gemini-3-5-flash-lite --samples 1
 ```
 
-The full catalog across all twelve agents projects to about $120 at one sample per cell and $360 at three, at API list prices. Subscription-billed agents draw on plans instead, so real cash spend is usually far lower. The [running guide](docs/RUNNING.md) has the cost-control playbook and explains when a re-run costs money again.
+What the campaign cap cannot do is stop a single runaway sample. It reserves each sample's estimate beforehand and halts before the cap is breached, but a sample that costs far more than its estimate is already paid for by the time the harness sees the number. The estimates in `agents/*.json` are planning figures, not measurements, so keep provider-side spend limits on as the real backstop. The [running guide](docs/RUNNING.md) covers the rest, including when a re-run costs money again.
 
 ## Contributing
 

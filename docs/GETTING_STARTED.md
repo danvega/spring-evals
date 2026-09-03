@@ -29,16 +29,24 @@ Step 4 is the one that matters most. It proves the benchmark judges honestly bef
 
 ## Your first scored run
 
-This is the only step that costs money. Paid execution refuses to start without an explicit flag and a spend cap:
+This is the only step that costs money, and it should cost cents. Paid execution refuses to start without an explicit flag and a spend cap:
 
 ```bash
-./spring-evals run --agent claude-sonnet-5 --eval boot/000-initializr-parity \
-  --samples 1 --run-name my-first-run --allow-paid-run --max-total-cost 2
+./spring-evals run --agent gemini-3-5-flash-lite --pilot \
+  --samples 1 --run-name my-first-run --allow-paid-run --max-total-cost 1
 ```
 
-One agent, one eval, one sample is the right first run. Expect a dollar or two. The leaderboard default is three samples per cell, because one sample of a binary outcome is a coin flip, but one is enough to watch the machinery work.
+That is three evals on a fast, cheap model, projected at about $0.15. Use whichever agent you set up in step 3; the fast tiers all land in the same range. Run `estimate` with the same flags first if you want the number before you commit.
 
-That eval asks the model to build a new Spring Boot 4 project from an empty repository, judged against what start.spring.io produces today.
+When that works, the natural next step is the whole catalog on the same model, which is about $0.80:
+
+```bash
+./spring-evals estimate --agent gemini-3-5-flash-lite --samples 1
+```
+
+Save the frontier models for when you want a specific model's number. One pass over the catalog costs about $23 on Opus 5 against $0.80 on Flash Lite, and both run the same evals through the same judge.
+
+One caveat worth knowing before you scale up. The campaign cap reserves each sample's estimate and stops before the cap is breached, but it cannot stop a single sample that costs far more than its estimate, because the harness only learns the real number after the sample finishes. Keep a spend limit set in your provider's dashboard as the real backstop.
 
 ## See what happened
 
