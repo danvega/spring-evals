@@ -106,19 +106,19 @@ Sixteen evals across five suites. The suite READMEs (linked in the Project colum
 | [ai/000-chatclient-basics](evals/ai/000-chatclient-basics) | [spring-ai](evals/ai) | fix | medium | Structured LLM output through the framework's converters against a deterministic stub model |
 | [boot/000-initializr-parity](evals/boot/000-initializr-parity) | [spring-boot](evals/boot) | build | medium | Generating a new Boot 4 project from scratch, judged against the Spring Initializr bar |
 | [boot/001-modular-autoconfig](evals/boot/001-modular-autoconfig) | [spring-boot](evals/boot) | fix | medium | Diagnosing features that silently vanished under Boot 4 modular auto-configuration (Flyway, H2 console) |
-| [boot/002-restclient-migration](evals/boot/002-restclient-migration) | [spring-boot](evals/boot) | fix | easy | Migrating RestTemplate code to the auto-configured RestClient with the right starter |
-| [boot/003-jackson3-migration](evals/boot/003-jackson3-migration) | [spring-boot](evals/boot) | fix | medium | Migrating Jackson 2 code to the Jackson 3 / `tools.jackson` stack while preserving the API's JSON contract |
+| [boot/002-restclient-migration](evals/boot/002-restclient-migration) | [spring-boot](evals/boot) | fix | easy | Migrating HTTP client code that no longer compiles on Boot 4 to the current client stack |
+| [boot/003-jackson3-migration](evals/boot/003-jackson3-migration) | [spring-boot](evals/boot) | fix | medium | Migrating Jackson 2 code to the Jackson 3 stack while preserving the API's JSON contract |
 | [boot/004-flyway-module](evals/boot/004-flyway-module) | [spring-boot](evals/boot) | fix | medium | Diagnosing Flyway migrations that silently stopped running on Boot 4, masked by Hibernate recreating empty tables |
 | [boot/005-h2-console](evals/boot/005-h2-console) | [spring-boot](evals/boot) | fix | easy | Restoring the H2 console after Boot 4 moved it into a dedicated auto-configuration module |
 | [data/000-n-plus-one](evals/data/000-n-plus-one) | [spring-data](evals/data) | fix | hard | Recognizing and fixing an N+1 query pattern from a symptom description, verified by statement counts |
 | [data/001-repository-aot](evals/data/001-repository-aot) | [spring-data](evals/data) | fix | hard | Enabling build-time Spring Data AOT query generation and fixing the broken finder it exposes |
-| [framework/000-resilience-annotations](evals/framework/000-resilience-annotations) | [spring-framework](evals/framework) | build | medium | Core @Retryable and @ConcurrencyLimit instead of adding Spring Retry or Resilience4j |
+| [framework/000-resilience-annotations](evals/framework/000-resilience-annotations) | [spring-framework](evals/framework) | build | medium | Retries and a concurrency limit with Framework 7's built-in resilience support, no third-party library |
 | [framework/001-api-versioning](evals/framework/001-api-versioning) | [spring-framework](evals/framework) | build | medium | Framework 7 native API versioning: two shapes, one path, header-selected |
-| [framework/002-problem-details](evals/framework/002-problem-details) | [spring-framework](evals/framework) | build | easy | RFC 9457 problem details with ProblemDetail and a controller advice |
+| [framework/002-problem-details](evals/framework/002-problem-details) | [spring-framework](evals/framework) | build | easy | Turning a default 500 into an RFC 9457 problem response for a missing resource |
 | [framework/003-transactional-self-invocation](evals/framework/003-transactional-self-invocation) | [spring-framework](evals/framework) | fix | hard | The @Transactional self-invocation proxy trap, diagnosed from a money-goes-missing symptom |
-| [framework/004-jms-client](evals/framework/004-jms-client) | [spring-framework](evals/framework) | fix | medium | Migrating JmsTemplate to the fluent JmsClient, exposing silently dropped QoS settings |
-| [security/000-lockdown](evals/security/000-lockdown) | [spring-security](evals/security) | build | medium | A stateless SecurityFilterChain with public reads, authenticated writes, and an ADMIN area |
-| [security/001-method-security](evals/security/001-method-security) | [spring-security](evals/security) | fix | medium | An authorization bypass through a second code path, fixed with method-level security instead of another web-layer patch |
+| [framework/004-jms-client](evals/framework/004-jms-client) | [spring-framework](evals/framework) | fix | medium | Migrating queue messaging to Framework 7's fluent client, exposing silently dropped quality-of-service settings |
+| [security/000-lockdown](evals/security/000-lockdown) | [spring-security](evals/security) | build | medium | A stateless security configuration: public reads, authenticated writes, and an admin-only area |
+| [security/001-method-security](evals/security/001-method-security) | [spring-security](evals/security) | fix | medium | An authorization bypass where a second code path reaches admin-only operations around the URL rules |
 
 ## Agents and models
 
