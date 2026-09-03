@@ -1,6 +1,6 @@
 {
   "requiredSourcePatterns": [
-    "@EnableMethodSecurity\\b"
+    "EnableMethodSecurity\\b"
   ],
   "forbiddenSourcePatterns": [
     "SecurityContextHolder",

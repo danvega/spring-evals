@@ -5,7 +5,7 @@ category: json
 type: fix
 difficulty: medium
 baseline_failure: test_failure
-boot_version: 4.1.0
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   A support-ticket triage service calls ChatModel directly with a hand-concatenated
@@ -20,9 +20,13 @@ description: >
   the prose path can recover correct triage data. Hidden tests assert typed results,
   delimiter safety, and that the system rules and ticket text reach the model through
   a captured Prompt, which also blocks computing triage locally. checks.json requires
-  a structured-output mechanism (entity or a converter class) and pins the stub's two
-  gating literals so the stub cannot be quietly rewired; it forbids Boot parent
-  downgrades. No forbidden pattern targets manual JSON parsing because that could
-  false-fail legitimate code; the schema-gated stub is the behavioral backstop.
+  a structured-output mechanism (entity, responseEntity, or a converter class) and
+  pins the two stub classes byte for byte so the stub cannot be quietly rewired; it
+  forbids Boot parent downgrades. No forbidden pattern targets manual JSON parsing
+  because that could false-fail legitimate code; the schema-gated stub is the
+  behavioral backstop, and the WORKAROUNDS fixtures (a hand-written schema
+  instruction parsed with Jackson or regexes) prove the required pattern catches
+  the shortcut. ALTERNATIVES cover a ChatModel-direct converter, a converter with
+  call().content(), a ParameterizedTypeReference entity, and responseEntity.
   Models fail this by patching the parser or hand-rolling JSON prompts instead of
-  using the framework's structured output support. Spring AI 2.0.0 on Boot 4.1.0.
+  using the framework's structured output support. Spring AI 2.0.1 on Boot 4.1.1.

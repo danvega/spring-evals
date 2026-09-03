@@ -1,8 +1,6 @@
 {
   "requiredSourcePatterns": [
-    "\\.entity\\(|BeanOutputConverter|StructuredOutputConverter",
-    "contains\\(\"JSON Schema\"\\)",
-    "Your response should be in JSON format"
+    "\\.entity\\(|\\.responseEntity\\(|BeanOutputConverter|StructuredOutputConverter"
   ],
   "forbiddenPomPatterns": [
     "spring-boot-autoconfigure-classic",

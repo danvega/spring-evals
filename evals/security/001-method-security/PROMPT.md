@@ -15,7 +15,8 @@ Constraints:
 
 - Other backend modules call `DocumentService` directly. Keep its class name and public method signatures unchanged.
 - Keep the bulk cleanup endpoint at its current path. Admins still rely on it.
-- Do not hand-roll authorization by reading the security context inside business code. The review board rejected that pattern in another service last quarter.
+- Do not hand-roll authorization by reading the security context yourself, whether in business code, a custom aspect, or an interceptor. The review board rejected that pattern in another service last quarter and wants the security framework to do the enforcing.
+- We are on current Spring Security and stay on its current, non-deprecated APIs.
 - Do not downgrade Spring Boot or Spring Security.
 
 You are done when a plain USER gets 403 on every route to the sensitive operations, the documents survive those denied attempts, and admins can still do everything they could before.
