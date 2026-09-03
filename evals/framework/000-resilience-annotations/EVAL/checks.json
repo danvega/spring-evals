@@ -6,9 +6,6 @@
     "EnableResilientMethods|ResilientMethodsConfiguration|RetryAnnotationBeanPostProcessor",
     "EnableResilientMethods|ResilientMethodsConfiguration|ConcurrencyLimitBeanPostProcessor"
   ],
-  "forbiddenSourcePatterns": [
-    "java\\.util\\.concurrent\\.Semaphore"
-  ],
   "forbiddenPomPatterns": [
     "spring-retry",
     "resilience4j"

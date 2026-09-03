@@ -1,8 +1,11 @@
 {
   "requiredSourcePatterns": [
-    "Mapping\\s*\\(\\s*(?:(?:[^()]|\\((?:[^()]|\\([^()]*\\))*\\))*?,\\s*)?version\\s*=|\\bversion\\s*\\(\\s*(?:\"|[A-Z_][A-Z0-9_]*\\s*\\))"
+    "Mapping\\s*\\(\\s*(?:(?:[^()]|\\((?:[^()]|\\([^()]*\\))*\\))*?,\\s*)?version\\s*=|\\bversion\\s*\\(\\s*(?:\"|[A-Z_][A-Z0-9_]*\\s*\\))|RequestPredicates\\.version\\b"
   ],
   "forbiddenSourcePatterns": [
-    "@RequestHeader"
+    "@RequestHeader",
+    "HttpServletRequest",
+    "firstHeader\\s*\\(",
+    "\\bWebRequest\\b"
   ]
 }
