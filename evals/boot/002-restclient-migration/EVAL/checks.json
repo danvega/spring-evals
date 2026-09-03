@@ -6,6 +6,9 @@
     "import\\s+[\\w.]*\\bRestTemplate",
     "org\\.springframework\\.web\\.client\\.RestTemplate\\b"
   ],
+  "requiredRuntimeArtifacts": [
+    "org.springframework.boot:spring-boot-restclient"
+  ],
   "pinned": [
     "src/main/java/com/example/quotes/PartnerQuotesController.java"
   ]

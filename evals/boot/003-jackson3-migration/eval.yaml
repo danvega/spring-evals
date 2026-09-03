@@ -5,10 +5,10 @@ category: json
 type: fix
 difficulty: medium
 baseline_failure: compile_failure
-boot_version: 4.0.7
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
-  A Spring Boot 3.5 service was bumped to Boot 4.0, which ships Jackson 3.
+  A Spring Boot 3.5 service was bumped to Boot 4.1, which ships Jackson 3.
   The code still uses com.fasterxml.jackson.databind (ObjectMapper, JavaTimeModule,
   checked JsonProcessingException) and no longer compiles. The agent must migrate
   to the tools.jackson stack while preserving the API's JSON contract

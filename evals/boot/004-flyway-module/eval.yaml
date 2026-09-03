@@ -5,7 +5,7 @@ category: data
 type: fix
 difficulty: medium
 baseline_failure: test_failure
-boot_version: 4.1.0
+boot_version: 4.1.1
 timeout_seconds: 900
 description: >
   Spring Boot 4 moved Flyway support into its own auto-configuration
