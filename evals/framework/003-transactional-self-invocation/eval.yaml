@@ -18,11 +18,14 @@ description: >
   credit, or every debit, during one transfer. That makes the non-atomic
   shortcuts visible from outside: pre-validating the target, depositing
   before withdrawing, and refunding after a failed deposit all fail the
-  hidden tests, so none of them ships as a workaround. The idiom check is
-  package presence only, org.springframework.transaction or
-  jakarta.transaction, which every Spring route satisfies: @Transactional
-  on the entry point, a separate collaborator bean, a self reference, or
-  TransactionTemplate. A hand-managed JDBC connection is atomic but
-  bypasses Spring's transaction management, so it is functional_only.
-  Account and AccountSeeder are pinned because the trigger relies on the
-  account table's balance column and on the seed balances.
+  hidden tests, so none of them ships as a workaround. The prompt asks for
+  framework-managed transactions and bans hand-opened connections, and the
+  idiom check enforces exactly that stated constraint by package presence
+  only, org.springframework.transaction or jakarta.transaction. Every
+  Spring route satisfies it: @Transactional on the entry point, a separate
+  collaborator bean, a self reference, or TransactionTemplate. The
+  workaround commits a hand-managed JDBC connection. It is atomic and it
+  keeps the deposit rules in deposit, after the withdrawal, so the only
+  rule it breaks is the one the check enforces. Account and AccountSeeder
+  are pinned because the trigger relies on the account table's balance
+  column and on the seed balances, and both carry a do-not-modify marker.

@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
+/** Ledger row shared with other services. DO NOT MODIFY. */
 @Entity
 public class Account {
 

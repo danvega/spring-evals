@@ -1,5 +1,5 @@
 {
   "requiredSourcePatterns": [
-    "\\b(?:ProblemDetail|ErrorResponse|ErrorResponseException|ResponseStatusException|ResponseEntityExceptionHandler)\\b"
+    "\\b(?:ProblemDetail|ErrorResponse|ErrorResponseException|ResponseStatusException)\\b"
   ]
 }

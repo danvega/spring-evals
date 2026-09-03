@@ -11,8 +11,9 @@ import javax.sql.DataSource;
 import org.springframework.stereotype.Service;
 
 /**
- * Atomic, but it reaches past Spring's transaction management and rewrites
- * both ledger operations in SQL on a hand-managed connection.
+ * Atomic, and the deposit rules stay in deposit and still run after the
+ * withdrawal, but the transaction is opened and committed by hand instead
+ * of being managed by the framework.
  */
 @Service
 public class TransferService {
@@ -27,16 +28,8 @@ public class TransferService {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             try {
-                BigDecimal fromBalance = balanceOf(connection, fromId);
-                if (fromBalance.compareTo(amount) < 0) {
-                    throw new TransferException("insufficient funds in " + fromId);
-                }
-                BigDecimal toBalance = balanceOf(connection, toId);
-                if (frozen(connection, toId)) {
-                    throw new TransferException("account " + toId + " is frozen");
-                }
-                updateBalance(connection, fromId, fromBalance.subtract(amount));
-                updateBalance(connection, toId, toBalance.add(amount));
+                withdraw(connection, fromId, amount);
+                deposit(connection, toId, amount);
                 connection.commit();
             }
             catch (SQLException | RuntimeException failure) {
@@ -50,6 +43,25 @@ public class TransferService {
         catch (SQLException failure) {
             throw new TransferException("transfer failed: " + failure.getMessage());
         }
+    }
+
+    private void withdraw(Connection connection, String accountId, BigDecimal amount) throws SQLException {
+        BigDecimal balance = balanceOf(connection, accountId);
+        if (balance.compareTo(amount) < 0) {
+            throw new TransferException("insufficient funds in " + accountId);
+        }
+        updateBalance(connection, accountId, balance.subtract(amount));
+    }
+
+    /**
+     * Deposit owns the rules about which accounts can receive money.
+     */
+    private void deposit(Connection connection, String accountId, BigDecimal amount) throws SQLException {
+        if (frozen(connection, accountId)) {
+            throw new TransferException("account " + accountId + " is frozen");
+        }
+        BigDecimal balance = balanceOf(connection, accountId);
+        updateBalance(connection, accountId, balance.add(amount));
     }
 
     private BigDecimal balanceOf(Connection connection, String accountId) throws SQLException {
