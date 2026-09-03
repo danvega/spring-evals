@@ -22,3 +22,11 @@ description: >
   a base class, so extending it says nothing about how the body was built.
   Both workarounds prove that, one plain and one extending that base class
   while still assembling the body by hand.
+  Known residual: ResponseStatusException is accepted because a candidate
+  can legitimately name only that type and let the framework render the
+  body, but the token is not proof the framework built it. A candidate that
+  extends it for the status and then assembles the RFC members by hand in
+  an advice reaches pass. Removing the token would trade that false pass
+  for a false negative against a genuinely framework-native route, and no
+  source pattern can see which renderer produced the body. The hidden test
+  is the layer that would close it.

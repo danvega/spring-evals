@@ -29,3 +29,10 @@ description: >
   rule it breaks is the one the check enforces. Account and AccountSeeder
   are pinned because the trigger relies on the account table's balance
   column and on the seed balances, and both carry a do-not-modify marker.
+  Maintenance constraint: the hidden tests install a temporary H2 row
+  trigger to make a credit or a debit fail inside the database. That ties
+  them to H2 through the org.h2.api.Trigger interface, H2's create-trigger
+  syntax, and row arrays indexed by column position. Changing the fixture's
+  database means rewriting them. The design is fail-safe: a leaked trigger
+  can only make a transfer fail, so it surfaces as a false failure, never
+  as a false pass.
