@@ -1,89 +1,70 @@
 # Getting started
 
-Everything here runs free except the last step, and that one tells you its price first. Total time: about ten minutes.
+Everything here is free except the last step, and that step tells you its price first.
 
-## What this is, in three sentences
+## What you need
 
-Spring Evals measures how well AI models and coding agents write real Spring code. Each eval is a real Spring Boot project with a task described the way a developer would describe it; the agent works in a fresh container, and hidden tests it never sees decide pass or fail. Results feed a leaderboard and a local dashboard.
+JDK 26 and Docker running. Every agent and every judge runs in a container, so nothing is installed on your machine and Docker is required even for the free parts. SDKMAN users can run `sdk env` in the repo root to pick up the pinned JDK.
 
-## Before you start
+Scored runs also need a credential for at least one agent. You do not need one to see the benchmark work.
 
-You need JDK 26+, Docker, and network access for Maven. That is all for the free parts. Every agent and every judge runs in a container, so Docker must be running. SDKMAN users can just run `sdk env` in the repo root; the checked-in `.sdkmanrc` pins a matching JDK.
-
-## 1. Run the wizard
+## Run the wizard
 
 ```bash
 ./spring-evals serve
 ```
 
-Open http://localhost:4173/onboarding.html. The wizard runs six steps in the browser. Every step is free, and the last one only prints a command:
+Open <http://localhost:4173/onboarding.html>. It binds to localhost only.
 
-1. **Environment**: your JDK, whether Docker is reachable, and whether the benchmark image is built.
-2. **Agents**: pick the agents you have credentials for. The choice is saved to `spring-evals.local.json` in the repo root, so `--all-agents` skips the rest.
-3. **Credentials**: checks that each chosen agent's environment variables are set. Values are never stored or shown.
-4. **Prove it**: streams `./spring-evals validate` for one eval, so you watch the broken project fail and the reference solution pass. The first run builds the benchmark image, so give it several minutes.
-5. **Estimate**: projects the cost of your first run from the per-sample figures in `agents/*.json`.
-6. **Your run command**: prints the exact `./spring-evals run` line with the paid-run flags. Nothing on the page can start a paid run; you paste the command yourself.
+Six steps, in order:
 
-The server binds to localhost only. The rest of this guide is the same path in the terminal, for when you would rather type it or want to know what each step does underneath.
+1. **Environment.** Your JDK, whether Docker is reachable, and whether the benchmark image is built.
+2. **Agents.** Pick the ones you have credentials for. Your choice is saved to `spring-evals.local.json`, so later commands skip the rest.
+3. **Credentials.** Checks that each chosen agent's environment variables are set, as the container will see them. Values are never stored or shown. [Agent setup](AGENT_SETUP.md) covers how to get each one.
+4. **Prove it.** Streams a real eval through the judge so you watch the broken project fail and the reference solution pass. First run builds the image, so give it several minutes.
+5. **Estimate.** Projects what your first run will cost.
+6. **Your run command.** Prints the exact command with the paid-run flags. Nothing on the page can start a paid run. You paste the command yourself.
 
-## 2. See the catalog
+Step 4 is the one that matters most. It proves the benchmark judges honestly before you spend anything on it.
 
-```bash
-./spring-evals list
-```
+## Your first scored run
 
-You should see the eval catalog, grouped by Spring project.
-
-## 3. Prove the benchmark works, for free
-
-```bash
-./spring-evals validate boot/002-restclient-migration
-```
-
-This takes one eval and proves its gates: the broken project fails the hidden tests, and the reference solution passes them. Evals that ship alternatives and workarounds prove those too. The first run builds the benchmark image and downloads Maven dependencies, so give it several minutes. No AI is involved and nothing is spent.
-
-## 4. Pick one agent you already have
-
-Do not set up all twelve agents. Pick the one CLI you already use, set it up from the matching section of the [agent setup guide](AGENT_SETUP.md), and verify it:
-
-```bash
-./spring-evals doctor --agent claude-sonnet-5
-```
-
-Doctor checks credentials and the billing source as the container will see them, without sending a prompt or spending anything. The agent CLIs themselves live in the benchmark image, so nothing needs to be installed on your machine beyond what mints a credential. Fix what it flags; ignore agents you did not set up. If you want `--all-agents` to skip the ones you have no keys for, copy `spring-evals.local.json.example` to `spring-evals.local.json` in the repo root and list the agents you use under `enabledAgents`. The wizard's Agents step writes the same file.
-
-## 5. See the price before you spend
-
-```bash
-./spring-evals estimate --agent claude-sonnet-5 --eval boot/000-initializr-parity --samples 1
-```
-
-One agent, one eval, one sample is nearly always the right first run. The leaderboard default is three samples per cell; one is enough to see the machinery work. Expect an estimate around a dollar or two.
-
-## 6. Your first scored run
-
-Paid execution refuses to start without an explicit flag and a spend cap:
+This is the only step that costs money. Paid execution refuses to start without an explicit flag and a spend cap:
 
 ```bash
 ./spring-evals run --agent claude-sonnet-5 --eval boot/000-initializr-parity \
   --samples 1 --run-name my-first-run --allow-paid-run --max-total-cost 2
 ```
 
-The eval asks the model to build a new Spring Boot 4 project from an empty repository, judged against what start.spring.io produces today.
+One agent, one eval, one sample is the right first run. Expect a dollar or two. The leaderboard default is three samples per cell, because one sample of a binary outcome is a coin flip, but one is enough to watch the machinery work.
 
-## 7. See what happened
+That eval asks the model to build a new Spring Boot 4 project from an empty repository, judged against what start.spring.io produces today.
+
+## See what happened
 
 ```bash
 ./spring-evals report
 ./spring-evals serve
 ```
 
-Open http://localhost:4173. Your run appears in the Runs section by name, with a scoreboard and per-sample detail. The raw story lives in `results/runs/my-first-run.md`: the outcome, whether the hidden tests passed and the idiom checks held, a one-line transcript summary with the path to the full session, and the agent's own summary of what it did.
+Open <http://localhost:4173>. Your run is in the Runs section by name. `results/runs/my-first-run.md` has the raw story: the outcome, whether the tests passed and the checks held, a summary of what the agent did, and the path to its full session.
+
+## The same path in the terminal
+
+The wizard is a front end over these. Every one is free.
+
+| Step | Command |
+|---|---|
+| See the catalog | `./spring-evals list` |
+| Check an agent's credentials | `./spring-evals doctor --agent claude-sonnet-5` |
+| Prove one eval judges correctly | `./spring-evals validate boot/002-restclient-migration` |
+| Project a cost | `./spring-evals estimate --agent claude-sonnet-5 --eval boot/000-initializr-parity --samples 1` |
+
+Do not set up all twelve agents. Pick the CLI you already use.
 
 ## Where to go next
 
 - Add more agents: [AGENT_SETUP.md](AGENT_SETUP.md)
-- Run more, spend less, and read transcripts: [RUNNING.md](RUNNING.md)
-- What a leaderboard row means and how the benchmark stays honest: [METHODOLOGY.md](METHODOLOGY.md)
-- Build an eval of your own: [CONTRIBUTING.md](../CONTRIBUTING.md)
+- Run more, spend less, read transcripts: [RUNNING.md](RUNNING.md)
+- What a leaderboard row means, and how the benchmark stays honest: [METHODOLOGY.md](METHODOLOGY.md)
+- Build an eval: [CONTRIBUTING.md](../CONTRIBUTING.md)
