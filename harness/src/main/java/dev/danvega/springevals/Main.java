@@ -1,6 +1,7 @@
 package dev.danvega.springevals;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -470,13 +471,28 @@ public class Main {
             }
             // Stored, summarized, and scanned only once the container is gone; the raw stream never enters results.
             AgentRun agentRun = captureTranscript(session, cli, spec, eval, ctx.campaignId(), sample, log);
-            String candidateHash = ContentHashes.candidate(ws);
-            boolean untouched = baselineHash.equals(candidateHash);
-            log.accept("injecting hidden tests, judging with ./mvnw clean test in a fresh container...");
-            workspaces.injectEvalTests(eval, ws);
+            // A link that dangles on the host would crash injection, and one that resolves would let
+            // injection write outside the workspace, so the gate runs before any walk touches the tree.
+            Judgment gate = workspaceGate(ws);
+            String candidateHash = null;
+            boolean untouched = false;
             Judgment verdict;
-            try (DockerSandbox.Container judgeContainer = DockerSandbox.start(ws, Map.of(), ctx.image())) {
-                verdict = mavenJudge.judge(eval, ws, judgeContainer.buildRunner());
+            if (gate != null) {
+                verdict = gate;
+                log.accept("workspace refused before judging: " + gate.reasoning());
+            } else {
+                try {
+                    candidateHash = ContentHashes.candidate(ws);
+                    untouched = baselineHash.equals(candidateHash);
+                    log.accept("injecting hidden tests, judging with ./mvnw clean test in a fresh container...");
+                    workspaces.injectEvalTests(eval, ws);
+                    try (DockerSandbox.Container judgeContainer = DockerSandbox.start(ws, Map.of(), ctx.image())) {
+                        verdict = mavenJudge.judge(eval, ws, judgeContainer.buildRunner());
+                    }
+                } catch (UncheckedIOException e) {
+                    verdict = Judgment.error("workspace could not be hashed, injected, or judged", e);
+                    log.accept("judge error: " + verdict.reasoning());
+                }
             }
             if (ctx.paid() && agentRun.costUsd() != null && agentRun.costUsd() > reservation) {
                 ctx.reserver().absorbOverrun(agentRun.costUsd() - reservation);
@@ -512,6 +528,21 @@ public class Main {
             Long inputTokens, Long outputTokens, Long totalTokens, String responseText,
             Integer exitCode, Boolean timedOut, String transcriptPath, Transcript transcript,
             List<String> contaminationFlags) {
+    }
+
+    /**
+     * Any symbolic link is refused as a policy failure before the workspace is
+     * hashed or injected; a tree the harness cannot read is a judge error, never
+     * a lost sample. Null means the workspace may be judged.
+     */
+    static Judgment workspaceGate(Path workspace) {
+        try {
+            String link = MavenJudge.symbolicLink(workspace);
+            return link == null ? null : Judgment.policyFailure("symbolic link in workspace: " + link
+                    + "; the candidate was neither hashed nor judged");
+        } catch (IOException | UncheckedIOException e) {
+            return Judgment.error("workspace could not be walked", e);
+        }
     }
 
     /** What the container returned: the parsed run plus the raw stream, which lives only until it is stored. */

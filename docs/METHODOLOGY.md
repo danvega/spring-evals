@@ -34,7 +34,7 @@ Candidate workspaces are created outside the repository so reference solutions a
 
 1. removes candidate-written tests;
 2. restores the trusted Maven launcher and wrapper configuration;
-3. rejects build configuration that can skip or redirect tests or outputs, rejects any pom that escapes the one it reads (a workspace-local parent, a second pom.xml, `<modules>`, custom repositories, build extensions, or property-interpolated plugin coordinates), and rejects edits to pinned fixture files (any of these is a `policy_failure`, and nothing else runs);
+3. refuses any symbolic link anywhere in the workspace (checked before the candidate is hashed or tests are injected, since a link that dangles on the host or resolves outside the workspace must never be followed), a missing or non-regular `pom.xml` or `mvnw`, and a malformed pom; rejects build configuration that can skip or redirect tests or outputs; rejects any pom that escapes the one it reads (a workspace-local parent, a second pom.xml, `<modules>`, custom repositories, build extensions, or property-interpolated plugin coordinates); and rejects edits to pinned fixture files (any of these is a `policy_failure`, and nothing else runs; a workspace the harness cannot read is a `judge_error`);
 4. injects hidden tests;
 5. runs the behavioral tests and verifies Surefire evidence that every hidden test class executed (success without that evidence is a `policy_failure`); and
 6. applies the idiom checks: required and forbidden source patterns, required and forbidden pom patterns, and required runtime artifacts.

@@ -3,6 +3,7 @@ package dev.danvega.springevals;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
@@ -66,7 +67,7 @@ public class Workspaces {
 
     /** Remove any tests the agent wrote, then inject the hidden eval tests. */
     public void injectEvalTests(EvalDefinition eval, Path ws) {
-        deleteTree(ws.resolve("src").resolve("test"));
+        deleteWithin(ws, ws.resolve("src").resolve("test"));
         copyTree(eval.evalTestsDir(), ws);
         restoreTrustedMavenLauncher(eval, ws);
     }
@@ -74,7 +75,7 @@ public class Workspaces {
     // The candidate pom stays intact (dependency changes are part of several
     // evals); MavenJudge separately rejects test-skipping configuration.
     private void restoreTrustedMavenLauncher(EvalDefinition eval, Path ws) {
-        deleteTree(ws.resolve(".mvn"));
+        deleteWithin(ws, ws.resolve(".mvn"));
         Path trustedMvn = eval.projectDir().resolve(".mvn");
         if (Files.isDirectory(trustedMvn)) {
             copyTree(trustedMvn, ws.resolve(".mvn"));
@@ -83,7 +84,7 @@ public class Workspaces {
             Path source = eval.projectDir().resolve(launcher);
             if (Files.exists(source)) {
                 try {
-                    deleteTree(ws.resolve(launcher));
+                    deleteWithin(ws, ws.resolve(launcher));
                     Files.copy(source, ws.resolve(launcher), StandardCopyOption.REPLACE_EXISTING,
                             StandardCopyOption.COPY_ATTRIBUTES);
                 } catch (IOException e) {
@@ -97,14 +98,19 @@ public class Workspaces {
         }
     }
 
+    /** Destinations are always real files and directories: a link or file in the way is replaced, never followed. */
     static void copyTree(Path source, Path target) {
         try (Stream<Path> paths = Files.walk(source)) {
             for (Path path : paths.toList()) {
                 Path destination = target.resolve(source.relativize(path).toString());
                 if (Files.isDirectory(path)) {
-                    Files.createDirectories(destination);
+                    realDirectory(target, destination);
                 } else {
-                    Files.createDirectories(destination.getParent());
+                    realDirectory(target, destination.getParent());
+                    if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)
+                            && !Files.isRegularFile(destination, LinkOption.NOFOLLOW_LINKS)) {
+                        deleteTree(destination);
+                    }
                     Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING,
                             StandardCopyOption.COPY_ATTRIBUTES);
                 }
@@ -114,9 +120,50 @@ public class Workspaces {
         }
     }
 
+    /** Creates dir under root as real directories, replacing any link or file on the way. */
+    private static void realDirectory(Path root, Path dir) throws IOException {
+        Path current = root;
+        for (Path component : root.relativize(dir)) {
+            current = current.resolve(component);
+            if (Files.exists(current, LinkOption.NOFOLLOW_LINKS)
+                    && !Files.isDirectory(current, LinkOption.NOFOLLOW_LINKS)) {
+                deleteTree(current);
+            }
+            if (!Files.exists(current, LinkOption.NOFOLLOW_LINKS)) {
+                Files.createDirectory(current);
+            }
+        }
+    }
+
+    /**
+     * Deletes target inside root without ever following a link: if any path
+     * component under root is a link, that link is removed instead, because
+     * the deeper path would resolve wherever the agent pointed it.
+     */
+    static void deleteWithin(Path root, Path target) {
+        Path current = root;
+        for (Path component : root.relativize(target)) {
+            current = current.resolve(component);
+            if (Files.isSymbolicLink(current)) {
+                deleteTree(current);
+                return;
+            }
+        }
+        deleteTree(target);
+    }
+
+    /** A link is deleted as a link; its target, wherever it points, is never touched. */
     static void deleteTree(Path dir) {
-        if (!Files.exists(dir)) {
+        if (!Files.exists(dir, LinkOption.NOFOLLOW_LINKS)) {
             return;
+        }
+        try {
+            if (Files.isSymbolicLink(dir) || !Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) {
+                Files.delete(dir);
+                return;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
         try (Stream<Path> paths = Files.walk(dir)) {
             paths.sorted(Comparator.reverseOrder()).forEach(path -> {
